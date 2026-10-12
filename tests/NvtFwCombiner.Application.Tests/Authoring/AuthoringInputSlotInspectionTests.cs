@@ -41,7 +41,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Null(result.InspectionLifecycle);
         Assert.Null(result.FileStamp);
         Assert.Equal("reference-base", result.ReadinessNextAction!.SubjectId);
-        Assert.Equal(route.CapabilityFingerprint, result.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(route.CapabilityFingerprint, result.CapabilityFingerprint, "SHA-256");
         Assert.Null(result.CompilationFingerprint);
     }
 
@@ -57,9 +57,9 @@ public sealed partial class AuthoringInputSlotInspectionTests
             ReadySelection(),
             SourceSpace);
 
-        Assert.Equal(
-            capability.CompiledComposition.CompilationFingerprint,
-            result.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(capability.CompiledComposition.CompilationFingerprint, result.CompilationFingerprint, "SHA-256"
+
+);
         Assert.Null(result.InspectionLifecycle);
         Assert.Null(result.FileStamp);
         Assert.Null(result.Inspection);
@@ -120,8 +120,8 @@ public sealed partial class AuthoringInputSlotInspectionTests
         Assert.Equal(FileStamp.FromBytes(source), result.FileStamp);
         Assert.Equal(SourceSlot, result.SlotId);
         Assert.Equal(capability.ResolutionToken, result.ResolutionToken);
-        Assert.Equal(CapabilityFingerprint, result.CapabilityFingerprint);
-        Assert.Equal(capability.CompiledComposition.CompilationFingerprint, result.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(CapabilityFingerprint, result.CapabilityFingerprint, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(capability.CompiledComposition.CompilationFingerprint, result.CompilationFingerprint, "SHA-256");
         Assert.NotNull(result.Inspection);
     }
 
@@ -150,7 +150,7 @@ public sealed partial class AuthoringInputSlotInspectionTests
         if (expectedIssueCode == "firmware-config.chip-count-unreadable")
         {
             Assert.Equal(new ByteRange(0, 4), result.Inspection.AcceptedSnapshotRange);
-            Assert.Equal(FileStamp.FromBytes(new byte[4]).Sha256, result.Inspection.AcceptedSnapshotSha256);
+            GoldenAssert.AssertHashEqualsGolden(FileStamp.FromBytes(new byte[4]).Sha256, result.Inspection.AcceptedSnapshotSha256, "SHA-256");
             Assert.True(result.AcceptedBytes.GetValueOrDefault().IsEmpty);
         }
     }

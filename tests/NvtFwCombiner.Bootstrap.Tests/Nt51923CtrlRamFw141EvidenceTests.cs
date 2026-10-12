@@ -20,45 +20,21 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
 
     /// <summary>Proves the exact owner control produces the locked V2 bytes, process authority, and argv.</summary>
     [Theory]
-    [InlineData(
-        "nt51923-fw141-single-auto-prj-662-20260717",
-        "single",
-        "nt51923-ctrlram-replace-fw141-single",
-        1,
-        0x6005,
-        "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
-        "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38")]
-    [InlineData(
-        "nt51923-fw141-cascade3-auto-prj-734-20260717",
-        "cascade",
-        "nt51923-ctrlram-replace-fw141-cascade3",
-        3,
-        0x4C03,
-        "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18",
-        "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c")]
-    public async Task ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(
-        string caseId,
-        string topology,
-        string v2ProfileId,
-        byte chipCount,
-        ushort projectId,
-        string ownerExpectedSha256,
-        string outputSha256)
+    [MemberData(nameof(ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsyncCases))]
+    public async Task ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsync(GoldenCaseId caseId, string topology, string v2ProfileId, byte chipCount, ushort projectId, string ownerExpectedSha256, string outputSha256)
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
-
-        OwnerCase ownerCase = ReadOwnerCase(caseId, topology);
-        Assert.Equal(ownerExpectedSha256, Hash(ownerCase.Expected.Bytes));
+        OwnerCase ownerCase = ReadOwnerCase(caseId.Value, topology);
+        GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(ownerCase.Expected.Bytes), "SHA-256");
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             ownerCase.Expected.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(chipCount, metadata.ChipNumber);
-        Assert.Equal(projectId, metadata.ProjectId);
-
+        GoldenAssert.AssertValueEqualsGolden(projectId, metadata.ProjectId, "firmware field");
         var immutableHashes = ownerCase.Artifacts.ToDictionary(
             static artifact => artifact.Path,
             static artifact => Hash(artifact.Bytes),
@@ -80,8 +56,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         {
             Assert.Equal("nt51923-standard-merge-gen-flash", ReadProfileId(standardMergeReport.RootElement));
         }
-
-        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(ownerCase.Expected.Bytes, GoldenFileIo.ReadAllBytes(referencePath), GoldenDiagnostics.Label(caseId.Value));
         IReadOnlyDictionary<string, string> slots = CreateSlotPaths(ownerCase, referencePath);
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
@@ -92,12 +67,11 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
             build: true,
             TestContext.Current.CancellationToken,
             v2OutputPath);
-
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
-        Assert.Equal(outputSha256, Hash(v2Bytes));
-        Assert.Equal(outputSha256, v2.OutputSha256);
-        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
+        GoldenAssert.AssertHashEqualsGolden(outputSha256, Hash(v2Bytes), "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(outputSha256, v2.OutputSha256, "SHA-256");
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
                 goldenCase,
@@ -105,30 +79,27 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
                 v2Bytes);
         Assert.Equal(16, manifestDifferences.DifferenceCount);
         AssertOwnerCrcOnlyDifference(ownerCase.Expected.Bytes, v2Bytes);
-
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
-        Assert.Equal(ownerExpectedSha256, Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>Structurally valid base and display-only metadata variations retain the requested V2 route.</summary>
     [Theory]
-    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "single", "single", "pid")]
-    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "single", "single", "version")]
-    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "cascade", "cascade", "pid")]
-    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "cascade", "cascade", "version")]
-    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "cascade", "cascade", "chip")]
+    [MemberData(nameof(ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsyncCases))]
+
+
     public async Task ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsync(
-        string caseId,
+        GoldenCaseId caseId,
         string topology,
         string number,
         string mutation)
     {
-        OwnerCase ownerCase = ReadOwnerCase(caseId, topology);
+        OwnerCase ownerCase = ReadOwnerCase(caseId.Value, topology);
         using var workspace = TempWorkspace.Create($"nfc-nt51923-fw141-{topology}-negative");
         string referencePath = workspace.PathFor("reference.bin");
         byte[] reference = [.. ownerCase.Expected.Bytes];
@@ -151,7 +122,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
                 throw new InvalidOperationException($"Unknown mutation '{mutation}'.");
         }
 
-        File.WriteAllBytes(referencePath, reference);
+        _ = workspace.Write(Path.GetRelativePath(workspace.Root, referencePath), reference);
         Dictionary<string, string> slots = CreateSlotPaths(ownerCase);
         slots[CompositionSlotIds.ReplaceBase] = referencePath;
         string outputPath = workspace.PathFor("metadata-variation-output.bin");
@@ -172,7 +143,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
                 ? "nt51923-ctrlram-replace-fw141-single"
                 : "nt51923-ctrlram-replace-fw141-cascade3");
         Assert.True(File.Exists(outputPath));
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
     }
 
     private static void AssertOwnerCrcOnlyDifference(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual)
@@ -329,9 +300,9 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
                 .Select(entry =>
                 {
                     string path = RepositoryPaths.ManifestPath(GoldenRoot, entry);
-                    byte[] bytes = File.ReadAllBytes(path);
+                    byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                     Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-                    Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+                    GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
                     return new OwnerArtifact(
                         entry.GetProperty("originalFileName").GetString()!,
                         entry.GetProperty("sourceRole").GetString()!,
@@ -374,4 +345,21 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
     private sealed record OwnerArtifact(string FileName, string Role, string Path, byte[] Bytes);
 
     private static string GoldenRoot => CanonicalGoldenTestData.Root;
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, byte, ushort, string, string> ExactOwnerCasesRunThroughV2WithLockedProcessEvidenceAsyncCases() => new()
+    {
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "single", "nt51923-ctrlram-replace-fw141-single", 1, 0x6005, "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f", "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38" },
+        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "cascade", "nt51923-ctrlram-replace-fw141-cascade3", 3, 0x4C03, "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18", "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c" },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, string> ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsyncCases() => new()
+    {
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "single", "single", "pid" },
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "single", "single", "version" },
+        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "cascade", "cascade", "pid" },
+        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "cascade", "cascade", "version" },
+        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "cascade", "cascade", "chip" },
+    };
 }

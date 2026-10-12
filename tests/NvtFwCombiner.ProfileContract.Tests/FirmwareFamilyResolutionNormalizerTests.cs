@@ -4,6 +4,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Profiles.FirmwareFamilies;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.ProfileContract.Tests;
 
 /// <summary>Tests alias-free Profiles normalization of schema-shaped firmware family DTOs.</summary>
@@ -35,7 +37,7 @@ public sealed partial class FirmwareFamilyResolutionNormalizerTests
 
         Assert.Equal("synthetic-family", definition.FamilyId);
         Assert.Equal("1.0.0", definition.FamilyVersion);
-        Assert.Equal(FamilyHash, definition.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(FamilyHash, definition.FamilyContentHash, "SHA-256");
         FirmwareImageMap map = Assert.Single(definition.ImageMaps);
         Assert.Equal("map", map.MapId);
         Assert.Equal(16, map.CapacityBytes);

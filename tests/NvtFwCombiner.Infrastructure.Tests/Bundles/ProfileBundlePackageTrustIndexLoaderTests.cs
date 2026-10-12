@@ -22,12 +22,12 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         ProfileBundlePackageTrustIndex second = ProfileBundlePackageTrustIndexLoader.Load(path);
         File.Delete(path);
 
-        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(original)), first.ActualSha256);
-        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(changed)), second.ActualSha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(original)), first.ActualSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(changed)), second.ActualSha256, "SHA-256");
         Assert.NotEqual(first.ActualSha256, second.ActualSha256);
         Assert.Equal(first.TrustIndexId, second.TrustIndexId);
         Assert.Equal(first.TrustIndexVersion, second.TrustIndexVersion);
-        Assert.Equal(first.Bundles.Select(x => x.ContentHash), second.Bundles.Select(x => x.ContentHash));
+        GoldenAssert.AssertHashSequenceEqualsGolden(first.Bundles.Select(x => x.ContentHash), second.Bundles.Select(x => x.ContentHash), "SHA-256");
     }
 
     /// <summary>The file-size gate rejects an oversized index before allocating its snapshot.</summary>

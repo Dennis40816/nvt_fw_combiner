@@ -81,9 +81,9 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal(0, delivery.GetProperty("SourceRange").GetProperty("Start").GetInt64());
         Assert.Equal(additionalBytes.LongLength, delivery.GetProperty("SourceRange").GetProperty("Length").GetInt64());
         GoldenAssert.AssertEqualsGolden(primaryBytes.AsSpan(0, additionalBytes.Length), additionalBytes, "firmware image");
-        Assert.Equal(
-            Convert.ToHexStringLower(SHA256.HashData(additionalBytes)),
-            delivery.GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(additionalBytes)), delivery.GetProperty("Sha256").GetString(), "SHA-256"
+
+);
     }
 
     /// <summary>Cancelling the loose A-only picker after choosing a primary publishes nothing.</summary>

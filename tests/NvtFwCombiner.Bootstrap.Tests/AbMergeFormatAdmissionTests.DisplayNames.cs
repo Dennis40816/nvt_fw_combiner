@@ -46,7 +46,7 @@ public sealed partial class AbMergeFormatAdmissionTests
             Assert.Equal(name, observation.DetectedDisplayName);
             Assert.Equal(selection.DisplayName, observation.DisplayName);
             Assert.Equal(configuration.Generation, observation.ConfigurationGeneration);
-            Assert.Equal(ConfigHash, observation.ConfigurationSourceSha256);
+            GoldenAssert.AssertHashEqualsGolden(ConfigHash, observation.ConfigurationSourceSha256, "SHA-256");
             Assert.Equal(primary.Resolved!.ArtifactIdentity, observation.ArtifactIdentity);
             Assert.Equal(primary.Resolved.LocatorOutcome.ResolvedRange, observation.PrimaryRange);
         }

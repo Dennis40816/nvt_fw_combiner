@@ -34,7 +34,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         byte[] reference = ReconstructReference(evidence);
 
         GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, reference, GoldenDiagnostics.Label(CaseId));
-        Assert.Equal(evidence.Expected.Sha256, Hash(reference));
+        GoldenAssert.AssertHashEqualsGolden(evidence.Expected.Sha256, Hash(reference), "SHA-256");
         Assert.Equal(2 * RecordStride, evidence.DiffDlm.Bytes.Length);
         Assert.False(IsUniformFill(evidence.DiffDlm.Bytes.AsSpan(0, DlmLength), 0x00));
         Assert.False(IsUniformFill(evidence.DiffDlm.Bytes.AsSpan(0, DlmLength), 0xFF));
@@ -308,7 +308,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             new CountingPassThroughProcessor());
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         GoldenAssert.AssertEqualsGolden(diff.AsSpan(0, DlmLength).ToArray(), output.AsSpan(DiffStart, DlmLength).ToArray(), GoldenDiagnostics.Label(CaseId));
         GoldenAssert.AssertEqualsGolden(reference.AsSpan(DiffStart + DlmLength, DiffNfLength).ToArray(),
             output.AsSpan(DiffStart + DlmLength, DiffNfLength).ToArray(), GoldenDiagnostics.Label(CaseId));
@@ -495,7 +495,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
@@ -515,7 +515,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
                 new ByteRange(0x2D43C, 4),
             ],
             differenceRanges);
-        Assert.Equal("1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd", Hash(output));
+        GoldenAssert.AssertHashEqualsGolden("1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd", Hash(output), "SHA-256");
     }
 
     /// <summary>
@@ -543,7 +543,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
             outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         (long differenceCount, ByteRange[] differenceRanges) = FindDifferences(evidence.Expected.Bytes, output);
         Assert.Equal(16, differenceCount);
         Assert.Equal(
@@ -617,14 +617,14 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
                 "ctrlram-replace", "nt51951-fw200-single-auto-prj-695-20260718");
             JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
                 item.GetProperty("artifactId").GetString() == "expected-output");
-            return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+            return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         }
 
         if (member == "NT51950" && number == "single")
         {
             string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
                 "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
-            return File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+            return GoldenFileIo.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
         }
 
         return ReadOwnerCase().Expected.Bytes;
@@ -743,7 +743,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         return new OwnerArtifact(
             entry.GetProperty("artifactId").GetString()!,
             path,
-            File.ReadAllBytes(path),
+            GoldenFileIo.ReadAllBytes(path),
             entry.GetProperty("sha256").GetString()!);
     }
 

@@ -4,6 +4,8 @@ using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Application.Ports;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 /// <summary>Tests the shared headless Preview/Build readiness projection.</summary>
@@ -254,7 +256,7 @@ public sealed class CapabilityActionReadinessTests
         Assert.Equal(
             CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
             result.Build.PrimaryBlocker!.Code);
-        Assert.Equal(admission.CompilationFingerprint, result.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(admission.CompilationFingerprint, result.CompilationFingerprint, "SHA-256");
     }
 
     /// <summary>Exact execution blockers survive projection while non-applicable work stays ignored.</summary>

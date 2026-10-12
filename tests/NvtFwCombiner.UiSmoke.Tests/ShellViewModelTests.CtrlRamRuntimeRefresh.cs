@@ -84,10 +84,10 @@ public sealed partial class CtrlRamWorkflowTests
             string outputPath = workspace.PathFor("runtime-refreshed-output.bin");
             await shell.Replace.BuildReplaceAsync(outputPath);
             Assert.True(shell.RunSession.LastRunResult.Succeeded, shell.RunSession.LastRunResult.Detail);
-            byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+            byte[] output = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
             Assert.Equal(0x40000, output.Length);
-            Assert.Equal(shell.Reports.LoadedReport.OutputSha256,
-                Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(output)), ignoreCase: true);
+            GoldenAssert.AssertHashEqualsGolden(shell.Reports.LoadedReport.OutputSha256, Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(output)), "SHA-256", ignoreCase: true
+);
         }
         var finalLease = new WindowPublicationLease();
         shell.Replace.WindowPublication = finalLease;

@@ -669,7 +669,7 @@ public sealed partial class MergeWorkflowTests
         Assert.True(viewModel.Merge.CanBuildMerge);
 
         string oversizedTpPath = workspace.PathFor("tp-input-oversized.bin");
-        byte[] tpBytes = File.ReadAllBytes(golden.ManifestPath(
+        byte[] tpBytes = GoldenFileIo.ReadAllBytes(golden.ManifestPath(
             newIcCase.GetProperty("inputs").GetProperty("tp-input")));
         Assert.True(tpBytes.Length <= 0x40000);
         byte[] oversizedTp = new byte[0x40001];

@@ -24,7 +24,7 @@ public sealed partial class CtrlRamWorkflowTests
             "postbuild-normal-ctrlram");
         string firstPath = CanonicalGoldenTestData.ArtifactPath(normalArtifact);
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-ctrlram-latest-batch");
-        string secondPath = workspace.Write("normal-b.bin", File.ReadAllBytes(firstPath));
+        string secondPath = workspace.Write("normal-b.bin", GoldenFileIo.ReadAllBytes(firstPath));
         PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke");
         var authoring = new RecordingCtrlRamAuthoring(services.Composition.CtrlRamAuthoring);
         services = WithCtrlRamAuthoring(services, authoring);

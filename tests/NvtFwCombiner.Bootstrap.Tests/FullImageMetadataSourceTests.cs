@@ -23,7 +23,7 @@ public sealed class FullImageMetadataSourceTests
     [InlineData("profiles/built-in/nt51950-nt51951-standard-merge/families/nt51950-nt51951-dp-perspective.json", "1.4.0", "1.4.3", "02597d709affd69adfbd92fac4a9a75f245385fb7c0954a5de1c86035e7babf6")]
     public void CanonicalFactsRecoverFrozenPreMigrationBytes(string sourcePath, string oldVersion, string newVersion, string baselineHash)
     {
-        string raw = File.ReadAllText(RepositoryPaths.FromRepositoryRoot(sourcePath));
+        string raw = GoldenFileIo.ReadAllText(RepositoryPaths.FromRepositoryRoot(sourcePath));
         int views = raw.IndexOf(",\n  \"fullImageMetadataViews\":", StringComparison.Ordinal);
         Assert.True(views > 0);
         string prior = raw[..views] + "\n}\n";
@@ -50,7 +50,7 @@ public sealed class FullImageMetadataSourceTests
             "$1\"1.3.0\"", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1))
             .Replace("d2499758dd19908422f857e5b7a68c24c47ac57961418da82d10dec2f039f3e8", "6cd257c38e4c9ecb4e44c14d12027e44a6d484b8176112dceccb7328d153b617", StringComparison.Ordinal)
             .Replace("e3bf3f27d1640d51620c108bce28b22edde2551cb441cf47d1d8641bb6e455af", "11a286731539bc79eb4bc956cd62d5d4e4bb8662874a8f65f7f0cde6f974c761", StringComparison.Ordinal);
-        Assert.Equal(baselineHash, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(prior))).ToLowerInvariant());
+        GoldenAssert.AssertHashEqualsGolden(baselineHash, Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(prior))).ToLowerInvariant(), "SHA-256");
     }
 
     /// <summary>All fifteen independently captured DP member/capacity target declarations survive canonical loading.</summary>
@@ -105,7 +105,7 @@ public sealed class FullImageMetadataSourceTests
         TrustedProfileBundleCatalog candidate = BuiltInProfileMaterializationTestSupport.LoadSourceCandidateCatalog(workspace, bundle, owner.ContentHash);
         Assert.Empty(candidate.Profiles);
         Assert.NotEmpty(Assert.Single(candidate.Families).Family.FullImageMetadataViews!);
-        using var manifest = JsonDocument.Parse(File.ReadAllBytes(workspace.PathFor("profile-bundle.json")));
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllBytes(workspace.PathFor("profile-bundle.json")));
         string[] expected = ["profile-bundle.json", .. manifest.RootElement.GetProperty("entries").EnumerateArray().Select(entry => entry.GetProperty("path").GetString()!)];
         Assert.Equal(3, expected.Length);
         foreach (string root in new[] { workspace.Root, Path.Combine(AppContext.BaseDirectory, "profiles", "built-in", bundle) })

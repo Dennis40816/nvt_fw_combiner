@@ -589,10 +589,10 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
     private static GoldenArtifact LoadGoldenArtifact(JsonElement entry)
     {
         string path = RepositoryPaths.ManifestPath(CanonicalGoldenTestData.Root, entry);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         string sha256 = entry.GetProperty("sha256").GetString()!;
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(sha256, Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(sha256, Hash(bytes), "SHA-256");
         return new GoldenArtifact(
             entry.GetProperty("artifactId").GetString()!,
             entry.GetProperty("role").GetString()!,

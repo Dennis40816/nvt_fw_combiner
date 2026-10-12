@@ -4,6 +4,8 @@ using Microsoft.Win32.SafeHandles;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
 /// <summary>Locks strict bounded marker decoding and stable read-only observation.</summary>
@@ -267,16 +269,16 @@ public sealed partial class ManagedSetupRecoveryProbeTests
         Assert.Equal(
             marker.DistributionLauncherExecutable.Size,
             transaction.Payload.LauncherSize);
-        Assert.Equal(
-            marker.DistributionLauncherExecutable.Sha256,
-            transaction.Payload.LauncherSha256);
+        GoldenAssert.AssertHashEqualsGolden(marker.DistributionLauncherExecutable.Sha256, transaction.Payload.LauncherSha256, "SHA-256"
+
+);
         Assert.Equal(marker.PayloadAdmission.DescriptorSize, transaction.Payload.DescriptorSize);
-        Assert.Equal(marker.PayloadAdmission.DescriptorSha256, transaction.Payload.DescriptorSha256);
+        GoldenAssert.AssertHashEqualsGolden(marker.PayloadAdmission.DescriptorSha256, transaction.Payload.DescriptorSha256, "SHA-256");
         Assert.Equal(
             marker.PayloadAdmission.BootstrapInstalledFileName,
             transaction.Payload.BootstrapFileName);
         Assert.Equal(marker.PayloadAdmission.BootstrapSize, transaction.Payload.BootstrapSize);
-        Assert.Equal(marker.PayloadAdmission.BootstrapSha256, transaction.Payload.BootstrapSha256);
+        GoldenAssert.AssertHashEqualsGolden(marker.PayloadAdmission.BootstrapSha256, transaction.Payload.BootstrapSha256, "SHA-256");
         Assert.Equal(marker.Candidate.RegistryRevision, transaction.Candidate.RegistryRevision);
         Assert.Equal(marker.Candidate.RegistryDigest, transaction.Candidate.RegistryDigest);
         Assert.Equal(marker.Candidate.CatalogSchemaVersion, transaction.Candidate.CatalogSchemaVersion);
@@ -289,10 +291,10 @@ public sealed partial class ManagedSetupRecoveryProbeTests
         Assert.Equal(marker.Candidate.Version, transaction.Candidate.Version);
         Assert.Equal(marker.Candidate.PackagePath, transaction.Candidate.PackagePath);
         Assert.Equal(marker.Candidate.PackageSize, transaction.Candidate.PackageSize);
-        Assert.Equal(marker.Candidate.PackageSha256, transaction.Candidate.PackageSha256);
-        Assert.Equal(
-            marker.Candidate.ReleaseManifestSha256,
-            transaction.Candidate.ReleaseManifestSha256);
+        GoldenAssert.AssertHashEqualsGolden(marker.Candidate.PackageSha256, transaction.Candidate.PackageSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(marker.Candidate.ReleaseManifestSha256, transaction.Candidate.ReleaseManifestSha256, "SHA-256"
+
+);
         Assert.Equal(before, CaptureTree(temporary.Path));
     }
 

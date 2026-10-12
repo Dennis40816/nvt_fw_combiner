@@ -235,7 +235,7 @@ public sealed class FirmwareMapResolutionTests
             [Map("map", [metadata], [equal, oneOfSecond])],
             [metadata]).ResolveMap(Inputs([new FirmwareArtifactPayload("tp-firmware", [0x02])])).ResolvedMap);
 
-        Assert.Equal(first.ResolutionFingerprint, reordered.ResolutionFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(first.ResolutionFingerprint, reordered.ResolutionFingerprint, "SHA-256");
     }
 
     /// <summary>Verifies resolver-owned family, mode, capacity, and topology selections all affect the fingerprint.</summary>
@@ -314,9 +314,9 @@ public sealed class FirmwareMapResolutionTests
                 Definition([FingerprintVectorMap(metadata)], [metadata]),
                 Inputs([new FirmwareArtifactPayload("tp-firmware", [0xFE, 0x02, 0xAA, 0x5A, 0xA1, 0x03])]));
 
-            Assert.Equal(
-                "bebb23ca88b05da44a936ff1dfd05d993e6db37a302a225b6e373e42e4614ade",
-                resolved.ResolutionFingerprint);
+            GoldenAssert.AssertHashEqualsGolden("bebb23ca88b05da44a936ff1dfd05d993e6db37a302a225b6e373e42e4614ade", resolved.ResolutionFingerprint, "SHA-256"
+
+);
         }
         finally
         {

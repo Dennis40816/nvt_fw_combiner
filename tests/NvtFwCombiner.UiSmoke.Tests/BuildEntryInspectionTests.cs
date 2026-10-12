@@ -80,7 +80,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
             static entry => new AcceptedSourceEvidence(
                 Path.GetFileName(entry.Value),
                 new FileInfo(entry.Value).Length,
-                Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(entry.Value)))),
+                Convert.ToHexStringLower(SHA256.HashData(GoldenFileIo.ReadAllBytes(entry.Value)))),
             StringComparer.Ordinal);
         int inspectionBatchCount = 0;
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
@@ -149,7 +149,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
             AcceptedSourceEvidence evidence = acceptedEvidence[source.SlotId];
             Assert.Equal(evidence.FileName, source.OriginalFileName);
             Assert.Equal(evidence.Size, source.Size);
-            Assert.Equal(evidence.Sha256, source.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(evidence.Sha256, source.Sha256, "SHA-256");
         });
     }
 
@@ -202,7 +202,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
         string acceptedReplacementPath = Assert.IsType<string>(replacementPath);
         if (overwriteSource)
         {
-            byte[] changedBytes = await File.ReadAllBytesAsync(
+            byte[] changedBytes = await GoldenFileIo.ReadAllBytesAsync(
                 acceptedReplacementPath,
                 cancellationToken);
             Assert.NotEmpty(changedBytes);
@@ -213,7 +213,7 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
                 changedBytes,
                 cancellationToken);
             Assert.True(File.Exists(acceptedReplacementPath));
-            byte[] persistedBytes = await File.ReadAllBytesAsync(
+            byte[] persistedBytes = await GoldenFileIo.ReadAllBytesAsync(
                 acceptedReplacementPath,
                 cancellationToken);
             GoldenAssert.AssertEqualsGolden(changedBytes, persistedBytes, "firmware image");

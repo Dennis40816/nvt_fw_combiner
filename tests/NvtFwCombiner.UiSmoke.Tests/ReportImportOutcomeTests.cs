@@ -2,6 +2,8 @@ using System.Text.Json.Nodes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Imported data stays readable without inventing a successful run.</summary>
@@ -23,7 +25,7 @@ public sealed class ReportImportOutcomeTests
         Assert.Equal("historical-dp-replace", report.RunId);
         Assert.Equal("historical-dp.bin", report.OutputFileName);
         Assert.Equal(262144, report.OutputSize);
-        Assert.Equal("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", report.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", report.OutputSha256, "SHA-256");
         Assert.Equal("Succeeded with 1 warning(s)", report.Status);
         Assert.Equal("Recorded DP replacement warning.", Assert.Single(report.Issues).Detail);
         Assert.Equal(json, shell.Reports.LoadedReportJson);

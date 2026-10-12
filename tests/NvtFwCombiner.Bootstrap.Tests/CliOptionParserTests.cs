@@ -1,3 +1,5 @@
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Regression coverage for the shared strict CLI option parser.</summary>
@@ -49,7 +51,7 @@ public sealed class CliOptionParserTests
                 out _);
 
             Assert.False(parsed);
-            Assert.Equal(expectedError + Environment.NewLine, error.ToString());
+            Assert.True(string.Equals(expectedError + Environment.NewLine, error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
         }
     }
 }

@@ -94,13 +94,13 @@ public sealed partial class FirmwareInspectionSlotTests
         using var golden = StandardMergeGoldenManifest.Load();
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-selection-replacement");
         JsonElement goldenCase = golden.CaseByIc("51926");
-        byte[] dpBytes = File.ReadAllBytes(
+        byte[] dpBytes = GoldenFileIo.ReadAllBytes(
             golden.ManifestPath(goldenCase.GetProperty("inputs").GetProperty("dp-input")));
         string originalDpPath = workspace.Write("original-dp.bin", dpBytes);
         string replacementDpPath = workspace.Write("replacement-dp.bin", dpBytes);
         string tpPath = workspace.Write(
             "tp.bin",
-            File.ReadAllBytes(golden.ManifestPath(
+            GoldenFileIo.ReadAllBytes(golden.ManifestPath(
                 goldenCase.GetProperty("inputs").GetProperty("tp-input"))));
         var readerEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var releaseReader = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

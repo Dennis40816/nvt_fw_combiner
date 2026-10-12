@@ -22,7 +22,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
         string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
             "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
         (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
-        bytes[CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+        bytes[CompositionSlotIds.ReplaceBase] = GoldenFileIo.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new(ExperienceIds.CtrlRamReplace), "NT51950", "single", paths, bytes, new AbCtrlRamDraftState(selection));
         Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
@@ -90,7 +90,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCase);
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] source = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] source = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         byte[] bankBytes = new byte[0x80000];
         source.AsSpan(0, localLength).CopyTo(bankBytes);
         byte[] reference = [.. bankBytes, .. bankBytes];
@@ -275,7 +275,7 @@ public sealed class AbCtrlRamMemoryLayoutTests
     public void StandardReferenceHasNoBankLocators()
     {
         (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
-        bytes[CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        bytes[CompositionSlotIds.ReplaceBase] = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             "standard-merge", "NT51929", "expected-output"));
         ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(
             BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(

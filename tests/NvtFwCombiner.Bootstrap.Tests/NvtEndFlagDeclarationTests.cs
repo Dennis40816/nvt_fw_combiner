@@ -175,7 +175,7 @@ public sealed class NvtEndFlagDeclarationTests
                 string normalized = path.Replace('\\', '/');
                 bool abImage = normalized.Contains("/ab-merge/", StringComparison.Ordinal) &&
                     normalized.Contains("/expected/", StringComparison.Ordinal);
-                foreach (int offset in MarkerOffsets(File.ReadAllBytes(path)))
+                foreach (int offset in MarkerOffsets(GoldenFileIo.ReadAllBytes(path)))
                 {
                     Assert.Equal(Nt5195xEndFlag.Range.Start, abImage ? offset % 0x40000 : offset);
                     checkedMarkers++;

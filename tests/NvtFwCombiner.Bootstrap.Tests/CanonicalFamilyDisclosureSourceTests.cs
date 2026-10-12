@@ -4,6 +4,8 @@ using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Capabilities;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Explicit trusted family facts survive retirement of a workflow without granting runtime authority.</summary>
@@ -56,7 +58,7 @@ public sealed class CanonicalFamilyDisclosureSourceTests
         FirmwareFamilyResolutionDefinition family = Assert.Single(CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies([provider]));
         Assert.Equal("nt51929-nt51932", family.FamilyId);
         Assert.Equal("1.4.0", family.FamilyVersion);
-        Assert.Equal("0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a", family.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden("0d3e0ac10ab8c726925e46f1383c2202ab85e9bff896e38468dd1038556c3b9a", family.FamilyContentHash, "SHA-256");
         IReadOnlyList<FirmwareFamilyResolutionDefinition> absent = CanonicalCapabilityDisclosureInventory.ResolveDisclosureFamilies(
             [provider with { FamilyDisclosureFamilies = [] }]);
         Assert.Empty(absent);

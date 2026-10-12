@@ -205,7 +205,7 @@ public sealed class AbMergeLaunchTests
     {
         using var workspace = TempWorkspace.Create("ab-launch-mismatch");
         MainWindowViewModel shell = CreateShell(workspace);
-        string mismatch = workspace.Write("NT51919_flash.bin", File.ReadAllBytes(Dp));
+        string mismatch = workspace.Write("NT51919_flash.bin", GoldenFileIo.ReadAllBytes(Dp));
         AbMergeLaunchRequest request = UiLaunchOptions.Parse(Arguments).AbMerge! with { DpPath = mismatch };
         await MainWindow.ApplyAbMergeLaunchAsync(shell, request, TestContext.Current.CancellationToken);
         Assert.True(shell.WorkflowSession.IsFirmwareIcMismatchModalOpen);

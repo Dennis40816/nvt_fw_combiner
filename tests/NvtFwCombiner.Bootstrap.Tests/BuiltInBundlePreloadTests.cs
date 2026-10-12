@@ -5,6 +5,8 @@ using NvtFwCombiner.Infrastructure.Bundles;
 using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Profiles.V2;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Pins the ADR 0075 preconditions that make bundle preloading race-free and result-neutral.</summary>
@@ -21,7 +23,7 @@ public sealed class BuiltInBundlePreloadTests
             Assert.Equal("prebuilt", first.Admission.SourceToken);
             Assert.Same(first.Catalog, second.Catalog);
             Assert.Same(first.Projection, second.Projection);
-            Assert.Equal(first.Projection.ManifestSnapshot.ActualSha256, first.Catalog.ManifestSha256);
+            GoldenAssert.AssertHashEqualsGolden(first.Projection.ManifestSnapshot.ActualSha256, first.Catalog.ManifestSha256, "SHA-256");
         }
     }
 

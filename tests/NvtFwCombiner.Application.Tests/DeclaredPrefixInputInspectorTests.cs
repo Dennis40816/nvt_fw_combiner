@@ -21,7 +21,7 @@ public sealed class DeclaredPrefixInputInspectorTests
             Sequence(15));
 
         Assert.Equal(15, result.ActualLength);
-        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(Sequence(15))), result.ActualSha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(Sequence(15))), result.ActualSha256, "SHA-256");
         Assert.Equal(16, result.RequiredEndExclusive);
         Assert.Equal([16L], result.ExpectedOuterLengths);
         Assert.Null(result.AcceptedSnapshotRange);
@@ -44,7 +44,7 @@ public sealed class DeclaredPrefixInputInspectorTests
             PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
             source);
 
-        Assert.Equal(result.ActualSha256, result.AcceptedSnapshotSha256);
+        GoldenAssert.AssertHashEqualsGolden(result.ActualSha256, result.AcceptedSnapshotSha256, "SHA-256");
         Assert.Equal(new ByteRange(0, 16), result.AcceptedSnapshotRange);
         Assert.Null(result.IgnoredTrailingRange);
         Assert.Equal(CompiledInputArtifactInspectionSeverity.Valid, result.Severity);
@@ -88,11 +88,11 @@ public sealed class DeclaredPrefixInputInspectorTests
             PrefixRequirement(requiredEndExclusive: 16, expectedOuterLengths: [16]),
             tailed);
 
-        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(tailed)), tailedResult.ActualSha256);
-        Assert.Equal(
-            Convert.ToHexStringLower(SHA256.HashData(tailed.AsSpan(0, 16))),
-            tailedResult.AcceptedSnapshotSha256);
-        Assert.Equal(exactResult.AcceptedSnapshotSha256, tailedResult.AcceptedSnapshotSha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(tailed)), tailedResult.ActualSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(tailed.AsSpan(0, 16))), tailedResult.AcceptedSnapshotSha256, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(exactResult.AcceptedSnapshotSha256, tailedResult.AcceptedSnapshotSha256, "SHA-256");
         Assert.NotEqual(exactResult.ActualSha256, tailedResult.ActualSha256);
         Assert.Equal(1024 * 1024, tailedResult.IgnoredTrailingBytes);
         Assert.Equal(
@@ -145,8 +145,8 @@ public sealed class DeclaredPrefixInputInspectorTests
         CompiledInputArtifactInspectionResult second = Inspect(requirement, source);
 
         GoldenAssert.AssertEqualsGolden(before, source, "firmware image");
-        Assert.Equal(first.ActualSha256, second.ActualSha256);
-        Assert.Equal(first.AcceptedSnapshotSha256, second.AcceptedSnapshotSha256);
+        GoldenAssert.AssertHashEqualsGolden(first.ActualSha256, second.ActualSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(first.AcceptedSnapshotSha256, second.AcceptedSnapshotSha256, "SHA-256");
         Assert.Equal(first.IssueCode, second.IssueCode);
         Assert.Equal(first.IgnoredTrailingRange, second.IgnoredTrailingRange);
     }
@@ -164,8 +164,8 @@ public sealed class DeclaredPrefixInputInspectorTests
         source[0] ^= 0xFF;
         CompiledInputArtifactInspectionResult buildReinspection = Inspect(requirement, source);
 
-        Assert.Equal(loadActualHash, loadInspection.ActualSha256);
-        Assert.Equal(loadAcceptedHash, loadInspection.AcceptedSnapshotSha256);
+        GoldenAssert.AssertHashEqualsGolden(loadActualHash, loadInspection.ActualSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(loadAcceptedHash, loadInspection.AcceptedSnapshotSha256, "SHA-256");
         Assert.NotEqual(loadInspection.ActualSha256, buildReinspection.ActualSha256);
         Assert.NotEqual(loadInspection.AcceptedSnapshotSha256, buildReinspection.AcceptedSnapshotSha256);
         Assert.False(buildReinspection.BlocksBuild);

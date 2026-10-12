@@ -47,7 +47,7 @@ public sealed class ToolchainProbeHostTests
         using JsonDocument json = JsonDocument.Parse(output.ToString());
         Assert.Equal(1, json.RootElement.GetProperty("ProtocolVersion").GetInt32());
         Assert.Equal(requestId, json.RootElement.GetProperty("RequestId").GetString());
-        Assert.Equal(sha256, json.RootElement.GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(sha256, json.RootElement.GetProperty("Sha256").GetString(), "SHA-256");
         Assert.Equal("runtime.trust.signature-invalid", json.RootElement.GetProperty("IssueCode").GetString());
     }
 }

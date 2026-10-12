@@ -33,8 +33,8 @@ public sealed partial class MergeWorkflowTests
         string canonicalTpAPath = CanonicalGoldenTestData.ArtifactPath(tpAArtifact);
         string canonicalTpBPath = CanonicalGoldenTestData.ArtifactPath(tpBArtifact);
         Assert.Equal(canonicalTpAPath, canonicalTpBPath);
-        byte[] originalDp = File.ReadAllBytes(canonicalDpPath);
-        byte[] originalTp = File.ReadAllBytes(canonicalTpAPath);
+        byte[] originalDp = GoldenFileIo.ReadAllBytes(canonicalDpPath);
+        byte[] originalTp = GoldenFileIo.ReadAllBytes(canonicalTpAPath);
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-nt51929-ab-direct-golden");
         string selectedDpPath = workspace.Write("inputs/dp-ab.bin", originalDp);
         string selectedTpPath = workspace.Write("inputs/shared-tp.bin", originalTp);

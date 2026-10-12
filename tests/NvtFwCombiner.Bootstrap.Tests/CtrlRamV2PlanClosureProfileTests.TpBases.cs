@@ -242,25 +242,21 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
 
     /// <summary>Every direct TP-prefix evidence view is an immutable slice of its owner expected output.</summary>
     [Theory]
-    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "expected-output", 0, 0x3C000, "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78", "tp-input")]
-    [InlineData("nt51923-fw141-cascade3-auto-prj-734-20260717", "expected-output", 0, 0x3C000, "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7", "tp-input")]
-    [InlineData("nt51926-fw141-single-auto-prj-747-20260717", "expected-output", 0, 0x3C000, "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3", "tp-input")]
-    [InlineData("nt51926-fw141-cascade2-auto-prj-597-20260717", "expected-output", 0, 0x3C000, "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab", "tp-input")]
-    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "expected-output", 0, 0x3C000, "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c", "tp-input")]
-    [InlineData("nt51926-fw200-cascade3-auto-prj-597-20260718", "expected-output", 0, 0x3C000, "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2", "tp-input")]
-    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "expected-output", 0, 0x35000, "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee", "tp-input")]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "expected-output", 0, 0x37000, "91d45b5696bb4e0560e96c555336811d2fc8d6691948ba6b5e6458743cf90425", null)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "expected-output", 0, 0x37000, "a852548c2d12a8e592c903e319539f531d540ec23bd271eee25a811c9ff45592", null)]
-    [InlineData("nt51951-fw200-cascade2-auto-prj-599-20260731", "expected-output", 0, 0x37000, "6b8151dbb706ed7cf71c8e34a0c864fe5de5bea939ed50516e2e835e7535efcb", null)]
+    [MemberData(nameof(DirectGoldenExpectedViewsRemainExactAndImmutableCases))]
+
+
+
+
+
     public void DirectGoldenExpectedViewsRemainExactAndImmutable(
-        string caseId,
+        GoldenCaseId caseId,
         string expectedArtifactId,
         int start,
         int length,
         string expectedSha256,
         string? identicalTpArtifactId)
     {
-        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         GoldenArtifact expectedArtifact = LoadGoldenArtifact(
             RequireArtifactById(goldenCase, expectedArtifactId));
 
@@ -270,7 +266,7 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         Assert.InRange(start, 0, expectedArtifact.Bytes.Length);
         Assert.InRange(length, 1, expectedArtifact.Bytes.Length - start);
         byte[] expectedView = expectedArtifact.Bytes.AsSpan(start, length).ToArray();
-        Assert.Equal(expectedSha256, Hash(expectedView));
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, Hash(expectedView), "SHA-256");
 
         if (identicalTpArtifactId is not null)
         {
@@ -278,10 +274,10 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
                 RequireArtifactById(goldenCase, identicalTpArtifactId));
             Assert.Equal("input", tpArtifact.Role);
             Assert.Equal(length, tpArtifact.Bytes.Length);
-            GoldenAssert.AssertEqualsGolden(expectedView, tpArtifact.Bytes, GoldenDiagnostics.Label(caseId));
+            GoldenAssert.AssertEqualsGolden(expectedView, tpArtifact.Bytes, GoldenDiagnostics.Label(caseId.Value));
         }
 
-        Assert.Equal(expectedArtifact.ManifestSha256, Hash(File.ReadAllBytes(expectedArtifact.Path)));
+        GoldenAssert.AssertHashEqualsGolden(expectedArtifact.ManifestSha256, Hash(GoldenFileIo.ReadAllBytes(expectedArtifact.Path)), "SHA-256");
     }
 
     /// <summary>The admitted TP base produces the exact prefix of the locked full-container owner-golden execution.</summary>
@@ -346,9 +342,9 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
 
         Assert.True(full.Succeeded, $"Composition result: status={full.Status}, succeeded={full.Succeeded}.");
         Assert.True(tp.Succeeded, $"Composition result: status={tp.Status}, succeeded={tp.Succeeded}.");
-        byte[] fullOutput = File.ReadAllBytes(fullOutputPath);
-        byte[] tpOutput = File.ReadAllBytes(tpOutputPath);
-        Assert.Equal("fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9", Hash(fullOutput));
+        byte[] fullOutput = GoldenFileIo.ReadAllBytes(fullOutputPath);
+        byte[] tpOutput = GoldenFileIo.ReadAllBytes(tpOutputPath);
+        GoldenAssert.AssertHashEqualsGolden("fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9", Hash(fullOutput), "SHA-256");
         CanonicalGoldenDifferenceResult differences = CanonicalGoldenTestData.AssertAllowedByteDifferences(
             goldenCase,
             fullBase.Bytes,
@@ -358,7 +354,22 @@ public sealed partial class CtrlRamV2PlanClosureProfileTests
         GoldenAssert.AssertEqualsGolden(fullOutput.AsSpan(0, 0x35000).ToArray(), tpOutput, "firmware image");
         Assert.All(
             artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, int, int, string, string?> DirectGoldenExpectedViewsRemainExactAndImmutableCases() => new()
+    {
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "expected-output", 0, 0x3C000, "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78", "tp-input" },
+        { new GoldenCaseId("nt51923-fw141-cascade3-auto-prj-734-20260717"), "expected-output", 0, 0x3C000, "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7", "tp-input" },
+        { new GoldenCaseId("nt51926-fw141-single-auto-prj-747-20260717"), "expected-output", 0, 0x3C000, "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3", "tp-input" },
+        { new GoldenCaseId("nt51926-fw141-cascade2-auto-prj-597-20260717"), "expected-output", 0, 0x3C000, "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab", "tp-input" },
+        { new GoldenCaseId("nt51926-fw200-single-auto-prj-597-20260718"), "expected-output", 0, 0x3C000, "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c", "tp-input" },
+        { new GoldenCaseId("nt51926-fw200-cascade3-auto-prj-597-20260718"), "expected-output", 0, 0x3C000, "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2", "tp-input" },
+        { new GoldenCaseId("nt51927-fw141-single-auto-prj-529-20260717"), "expected-output", 0, 0x35000, "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee", "tp-input" },
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "expected-output", 0, 0x37000, "91d45b5696bb4e0560e96c555336811d2fc8d6691948ba6b5e6458743cf90425", null },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "expected-output", 0, 0x37000, "a852548c2d12a8e592c903e319539f531d540ec23bd271eee25a811c9ff45592", null },
+        { new GoldenCaseId("nt51951-fw200-cascade2-auto-prj-599-20260731"), "expected-output", 0, 0x37000, "6b8151dbb706ed7cf71c8e34a0c864fe5de5bea939ed50516e2e835e7535efcb", null },
+    };
 }

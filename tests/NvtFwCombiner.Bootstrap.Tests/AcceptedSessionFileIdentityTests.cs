@@ -33,7 +33,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(expected.Succeeded, $"Composition result: status={expected.Status}, succeeded={expected.Succeeded}.");
         Assert.True(actual.Succeeded, $"Composition result: status={actual.Status}, succeeded={actual.Succeeded}.");
-        Assert.Equal(expected.OutputSha256, actual.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(expected.OutputSha256, actual.OutputSha256, "SHA-256");
     }
 
     /// <summary>Standard Merge executes retained immutable bytes when the accepted path later changes.</summary>
@@ -55,7 +55,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(beforeMutation.Succeeded, $"Composition result: status={beforeMutation.Status}, succeeded={beforeMutation.Succeeded}.");
         Assert.True(afterMutation.Succeeded, $"Composition result: status={afterMutation.Status}, succeeded={afterMutation.Succeeded}.");
-        Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(beforeMutation.OutputSha256, afterMutation.OutputSha256, "SHA-256");
         Assert.NotEqual(beforeMutation.OutputSha256, refreshed.OutputSha256);
         AssertAcceptedSourceByteProjected(
             accepted,
@@ -116,7 +116,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(shared.Succeeded, $"Composition result: status={shared.Status}, succeeded={shared.Succeeded}.");
         Assert.True(distinct.Succeeded, $"Composition result: status={distinct.Status}, succeeded={distinct.Succeeded}.");
-        Assert.Equal(distinct.OutputSha256, shared.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(distinct.OutputSha256, shared.OutputSha256, "SHA-256");
         GoldenAssert.AssertEqualsGolden(distinct.OutputBytes.ToArray(), shared.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(
             distinct.Report.Inputs.Select(static input => input.AddressSpaceId).Order(StringComparer.Ordinal),
@@ -145,7 +145,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(expected.Succeeded, $"Composition result: status={expected.Status}, succeeded={expected.Succeeded}.");
         Assert.True(actual.Succeeded, $"Composition result: status={actual.Status}, succeeded={actual.Succeeded}.");
-        Assert.Equal(expected.OutputSha256, actual.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(expected.OutputSha256, actual.OutputSha256, "SHA-256");
     }
 
     /// <summary>AB Merge executes retained immutable bytes when the accepted path later changes.</summary>
@@ -167,7 +167,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(beforeMutation.Succeeded, $"Composition result: status={beforeMutation.Status}, succeeded={beforeMutation.Succeeded}.");
         Assert.True(afterMutation.Succeeded, $"Composition result: status={afterMutation.Status}, succeeded={afterMutation.Succeeded}.");
-        Assert.Equal(beforeMutation.OutputSha256, afterMutation.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(beforeMutation.OutputSha256, afterMutation.OutputSha256, "SHA-256");
         Assert.NotEqual(beforeMutation.OutputSha256, refreshed.OutputSha256);
         AssertAcceptedSourceByteProjected(
             accepted,
@@ -193,7 +193,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             input.AddressSpaceId == CompositionAddressSpaceIds.TpAInput);
         InputArtifactSummary tpB = Assert.Single(result.Report.Inputs, static input =>
             input.AddressSpaceId == CompositionAddressSpaceIds.TpBInput);
-        Assert.Equal(tpA.Sha256, tpB.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(tpA.Sha256, tpB.Sha256, "SHA-256");
         Assert.NotEqual(tpA.ArtifactId, tpB.ArtifactId);
         Assert.Contains(
             CompositionAddressSpaceIds.TpAInput,
@@ -255,7 +255,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
 
         Assert.True(expected.Succeeded, expected.OutcomeStatus);
         Assert.True(actual.Succeeded, actual.OutcomeStatus);
-        Assert.Equal(expected.OutputSha256, actual.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(expected.OutputSha256, actual.OutputSha256, "SHA-256");
     }
 
     /// <summary>General Merge executes the immutable inspected bytes without reopening a changed path.</summary>

@@ -19,62 +19,30 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
 
     /// <summary>Proves the exact V2 routes differ from the owner output only at approved CRC words.</summary>
     [Theory]
-    [InlineData(
-        SingleCaseId,
-        "single",
-        1,
-        "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c",
-        "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450",
-        "nt51926-ctrlram-replace-fw200-runtime-single")]
-    [InlineData(
-        CascadeCaseId,
-        "cascade",
-        3,
-        "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825",
-        "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
-        "nt51926-ctrlram-replace-fw200-runtime-cascade")]
-    public async Task V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsync(
-        string caseId,
-        string topology,
-        byte expectedChipCount,
-        string ownerExpectedSha256,
-        string currentOutputSha256,
-        string v2ProfileId)
+    [MemberData(nameof(V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsyncCases))]
+    public async Task V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsync(GoldenCaseId caseId, string topology, byte expectedChipCount, string ownerExpectedSha256, string currentOutputSha256, string v2ProfileId)
     {
         if (!OperatingSystem.IsWindows())
         {
             return;
         }
-
-        OwnerCase evidence = ReadOwnerCase(caseId);
-        Assert.Equal(ownerExpectedSha256, Hash(evidence.Expected.Bytes));
+        OwnerCase evidence = ReadOwnerCase(caseId.Value);
+        GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(evidence.Expected.Bytes), "SHA-256");
         var immutableInputHashes = evidence.Artifacts.ToDictionary(
             static pair => pair.Key,
             static pair => Hash(pair.Value.Bytes),
             StringComparer.Ordinal);
-
         using var workspace = TempWorkspace.Create($"nfc-nt51926-fw200-{topology}");
         string referencePath = workspace.PathFor("standard-merge-base.bin");
-        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services,
-            "NT51926",
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                [CompositionAddressSpaceIds.DpInput] = evidence.Dp.Path,
-                [CompositionAddressSpaceIds.TpInput] = evidence.Tp.Path,
-            },
-            build: true,
-            TestContext.Current.CancellationToken,
-            referencePath);
-
+        CompositionRunResult standardMerge = await StandardMergeTestSupport.RunAsync(BootstrapTestHost.Services, "NT51926", new Dictionary<string, string>(StringComparer.Ordinal) { [CompositionAddressSpaceIds.DpInput] = evidence.Dp.Path, [CompositionAddressSpaceIds.TpInput] = evidence.Tp.Path, }, build: true, TestContext.Current.CancellationToken, referencePath);
         Assert.True(standardMerge.Succeeded, $"Composition result: status={standardMerge.Status}, succeeded={standardMerge.Succeeded}.");
         Assert.True(StringComparer.Ordinal.Equals("nt51926-standard-merge-gen-flash", ReadProfileId(CompositionRunReportJson.Serialize(standardMerge))), "Captured text differs from the expected text.");
-        byte[] reference = File.ReadAllBytes(referencePath);
+        byte[] reference = GoldenFileIo.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         Assert.Equal("2.0.0", metadata.CommonFwVersion);
         Assert.Equal(expectedChipCount, metadata.ChipNumber);
-        Assert.Equal(0x1309, metadata.ProjectId);
-        Assert.Equal(ownerExpectedSha256, Hash(reference));
-
+        GoldenAssert.AssertValueEqualsGolden(0x1309, metadata.ProjectId, "firmware field");
+        GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(reference), "SHA-256");
         var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [CompositionSlotIds.ReplaceBase] = referencePath,
@@ -87,7 +55,6 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         {
             slotPaths["replace-ctrlram-diff"] = evidence.Require("DiffDLM.bin").Path;
         }
-
         string v2OutputPath = workspace.PathFor("v2-output.bin");
         CompositionRunResult v2 = await CtrlRamReplaceTestSupport.RunAsync(BootstrapTestHost.Canonical,
             "NT51926",
@@ -97,19 +64,17 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             build: true,
             TestContext.Current.CancellationToken,
             v2OutputPath);
-
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
-        Assert.Equal(currentOutputSha256, Hash(v2Bytes));
-        Assert.Equal(currentOutputSha256, v2.OutputSha256);
-        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
+        GoldenAssert.AssertHashEqualsGolden(currentOutputSha256, Hash(v2Bytes), "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(currentOutputSha256, v2.OutputSha256, "SHA-256");
+        JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
                 goldenCase,
                 evidence.Expected.Bytes,
                 v2Bytes);
         Assert.Equal(16, manifestDifferences.DifferenceCount);
-
         (long ownerDifferenceCount, ByteRange[] ownerDifferenceRanges) = FindDifferences(
             evidence.Expected.Bytes,
             v2Bytes);
@@ -122,16 +87,14 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
                 new ByteRange(0x32B6C, 4),
             ],
             ownerDifferenceRanges);
-        GoldenAssert.AssertEqualsGolden(reference.AsSpan(TpWorkCapacity), v2Bytes.AsSpan(TpWorkCapacity), GoldenDiagnostics.Label(caseId));
-
+        GoldenAssert.AssertEqualsGolden(reference.AsSpan(TpWorkCapacity), v2Bytes.AsSpan(TpWorkCapacity), GoldenDiagnostics.Label(caseId.Value));
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
-
-        Assert.Equal(ownerExpectedSha256, Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             evidence.Artifacts,
-            pair => Assert.Equal(immutableInputHashes[pair.Key], Hash(File.ReadAllBytes(pair.Value.Path))));
+            pair => GoldenAssert.AssertHashEqualsGolden(immutableInputHashes[pair.Key], Hash(GoldenFileIo.ReadAllBytes(pair.Value.Path)), "SHA-256"));
     }
 
     /// <summary>FW2 profile selection remains version-driven while PID and reported count do not gate the requested plan.</summary>
@@ -164,7 +127,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
             referencePath);
         Assert.True(standardMerge.Succeeded, $"Composition result: status={standardMerge.Status}, succeeded={standardMerge.Succeeded}.");
 
-        byte[] reference = File.ReadAllBytes(referencePath);
+        byte[] reference = GoldenFileIo.ReadAllBytes(referencePath);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(reference, out FirmwareConfigMetadata metadata));
         int backupStart = checked((int)metadata.StructureStart);
         reference[backupStart + FirmwareConfigLayout.ChipNumberOffset] = chipCount;
@@ -204,7 +167,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
                 ? "nt51926-ctrlram-replace-fw200-runtime-single"
                 : "nt51926-ctrlram-replace-fw200-runtime-cascade",
             report.RootElement.GetProperty("ProfileId").GetString());
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
     }
 
     /// <summary>Proves every accepted NT51926 identifier form retains the reviewed FW2 V2 route.</summary>
@@ -261,9 +224,9 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
     private static OwnerArtifact ReadArtifact(string goldenRoot, JsonElement entry)
     {
         string path = RepositoryPaths.ManifestPath(goldenRoot, entry);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new OwnerArtifact(
             entry.GetProperty("originalFileName").GetString()!,
             entry.GetProperty("path").GetString()!,
@@ -466,4 +429,11 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
                 : throw new InvalidOperationException($"Owner case is missing '{fileName}'.");
         }
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, byte, string, string, string> V2MatchesLockedOutputWithOwnerApprovedHeaderCrcDiffAsyncCases() => new()
+    {
+        { new GoldenCaseId(SingleCaseId), "single", 1, "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c", "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450", "nt51926-ctrlram-replace-fw200-runtime-single" },
+        { new GoldenCaseId(CascadeCaseId), "cascade", 3, "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825", "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a", "nt51926-ctrlram-replace-fw200-runtime-cascade" },
+    };
 }

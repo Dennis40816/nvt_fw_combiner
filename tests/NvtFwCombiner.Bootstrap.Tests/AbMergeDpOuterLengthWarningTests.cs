@@ -142,7 +142,7 @@ public sealed class AbMergeDpOuterLengthWarningTests
         {
             TestContext.Current.TestOutputHelper!.WriteLine($"PIN {policy.Identity.RouteId} {actual.CapabilityFingerprint}");
         }
-        Assert.All(pairs, pair => Assert.Equal(pair.Policy.CapabilityFingerprint, pair.Actual.CapabilityFingerprint));
+        Assert.All(pairs, pair => GoldenAssert.AssertHashEqualsGolden(pair.Policy.CapabilityFingerprint, pair.Actual.CapabilityFingerprint, "SHA-256"));
     }
 
     private static async Task<CompositionHostServices> CreateHostAsync(TempWorkspace workspace)

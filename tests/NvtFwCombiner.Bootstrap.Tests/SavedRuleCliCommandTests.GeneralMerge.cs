@@ -401,9 +401,9 @@ public sealed partial class SavedRuleCliCommandTests
         Assert.Equal(2, ruleLines.Length);
         Assert.All(ruleLines, static line =>
         {
-            Assert.Contains("<v2-rule.json>", line, StringComparison.Ordinal);
-            Assert.DoesNotContain("--size", line, StringComparison.Ordinal);
-            Assert.DoesNotContain("--fill", line, StringComparison.Ordinal);
+            Assert.True(GoldenDiagnostics.Contains("<v2-rule.json>", line, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(line));
+            Assert.False(GoldenDiagnostics.Contains("--size", line, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(line));
+            Assert.False(GoldenDiagnostics.Contains("--fill", line, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(line));
         });
     }
 
@@ -494,7 +494,7 @@ public sealed partial class SavedRuleCliCommandTests
         JsonElement savedRule = admission.GetProperty("SavedRule");
         Assert.Equal("copy-display-window", savedRule.GetProperty("RuleId").GetString());
         Assert.Equal("1.0.0", savedRule.GetProperty("RuleVersion").GetString());
-        Assert.Equal(expectedRuleHash, savedRule.GetProperty("ContentHash").GetString());
+        GoldenAssert.AssertHashEqualsGolden(expectedRuleHash, savedRule.GetProperty("ContentHash").GetString(), "SHA-256");
         JsonElement parent = savedRule.GetProperty("Parent");
         Assert.Equal(
             "nt51950-nt51951-general-merge-logical-candidate",

@@ -9,6 +9,8 @@ using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
+using InlineDataAttribute = NvtFwCombiner.Bootstrap.Tests.GoldenInlineDataAttribute;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Owner-approved AB fixture evidence for supported and retained candidate profiles.</summary>
@@ -39,7 +41,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
         GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
+        GoldenAssert.AssertHashEqualsGolden("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span), "SHA-256");
         GoldenAssert.AssertEqualsGolden(inputs["tp-a-input"].AsSpan(0x7000, 0x39000).ToArray(),
             result.OutputBytes.Span.Slice(0x7000, 0x39000).ToArray(), "firmware image");
         Assert.Equal(
@@ -95,7 +97,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
         GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span));
+        GoldenAssert.AssertHashEqualsGolden("c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2", Hash(result.OutputBytes.Span), "SHA-256");
     }
 
     /// <summary>Every AB alias is explicitly bound to one direct canonical case.</summary>
@@ -176,9 +178,9 @@ public sealed partial class AbMergeGoldenRegressionTests
         SkipUnless = nameof(IsWindows))]
     [InlineData("nt51950-ab-boe-d82t80")]
     [InlineData("nt51950-ab-hiway-d82t80")]
-    public async Task Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync(string caseId)
+    public async Task Nt51950CandidateMatchesOwnerApprovedAbGoldenWithCombinerAsync(GoldenCaseId caseId)
     {
-        JsonElement goldenCase = ReadGoldenCase(caseId);
+        JsonElement goldenCase = ReadGoldenCase(caseId.Value);
         JsonElement applicability = goldenCase.GetProperty("evidenceApplicability");
         Assert.Equal(
             ["NT51951"],
@@ -187,22 +189,14 @@ public sealed partial class AbMergeGoldenRegressionTests
         CanonicalGoldenAlias alias = CanonicalGoldenTestData.LoadWorkflowAliases("ab-merge")
             .Single(item =>
                 StringComparer.Ordinal.Equals(item.Ic, "NT51951") &&
-                StringComparer.Ordinal.Equals(item.SourceCaseId, caseId));
+                StringComparer.Ordinal.Equals(item.SourceCaseId, caseId.Value));
         Assert.Equal("NT51950", alias.SourceIc);
-        using var workspace = TempWorkspace.Create($"nfc-{caseId}");
-        CompiledComposition composition = CompileProfile(
-            AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(
-                workspace,
-                Nt51950BundleDirectory,
-                Nt51950BundleContentHash),
-            "nt51950-ab-merge",
-            "0.8.0",
-            "NT51950",
-            goldenCase.GetProperty("mapCapacity").GetInt64());
+        using var workspace = TempWorkspace.Create($"nfc-{caseId.Value}");
+        CompiledComposition composition = CompileProfile(AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(workspace, Nt51950BundleDirectory, Nt51950BundleContentHash), "nt51950-ab-merge", "0.8.0", "NT51950", goldenCase.GetProperty("mapCapacity").GetInt64());
         Dictionary<string, byte[]> inputs = ReadInputs(goldenCase);
         byte[] expected = ReadExpected(goldenCase);
         byte[] originalTpB = [.. inputs["tp-b-input"]];
-        using var referenceWorkspace = TempWorkspace.Create($"nfc-{caseId}-python-reference");
+        using var referenceWorkspace = TempWorkspace.Create($"nfc-{caseId.Value}-python-reference");
         byte[] pythonReferenceOutput = await RunPythonReferenceAsync(
             referenceWorkspace,
             "51950",
@@ -210,83 +204,50 @@ public sealed partial class AbMergeGoldenRegressionTests
             inputs["tp-a-input"],
             inputs["tp-b-input"],
             TestContext.Current.CancellationToken);
-        GoldenAssert.AssertEqualsGolden(expected, pythonReferenceOutput, GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(expected, pythonReferenceOutput, GoldenDiagnostics.Label(caseId.Value));
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
-        string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-{caseId}-{Guid.NewGuid():N}");
+        using var stagingWorkspace = TempWorkspace.Create($"nfc-{caseId.Value}");
+        string stagingRoot = stagingWorkspace.Root;
         ExternalProcessorResult? externalResult = null;
-
-        try
         {
             ExternalCombinerToolManifest manifest = LoadManifest(
                 Path.Combine(repositoryRoot, "external-tools", "legacy-combiner", "1.13.0", "manifest.json"));
-            Assert.Equal(
-                manifest.Sha256,
-                Hash(File.ReadAllBytes(Path.Combine(
-                    repositoryRoot,
-                    "external-tools",
-                    manifest.ToolId,
-                    manifest.ToolVersion,
-                    manifest.ExecutableName))));
+            GoldenAssert.AssertHashEqualsGolden(manifest.Sha256, Hash(GoldenFileIo.ReadAllBytes(Path.Combine(repositoryRoot, "external-tools", manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName))), "SHA-256");
             var processor = new ExternalCombinerProcessor(
                 new ExternalCombinerToolRegistry([manifest]),
                 Path.Combine(repositoryRoot, "external-tools"),
                 stagingRoot,
                 new SystemExternalProcessRunner(),
                 ExternalCombinerInvocationCatalog.All);
-
             CompositionExecutionResult result = await CompositionEngine.ExecuteAsync(
                 composition.Plan,
                 new CompositionExecutionInput(inputs),
+                new System.Func<CompositionOperation, ReadOnlyMemory<byte>, IReadOnlyList<ExternalProcessorStagedSource>,
+                    IReadOnlyList<ExternalProcessorStagedArtifact>, CancellationToken, ValueTask<CompositionExternalProcessorResult>>(
                 async (operation, inputBytes, stagedSources, stagedArtifacts, cancellationToken) =>
                 {
                     Assert.Empty(stagedSources);
                     ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(
                         operation.ExternalProcessorInvocation);
-                    externalResult = await processor.TransformAsync(
-                        new ExternalProcessorRequest(
-                            $"{caseId}-combiner",
-                            invocation.ProcessorId,
-                            invocation.ToolBindingId,
-                            inputBytes,
-                            invocation.AllowedWriteRanges,
-                            stagedArtifacts: stagedArtifacts),
-                        cancellationToken);
+                    externalResult = await processor.TransformAsync(new ExternalProcessorRequest($"{caseId.Value}-combiner", invocation.ProcessorId, invocation.ToolBindingId, inputBytes, invocation.AllowedWriteRanges, stagedArtifacts: stagedArtifacts), cancellationToken);
                     return externalResult.Succeeded
                         ? CompositionExternalProcessorResult.Success(externalResult.OutputBytes)
                         : CompositionExternalProcessorResult.Failed(externalResult.Issues);
-                },
+                }).Invoke,
                 TestContext.Current.CancellationToken);
-
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Empty(result.Issues);
-            GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), GoldenDiagnostics.Label(caseId));
-            GoldenAssert.AssertEqualsGolden(pythonReferenceOutput, result.OutputBytes.ToArray(), GoldenDiagnostics.Label(caseId));
-            Assert.Equal(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span));
-            GoldenAssert.AssertEqualsGolden(originalTpB, inputs["tp-b-input"], GoldenDiagnostics.Label(caseId));
+            GoldenAssert.AssertEqualsGolden(expected, result.OutputBytes.ToArray(), GoldenDiagnostics.Label(caseId.Value));
+            GoldenAssert.AssertEqualsGolden(pythonReferenceOutput, result.OutputBytes.ToArray(), GoldenDiagnostics.Label(caseId.Value));
+            GoldenAssert.AssertHashEqualsGolden(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(result.OutputBytes.Span), "SHA-256");
+            GoldenAssert.AssertEqualsGolden(originalTpB, inputs["tp-b-input"], GoldenDiagnostics.Label(caseId.Value));
             AssertPostbuildMpeg2Crc(result.OutputBytes.Span, bTpCodeStart: 0x4A000);
-
             ExternalProcessorResult toolResult = Assert.IsType<ExternalProcessorResult>(externalResult);
             Assert.Equal(
                 [new ByteRange(0x4A102, 1), new ByteRange(0x4A112, 1), new ByteRange(0x4A130, 4)],
                 toolResult.ChangedRanges);
             ExternalProcessInvocation command = Assert.Single(toolResult.ExecutedCommands);
-            Assert.Equal(
-                [
-                    "NT51950BASED_MERGE_AB_MODE",
-                    "CRC8",
-                    Path.Combine(command.WorkingDirectory, "artifact-a-bank.bin"),
-                    Path.Combine(command.WorkingDirectory, "artifact-b-bank.bin"),
-                    Path.Combine(command.WorkingDirectory, "output.bin"),
-                    "0x40000",
-                ],
-                command.Arguments);
-        }
-        finally
-        {
-            if (Directory.Exists(stagingRoot))
-            {
-                Directory.Delete(stagingRoot, recursive: true);
-            }
+            Assert.Equal(["NT51950BASED_MERGE_AB_MODE", "CRC8", Path.Combine(command.WorkingDirectory, "artifact-a-bank.bin"), Path.Combine(command.WorkingDirectory, "artifact-b-bank.bin"), Path.Combine(command.WorkingDirectory, "output.bin"), "0x40000",], command.Arguments);
         }
     }
 
@@ -331,7 +292,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             tpA,
             tpB,
             TestContext.Current.CancellationToken);
-        Assert.Equal(expectedSha256, Hash(pythonReferenceOutput));
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, Hash(pythonReferenceOutput), "SHA-256");
 
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string stagingRoot = Path.Combine(Path.GetTempPath(), $"nfc-nt51951-ab-topology-{Guid.NewGuid():N}");
@@ -376,7 +337,7 @@ public sealed partial class AbMergeGoldenRegressionTests
 
             Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
             Assert.Empty(result.Issues);
-            Assert.Equal(expectedSha256, Hash(result.OutputBytes.Span));
+            GoldenAssert.AssertHashEqualsGolden(expectedSha256, Hash(result.OutputBytes.Span), "SHA-256");
             GoldenAssert.AssertEqualsGolden(pythonReferenceOutput, result.OutputBytes.ToArray(), "firmware image");
             GoldenAssert.AssertEqualsGolden(originalTpA, tpA, "firmware image");
             GoldenAssert.AssertEqualsGolden(originalTpB, tpB, "firmware image");
@@ -490,15 +451,15 @@ public sealed partial class AbMergeGoldenRegressionTests
 
     private static byte[] ReadFixture(JsonElement entry)
     {
-        byte[] bytes = File.ReadAllBytes(RepositoryPaths.ManifestPath(CanonicalGoldenTestData.Root, entry));
+        byte[] bytes = GoldenFileIo.ReadAllBytes(RepositoryPaths.ManifestPath(CanonicalGoldenTestData.Root, entry));
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return bytes;
     }
 
     private static ExternalCombinerToolManifest LoadManifest(string path)
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(path));
         JsonElement root = document.RootElement;
         return new ExternalCombinerToolManifest(
             root.GetProperty("schemaVersion").GetString()!,
@@ -559,9 +520,10 @@ public sealed partial class AbMergeGoldenRegressionTests
         const int CrcOutputOffset = 0x130;
         uint externalCrc = BinaryPrimitives.ReadUInt32LittleEndian(
             output.Slice(bTpCodeStart + CrcOutputOffset, sizeof(uint)));
-        Assert.Equal(
+        GoldenAssert.AssertValueEqualsGolden(
             externalCrc,
-            CalculateCrc32Mpeg2(output.Slice(bTpCodeStart + CrcInputOffset, CrcInputLength)));
+            CalculateCrc32Mpeg2(output.Slice(bTpCodeStart + CrcInputOffset, CrcInputLength)),
+            "postbuild CRC");
     }
 
     internal static uint CalculateCrc32Mpeg2(ReadOnlySpan<byte> bytes)
@@ -593,4 +555,5 @@ public sealed partial class AbMergeGoldenRegressionTests
         Environment.NewLine,
         issues.Select(static issue => $"{issue.Code}: {issue.Message}"));
     }
+
 }

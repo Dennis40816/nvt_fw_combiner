@@ -52,8 +52,8 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
             outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(OutputSha256, Hash(output));
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
+        GoldenAssert.AssertHashEqualsGolden(OutputSha256, Hash(output), "SHA-256");
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
@@ -71,7 +71,7 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
             static difference => Assert.True(difference.GetProperty("IsAccepted").GetBoolean()));
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     private static void AssertPhysicalNormalPairs(OwnerCase ownerCase)
@@ -122,7 +122,7 @@ public sealed class Nt51929AndesNormalCtrlRamGoldenTests
             .. goldenCase.GetProperty("artifacts").EnumerateArray().Select(entry =>
             {
                 string path = CanonicalGoldenTestData.ArtifactPath(entry);
-                byte[] bytes = File.ReadAllBytes(path);
+                byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                 return new OwnerArtifact(
                     entry.GetProperty("sourceRole").GetString()!,
                     path,

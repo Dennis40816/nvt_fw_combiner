@@ -22,7 +22,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
         CanonicalCapabilityPolicyRoute expected = Assert.Single(BuiltInCanonicalCapabilityPolicy.Load().Routes,
             route => route.Identity == identity);
         TestContext.Current.TestOutputHelper!.WriteLine($"{identity.RouteId}: {actual.CapabilityFingerprint}");
-        Assert.Equal(expected.CapabilityFingerprint, actual.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(expected.CapabilityFingerprint, actual.CapabilityFingerprint, "SHA-256");
     }
 
     /// <summary>Real NF replacement also reaches its source-defined 4 KiB Backup copy without touching other bytes.</summary>

@@ -19,8 +19,8 @@ internal static class AbMergeCandidateTestSupport
 
         string sourceRoot = RepositoryPaths.FromRepositoryRoot("profiles", "built-in", bundleDirectory);
         string manifestPath = Path.Combine(sourceRoot, "profile-bundle.json");
-        using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
-        _ = workspace.Write("profile-bundle.json", File.ReadAllBytes(manifestPath));
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(manifestPath));
+        _ = workspace.Write("profile-bundle.json", GoldenFileIo.ReadAllBytes(manifestPath));
 
         foreach (JsonElement entry in manifest.RootElement.GetProperty("entries").EnumerateArray())
         {
@@ -30,7 +30,7 @@ internal static class AbMergeCandidateTestSupport
                     relativePath,
                     entry.GetProperty("contentHash").GetString()!)
                 : Path.Combine(sourceRoot, relativePath);
-            _ = workspace.Write(relativePath, File.ReadAllBytes(sourcePath));
+            _ = workspace.Write(relativePath, GoldenFileIo.ReadAllBytes(sourcePath));
         }
 
         TrustedProfileBundle bundle = ProfileBundleLoader.Load(

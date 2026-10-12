@@ -300,7 +300,7 @@ public sealed class ReleaseExampleScreenshots
     {
         string file = Assert.Single(Directory.EnumerateFiles(CanonicalGoldenTestData.Root, "case.json",
             SearchOption.AllDirectories), path => Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(path))) == caseId);
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(file));
+        using JsonDocument document = JsonDocument.Parse(GoldenFileIo.ReadAllText(file));
         return document.RootElement.Clone();
     }
 }

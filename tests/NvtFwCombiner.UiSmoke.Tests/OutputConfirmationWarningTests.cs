@@ -30,7 +30,7 @@ public sealed class OutputConfirmationWarningTests
     {
         string caseFile = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge", "osd-d03t02",
             "single", "nt51950-ab-osd-d03t02-20260924", "provenance", "case.json");
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(caseFile));
+        using JsonDocument document = JsonDocument.Parse(GoldenFileIo.ReadAllText(caseFile));
         JsonElement[] artifacts = [.. document.RootElement.GetProperty("artifacts").EnumerateArray()];
         string Input(string id)
         {
@@ -42,9 +42,9 @@ public sealed class OutputConfirmationWarningTests
         CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
-            [new("dp-ab-input", Input("dp-ab-input"), File.ReadAllBytes(Input("dp-ab-input"))),
-             new("tp-a-input", Input("tp-a-input"), File.ReadAllBytes(Input("tp-a-input"))),
-             new("tp-b-input", Input("tp-b-input"), File.ReadAllBytes(Input("tp-b-input")))],
+            [new("dp-ab-input", Input("dp-ab-input"), GoldenFileIo.ReadAllBytes(Input("dp-ab-input"))),
+             new("tp-a-input", Input("tp-a-input"), GoldenFileIo.ReadAllBytes(Input("tp-a-input"))),
+             new("tp-b-input", Input("tp-b-input"), GoldenFileIo.ReadAllBytes(Input("tp-b-input")))],
             AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(issue => issue.Code)));
         CompositionOutputBundleProposal proposal = await host.CompositionOutputNaming.PrepareBundleProposalAsync(

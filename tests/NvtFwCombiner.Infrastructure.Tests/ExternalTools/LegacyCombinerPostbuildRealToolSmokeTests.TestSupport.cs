@@ -85,7 +85,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
     private static ExternalCombinerToolManifest LoadManifest(string path)
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(path));
         JsonElement root = document.RootElement;
         return new ExternalCombinerToolManifest(
             RequiredString(root, "schemaVersion"),

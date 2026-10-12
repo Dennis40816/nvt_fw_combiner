@@ -47,8 +47,8 @@ public sealed class LocalStateGuardTests
             output,
             error,
             TestContext.Current.CancellationToken));
-        Assert.Equal(string.Empty, output.ToString());
-        Assert.Equal(string.Empty, error.ToString());
+        Assert.True(string.Equals(string.Empty, output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(string.Equals(string.Empty, error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     /// <summary>The public version self-test has no test path override and refuses default state resolution.</summary>
@@ -63,8 +63,8 @@ public sealed class LocalStateGuardTests
             output,
             error,
             TestContext.Current.CancellationToken));
-        Assert.Equal(string.Empty, output.ToString());
-        Assert.Equal(string.Empty, error.ToString());
+        Assert.True(string.Equals(string.Empty, output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(string.Equals(string.Empty, error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     /// <summary>The composed directory owns the toolchain runtime file that the production host reads.</summary>

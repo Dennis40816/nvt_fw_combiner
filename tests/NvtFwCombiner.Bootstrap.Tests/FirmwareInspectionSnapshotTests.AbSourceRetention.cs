@@ -47,15 +47,15 @@ public sealed partial class FirmwareInspectionSnapshotTests
             .AbCommonEventBufferFormatVersion);
 
         FirmwareInspectionSnapshot tpA = batch.InspectionsById[CompositionAddressSpaceIds.TpAInput];
-        byte[] acceptedTp = File.ReadAllBytes(PathFor(CompositionAddressSpaceIds.TpAInput));
+        byte[] acceptedTp = GoldenFileIo.ReadAllBytes(PathFor(CompositionAddressSpaceIds.TpAInput));
         var canonical = new CanonicalTestContext(host);
         var resolver = new FirmwareArtifactClassificationResolver(canonical.Catalog, canonical.Compiler);
         long structureStart = Assert.IsType<FirmwareConfigMetadataSnapshot>(tpA.FirmwareConfig)
             .FirmwareConfigBackupStart;
         ResolutionToken current = Assert.IsType<AuthoringInputSlotStatus>(tpA.InputSlotStatus)
             .ResolutionToken;
-        Assert.Equal(tpA.AbCommonEventBufferFormatVersion,
-            resolver.ReadCommonEventBufferFormatForTp("NT51929", current, acceptedTp, structureStart));
+        GoldenAssert.AssertValueEqualsGolden(tpA.AbCommonEventBufferFormatVersion,
+            resolver.ReadCommonEventBufferFormatForTp("NT51929", current, acceptedTp, structureStart), "firmware field");
         Assert.Null(resolver.ReadCommonEventBufferFormatForTp("NT51929",
             new ResolutionToken("stale-publication"), acceptedTp, structureStart));
         Assert.Null(resolver.ReadCommonEventBufferFormatForTp("NT51929", current,

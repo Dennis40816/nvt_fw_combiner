@@ -32,9 +32,9 @@ public sealed partial class CompiledCompositionTests
         Assert.Equal(["original-name"], output.TokenRequirements.Select(static requirement => requirement.TokenId));
         Assert.True(composition.CompilationFingerprint.All(character =>
             character is (>= '0' and <= '9') or (>= 'a' and <= 'f')));
-        Assert.Equal(
-            "c944019eeaa7592c0801b22951d1353400c8a51b4dc8685f10e5a4a721bb1644",
-            composition.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("c944019eeaa7592c0801b22951d1353400c8a51b4dc8685f10e5a4a721bb1644", composition.CompilationFingerprint, "SHA-256"
+
+);
         Assert.Null(typeof(CompiledComposition).GetMethod("CreateV2", BindingFlags.Static | BindingFlags.Public));
     }
 
@@ -285,7 +285,7 @@ public sealed partial class CompiledCompositionTests
             outputTemplate: "{source-name}-{original-name}.bin",
             requiredOutputTokenIds: ["original-name", "source-name"]);
 
-        Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(first.CompilationFingerprint, second.CompilationFingerprint, "SHA-256");
     }
 
     /// <summary>Verifies compiled V2 region access and resolved physical-view provenance bind approval identity.</summary>
@@ -455,9 +455,9 @@ public sealed partial class CompiledCompositionTests
             "pid", CompiledValidationStage.InputLoad, CompiledValidationSeverity.Error, "PID", field);
         CompiledValidationRequirement second = new CompiledMetadataEqualityValidation(
             "equality", CompiledValidationStage.FinalOutput, CompiledValidationSeverity.Error, "EQUAL", field, alternateField);
-        Assert.Equal(
-            CreateV2(validationRequirements: [first, second]).CompilationFingerprint,
-            CreateV2(validationRequirements: [second, first]).CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(CreateV2(validationRequirements: [first, second]).CompilationFingerprint, CreateV2(validationRequirements: [second, first]).CompilationFingerprint, "SHA-256"
+
+);
 
         static string CalculateFingerprint(CompiledValidationRequirement validation)
         {

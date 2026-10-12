@@ -42,8 +42,8 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             outputPath);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
-        Assert.Equal(ExpectedSha256, Hash(evidence.Expected.Bytes));
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
+        GoldenAssert.AssertHashEqualsGolden(ExpectedSha256, Hash(evidence.Expected.Bytes), "SHA-256");
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         CanonicalGoldenDifferenceResult manifestDifferences =
             CanonicalGoldenTestData.AssertAllowedByteDifferences(
@@ -73,7 +73,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         Assert.Equal(40, AssertOnlyPostbuildCrcDiffers(evidence.Expected.Bytes, output));
         AssertDlmMapsAndNfMatchesBase(evidence, evidence.Base.Bytes, output);
         for (int record = 0; record < 3; record++)
@@ -117,7 +117,7 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, output, GoldenDiagnostics.Label(CaseId));
         AssertDlmMapsAndNfMatchesBase(evidence, evidence.Expected.Bytes, output);
     }
@@ -394,10 +394,10 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
             outputPath);
 
         Assert.True(historical.Succeeded, $"Composition result: status={historical.Status}, succeeded={historical.Succeeded}.");
-        byte[] rejected = File.ReadAllBytes(outputPath);
+        byte[] rejected = GoldenFileIo.ReadAllBytes(outputPath);
 
         Assert.Equal(evidence.KnownBadSize, rejected.LongLength);
-        Assert.Equal(evidence.KnownBadSha256, Hash(rejected));
+        GoldenAssert.AssertHashEqualsGolden(evidence.KnownBadSha256, Hash(rejected), "SHA-256");
         Assert.Equal(
             evidence.KnownBadDifferenceBytes,
             rejected.Where((value, index) => value != evidence.Expected.Bytes[index]).Count());
@@ -523,9 +523,9 @@ public sealed class Nt51932DiffDlmMaskCascade4GoldenTests
     private static OwnerArtifact ReadArtifact(string root, JsonElement entry)
     {
         string path = RepositoryPaths.ManifestPath(root, entry);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new(entry.GetProperty("artifactId").GetString()!, path, bytes);
     }
 

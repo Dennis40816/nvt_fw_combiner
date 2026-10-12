@@ -75,8 +75,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         string tpBPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(static artifact =>
             artifact.GetProperty("artifactId").GetString() == CompositionAddressSpaceIds.TpBInput));
         Assert.Equal(tpAPath, tpBPath);
-        byte[] originalDp = File.ReadAllBytes(dpPath);
-        byte[] originalTp = File.ReadAllBytes(tpAPath);
+        byte[] originalDp = GoldenFileIo.ReadAllBytes(dpPath);
+        byte[] originalTp = GoldenFileIo.ReadAllBytes(tpAPath);
         using var workspace = TempWorkspace.Create(workspacePrefix);
         CompositionHostServices host = await CreateFormatGoldenHostAsync(workspace);
         string selectedDpPath = workspace.Write("dp-ab.bin", originalDp);
@@ -106,15 +106,15 @@ public sealed partial class AbMergeGoldenRegressionTests
 
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         Assert.True(GoldenDiagnostics.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         byte[] expected = ReadExpected(goldenCase);
         GoldenAssert.AssertEqualsGolden(expected, output, GoldenDiagnostics.Label(caseId));
-        Assert.Equal(Hash(expected), Hash(output));
+        GoldenAssert.AssertHashEqualsGolden(Hash(expected), Hash(output), "SHA-256");
         GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(selectedDpPath), GoldenDiagnostics.Label(caseId));
         GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(selectedTpPath), GoldenDiagnostics.Label(caseId));
         GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), GoldenDiagnostics.Label(caseId));
         GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(tpAPath), GoldenDiagnostics.Label(caseId));
-        string reportJson = await File.ReadAllTextAsync(
+        string reportJson = await GoldenFileIo.ReadAllTextAsync(
             reportPath, TestContext.Current.CancellationToken);
         return (output, reportJson);
     }
@@ -166,7 +166,7 @@ public sealed partial class AbMergeGoldenRegressionTests
             TestContext.Current.CancellationToken);
         if (!validPrimary)
         {
-            Assert.Equal("b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32", Hash(expected));
+            GoldenAssert.AssertHashEqualsGolden("b84b63f30c964fad9818b612b77167bd9615cc31d6f72c1eab49f1b1579c8f32", Hash(expected), "SHA-256");
         }
 
         CliRunResult result = await CliTestHarness.RunAbAsync(host,
@@ -199,13 +199,13 @@ public sealed partial class AbMergeGoldenRegressionTests
         }
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         Assert.True(GoldenDiagnostics.Contains($"Committed: {outputPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         GoldenAssert.AssertEqualsGolden(expected, output, "firmware image");
-        Assert.Equal(Hash(expected), Hash(output));
+        GoldenAssert.AssertHashEqualsGolden(Hash(expected), Hash(output), "SHA-256");
         AssertPostbuildMpeg2Crc(output, bTpCodeStart: 0x8A000);
         GoldenAssert.AssertEqualsGolden(originalDp, GoldenFileIo.ReadAllBytes(dpPath), "firmware image");
         GoldenAssert.AssertEqualsGolden(originalTp, GoldenFileIo.ReadAllBytes(sharedTpPath), "firmware image");
-        using var report = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using var report = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
             reportPath,
             TestContext.Current.CancellationToken));
         AssertPublicSameTpBuildReport(
@@ -236,11 +236,11 @@ public sealed partial class AbMergeGoldenRegressionTests
                 CompositionAddressSpaceIds.TpBInput,
             ],
             inputs.Select(static input => input.GetProperty("AddressSpaceId").GetString()));
-        Assert.Equal(
-            inputs.Single(static input => input.GetProperty("AddressSpaceId").GetString() ==
-                CompositionAddressSpaceIds.TpAInput).GetProperty("Sha256").GetString(),
-            inputs.Single(static input => input.GetProperty("AddressSpaceId").GetString() ==
-                CompositionAddressSpaceIds.TpBInput).GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(inputs.Single(static input => input.GetProperty("AddressSpaceId").GetString() ==
+                CompositionAddressSpaceIds.TpAInput).GetProperty("Sha256").GetString(), inputs.Single(static input => input.GetProperty("AddressSpaceId").GetString() ==
+                CompositionAddressSpaceIds.TpBInput).GetProperty("Sha256").GetString(), "SHA-256"
+
+);
         JsonElement processor = Assert.Single(
             report.GetProperty("Operations").EnumerateArray(),
             operation => operation.GetProperty("ProcessorId").GetString() == expectedProcessorId);
@@ -283,8 +283,8 @@ public sealed partial class AbMergeGoldenRegressionTests
         string tpBPath = workspace.Write("TPB/input.bin", tpB);
         string outputPath = workspace.PathFor("python-reference-output.bin");
         string referenceSourceRoot = RepositoryPaths.FromRepositoryRoot("refcode", "ab_code_combiner");
-        byte[] sourceManifestBytes = File.ReadAllBytes(Path.Combine(referenceSourceRoot, "SOURCE_MANIFEST.json"));
-        Assert.Equal(ReferenceManifestSha256, Hash(sourceManifestBytes));
+        byte[] sourceManifestBytes = GoldenFileIo.ReadAllBytes(Path.Combine(referenceSourceRoot, "SOURCE_MANIFEST.json"));
+        GoldenAssert.AssertHashEqualsGolden(ReferenceManifestSha256, Hash(sourceManifestBytes), "SHA-256");
         using JsonDocument sourceManifest = JsonDocument.Parse(sourceManifestBytes);
         string referenceRoot = workspace.PathFor("reference-src");
         foreach (string sourceName in new[] { "combine.py", "ic_config.py" })
@@ -294,8 +294,8 @@ public sealed partial class AbMergeGoldenRegressionTests
                 .Single(entry => StringComparer.Ordinal.Equals(
                     entry.GetProperty("path").GetString(),
                     sourceName));
-            byte[] sourceBytes = File.ReadAllBytes(Path.Combine(referenceSourceRoot, sourceName));
-            Assert.Equal(sourceEntry.GetProperty("sha256").GetString(), Hash(sourceBytes));
+            byte[] sourceBytes = GoldenFileIo.ReadAllBytes(Path.Combine(referenceSourceRoot, sourceName));
+            GoldenAssert.AssertHashEqualsGolden(sourceEntry.GetProperty("sha256").GetString(), Hash(sourceBytes), "SHA-256");
             _ = workspace.Write(Path.Combine("reference-src", sourceName), sourceBytes);
         }
 
@@ -361,6 +361,6 @@ public sealed partial class AbMergeGoldenRegressionTests
             $"stdout:{Environment.NewLine}{output}{Environment.NewLine}" +
             $"stderr:{Environment.NewLine}{error}");
         Assert.True(File.Exists(outputPath), "Golden assertion condition was not satisfied.");
-        return File.ReadAllBytes(outputPath);
+        return GoldenFileIo.ReadAllBytes(outputPath);
     }
 }

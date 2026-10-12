@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Infrastructure.Capabilities;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Complete CtrlRAM expansion belongs to one load, never the shared source or process.</summary>
@@ -73,7 +75,7 @@ public sealed class CatalogLoadScopedCtrlRamTests
             .First(route => route.Identity.WorkflowId == ExperienceIds.GeneralMerge);
         Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolver = CanonicalDynamicRouteInventory.CreateResolver(
             () => throw new InvalidOperationException("CtrlRAM must remain deferred."));
-        Assert.Equal(policy.CapabilityFingerprint, resolver(policy.Identity).CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(policy.CapabilityFingerprint, resolver(policy.Identity).CapabilityFingerprint, "SHA-256");
     }
 
     /// <summary>Missing or duplicate exact identities keep the original rejection semantics.</summary>
@@ -98,7 +100,7 @@ public sealed class CatalogLoadScopedCtrlRamTests
         Func<CapabilityRouteIdentity, CanonicalDynamicRoute> resolver = CanonicalDynamicRouteInventory.CreateResolver(() => definitions);
         CanonicalDynamicRoute first = resolver(identity);
         definitions[0] = definitions[0] with { PlanFingerprint = new string('f', 64) };
-        Assert.Equal(first.CapabilityFingerprint, resolver(identity).CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(first.CapabilityFingerprint, resolver(identity).CapabilityFingerprint, "SHA-256");
     }
 
     /// <summary>An error after a matching definition cannot be hidden by short-circuit lookup.</summary>

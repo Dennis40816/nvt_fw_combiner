@@ -24,7 +24,7 @@ public sealed class AbCtrlRamReferencePlanTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51950-ab-osd-d03t02-20260924");
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51950", "1-ic")!;
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
             "nt51950-ab-merge", binding.Definition.Layout.Bundle.ContentHash);
@@ -65,7 +65,7 @@ public sealed class AbCtrlRamReferencePlanTests
         BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51950", "1-ic")!;
         string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
             "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
-        byte[] reference = File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+        byte[] reference = GoldenFileIo.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
         TrustedProfileBundleCatalog ab = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
             "nt51950-ab-merge", binding.Definition.Layout.Bundle.ContentHash);
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
@@ -122,7 +122,7 @@ public sealed class AbCtrlRamReferencePlanTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCase);
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] local = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact))[..localLength];
+        byte[] local = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact))[..localLength];
         int bankLength = checked((int)definition.BankCapacityBytes);
         byte[] bank = new byte[bankLength];
         local.CopyTo(bank, 0);
@@ -358,7 +358,7 @@ public sealed class AbCtrlRamReferencePlanTests
 
     internal static byte[] CascadeReference()
     {
-        byte[] localReference = File.ReadAllBytes(Path.Combine(CanonicalGoldenTestData.Root,
+        byte[] localReference = GoldenFileIo.ReadAllBytes(Path.Combine(CanonicalGoldenTestData.Root,
             "NT51932", "ctrlram-replace", "fw2.0.0", "cascade-3",
             "nt51932-fw200-cascade3-auto-prj-525-20260718", "expected",
             "NT51932_FlashCode_D02T88_20260718.bin"));
@@ -572,7 +572,7 @@ public sealed class AbCtrlRamReferencePlanTests
         V2RuntimeReferenceBankReplacePlan prepared = Prepare(original, requests);
         using TempWorkspace workspace = TempWorkspace.Create("nfc-ab-bank-real-tool");
         string toolRoot = Path.Combine(RepositoryPaths.FindRepositoryRoot(), "external-tools");
-        using JsonDocument manifestJson = JsonDocument.Parse(File.ReadAllText(Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json")));
+        using JsonDocument manifestJson = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json")));
         JsonElement m = manifestJson.RootElement;
         string S(string name)
         {
@@ -732,6 +732,6 @@ public sealed class AbCtrlRamReferencePlanTests
 
     private static byte[] ReadReference()
     {
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51929", "expected-output", "t05-d06"));
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51929", "expected-output", "t05-d06"));
     }
 }
