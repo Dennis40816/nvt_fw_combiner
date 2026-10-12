@@ -63,3 +63,6 @@ testdata/golden/owner-handoff/**/intake/
 outputs/
 
 /.claude/settings.local.json
+
+# Pinned Core checkout that CI passes to repo-health.ps1 as -CoreRoot
+/.core/

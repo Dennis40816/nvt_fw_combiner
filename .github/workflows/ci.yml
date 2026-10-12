@@ -162,6 +162,24 @@ jobs:
         env:
           NFC_DOTNET_BUILD_LOG: ${{ runner.temp }}/dotnet-build.log
         run: python scripts/verify.py --ci-dotnet-build
+      - name: Read the pinned Core commit
+        id: core-pin
+        shell: pwsh
+        run: |
+          $lock = Get-Content -LiteralPath eng/core-health.lock.json -Raw | ConvertFrom-Json
+          $commit = [string]$lock.coreCommit
+          if ($commit -cnotmatch '\A[0-9a-f]{40}\z') {
+            throw 'The Core pin in eng/core-health.lock.json is not a full commit SHA.'
+          }
+          "commit=$commit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Checkout the pinned Core commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: Dennis40816/nvt_fw_core
+          ref: ${{ steps.core-pin.outputs.commit }}
+          path: .core
+          fetch-depth: 0
+          persist-credentials: false
       - name: Verify enrolled C# code health
         shell: pwsh
         env:
@@ -178,9 +196,9 @@ jobs:
             if ([string]::IsNullOrWhiteSpace($env:NFC_PR_BASE_SHA)) {
               throw 'Pull-request code-health verification requires a base SHA.'
             }
-            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -BaseRef $env:NFC_PR_BASE_SHA
+            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot .core
           } else {
-            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx
+            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -CoreRoot .core
           }
           exit $LASTEXITCODE
       - name: Upload dotnet build evidence
