@@ -113,6 +113,21 @@ narrow-test selection, retry, and checkpoints, with the task scope and local
 verification rules below. Test-area setup is required for tests/verifiers, not
 ordinary Git or document inspection.
 
+## Debt ledger rules
+
+`eng/code-health/baseline.json` only goes down. Tool:
+`eng/core-health/repo-health.ps1`. Details and limits: the Core
+[guide](https://github.com/Dennis40816/nvt_fw_core/blob/cb6c773b65fd03fc302dc4777f3721bfbfb7c504/tools/repo-checks/ledger-operation.md).
+
+- Only `-Mode LowerBaseline` writes the ledger. Run it after the last code
+  edit; its output goes in that commit.
+- Renaming, moving, changing the signature of, or editing any token of a
+  statement that carries debt, or turning an async lambda into a local
+  function, creates new debt. Avoid it unless the change removes that finding.
+- Add no line to a file or method over its size limit.
+- Before a push that changes C# code, a project file or `eng/code-health/`,
+  run `-Mode Verify` once per head (25 to 45 minutes).
+
 ## Immutable architecture and firmware rules
 
 - New C# code and tests follow Core's
