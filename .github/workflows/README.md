@@ -61,7 +61,7 @@ publication authority. Ordinary `main` pushes do not package. Draft
 pull requests run policy checks; review-ready PRs and `main` pushes run the
 required CI matrix.
 
-All external actions are pinned to full immutable commit SHAs. Workflow permissions are least-privilege per workflow, checkout credentials are not persisted, and pull-request jobs receive no release environment secrets. Reviewed policy templates are retained under `docs/ci/workflow-templates/` for change review; the complete executable source of truth remains `.github/workflows/`.
+All external actions are pinned to full immutable commit SHAs. Workflow permissions are least-privilege per workflow, checkout credentials are not persisted, and pull-request jobs receive no release environment secrets. The test jobs (`policy / polytail`, `python / repository policy`, `dotnet / test`) run in the `golden-assets` environment and receive only the read-only test-data deploy key `TESTDATA_DEPLOY_KEY`; a fork or Dependabot run has no key and fails with `unverified, cannot merge`. Reviewed policy templates are retained under `docs/ci/workflow-templates/` for change review; the complete executable source of truth remains `.github/workflows/`.
 
 The CI template is an exact-byte generated mirror, maintained with
 `python scripts/sync_derived.py --write --only ci-template-mirror` after approved

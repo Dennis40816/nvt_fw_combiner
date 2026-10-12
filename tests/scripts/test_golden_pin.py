@@ -278,6 +278,51 @@ if ($text.Trim() -cne $Expected) { throw 'Unexpected refusal message.' }
                                        environment=environment, source=self.work)
         self.assertFalse(key.exists())
 
+    def test_clone_starts_git_with_the_git_variables_absent_not_empty(self):
+        # An empty GIT_WORK_TREE stops `git clone` ("could not create work tree dir ''"), so the assembler
+        # must remove the variables, not set them to an empty value. A stub `git` records its environment.
+        runner = self.work / "runner"
+        runner.mkdir()
+        runner = runner.resolve()
+        stub_dir = self.work / "stub"
+        stub_dir.mkdir()
+        record = self.work / "git-environment.txt"
+        stub = stub_dir / "git-stub.py"
+        stub.write_text(
+            "import os, pathlib, sys\n"
+            "names = ('GIT_WORK_TREE', 'GIT_DIR', 'GIT_CONFIG_COUNT', 'GIT_CONFIG_PARAMETERS', 'GIT_SSH')\n"
+            "pathlib.Path(os.environ['NFC_STUB_RECORD']).write_text(\n"
+            "    ','.join(name for name in names if name in os.environ), encoding='utf-8')\n"
+            "sys.exit(1)\n",
+            encoding="utf-8")
+        if os.name == "nt":
+            (stub_dir / "git.cmd").write_text(
+                f'@echo off\r\n"{sys.executable}" "{stub}" %*\r\n', encoding="ascii")
+        else:
+            launcher = stub_dir / "git"
+            launcher.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{stub}" "$@"\n', encoding="utf-8")
+            launcher.chmod(0o755)
+        names = ("GIT_WORK_TREE", "GIT_DIR", "GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS", "GIT_SSH")
+        # The caller may have the variables absent, set, or set to an empty value.
+        for label, inherited in (("absent", None), ("set", "synthetic"), ("empty", "")):
+            with self.subTest(inherited=label):
+                key = runner / "assets-key"
+                key.write_text("synthetic key", encoding="utf-8")
+                record.unlink(missing_ok=True)
+                environment = dict(self.environment, NFC_ASSETS_KEY_FILE=str(key), RUNNER_TEMP=str(runner),
+                                   NFC_STUB_RECORD=str(record),
+                                   PATH=str(stub_dir) + os.pathsep + self.environment["PATH"])
+                for name in names:
+                    environment.pop(name, None)
+                    if inherited is not None:
+                        environment[name] = inherited
+                result = self.powershell("assemble-golden.ps1", "-Mode", "Clone", "-BaselinePath", self.baseline,
+                                         environment=environment)
+                self.assertEqual(1, result.returncode, result.stdout + result.stderr)
+                self.assertEqual("Golden assembly failed.\n", result.stderr)
+                self.assertEqual("", record.read_text(encoding="utf-8"))
+                self.assertFalse(key.exists())
+
     def test_pin_loader_rejects_other_repository_path_paths_and_digest(self):
         self.assertEqual(self.pin, golden_pin.load_pin(self.baseline))
         changes = (("assetsRepo", "someone/else"), ("assetsPath", "other/path"),
