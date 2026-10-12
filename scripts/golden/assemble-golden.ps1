@@ -97,14 +97,12 @@ try {
                 'GIT_TERMINAL_PROMPT', 'GIT_ASKPASS', 'SSH_ASKPASS', 'GIT_CONFIG_COUNT',
                 'GIT_CONFIG_PARAMETERS', 'GIT_DIR', 'GIT_WORK_TREE'))) {
                 $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
-                [Environment]::SetEnvironmentVariable($name, $null)
+                # Remove through the Env: drive. SetEnvironmentVariable($name, $null) leaves an empty value, and
+                # git stops on an empty GIT_WORK_TREE.
+                Remove-Item -LiteralPath ('Env:' + $name) -ErrorAction SilentlyContinue
             }
             $env:GIT_TERMINAL_PROMPT = '0'
-            # Git runs this command through its own sh, which finds Git's bundled ssh first. Use the Windows OpenSSH
-            # client when it exists: it reads the key file with Windows ACL rules.
-            $openSsh = (Join-Path ([Environment]::GetFolderPath('System')) 'OpenSSH/ssh.exe').Replace('\', '/')
-            $sshProgram = if (Test-Path -LiteralPath $openSsh -PathType Leaf) { '"' + $openSsh + '"' } else { 'ssh' }
-            $env:GIT_SSH_COMMAND = $sshProgram + ' -i "' + $keyFile + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
+            $env:GIT_SSH_COMMAND = 'ssh -i "' + $keyFile + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
             Invoke-QuietGit -Arguments @('clone', '--filter=blob:none', '--no-checkout', '--sparse',
                 ('git@github.com:' + $pin.assetsRepo + '.git'), $cloneDirectory)
             Invoke-QuietGit -Arguments @('-C', $cloneDirectory, 'sparse-checkout', 'set', '--no-cone', ('/' + $pin.assetsPath + '/'))
@@ -147,7 +145,11 @@ try {
             $assemblyFailed = $true
         }
         foreach ($name in $previousEnvironment.Keys) {
-            [Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name])
+            if ($null -eq $previousEnvironment[$name]) {
+                Remove-Item -LiteralPath ('Env:' + $name) -ErrorAction SilentlyContinue
+            } else {
+                Set-Item -LiteralPath ('Env:' + $name) -Value $previousEnvironment[$name]
+            }
         }
     }
 }
