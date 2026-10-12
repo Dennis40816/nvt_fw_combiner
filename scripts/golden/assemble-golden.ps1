@@ -100,7 +100,11 @@ try {
                 [Environment]::SetEnvironmentVariable($name, $null)
             }
             $env:GIT_TERMINAL_PROMPT = '0'
-            $env:GIT_SSH_COMMAND = 'ssh -i "' + $keyFile + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
+            # Git runs this command through its own sh, which finds Git's bundled ssh first. Use the Windows OpenSSH
+            # client when it exists: it reads the key file with Windows ACL rules.
+            $openSsh = (Join-Path ([Environment]::GetFolderPath('System')) 'OpenSSH/ssh.exe').Replace('\', '/')
+            $sshProgram = if (Test-Path -LiteralPath $openSsh -PathType Leaf) { '"' + $openSsh + '"' } else { 'ssh' }
+            $env:GIT_SSH_COMMAND = $sshProgram + ' -i "' + $keyFile + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
             Invoke-QuietGit -Arguments @('clone', '--filter=blob:none', '--no-checkout', '--sparse',
                 ('git@github.com:' + $pin.assetsRepo + '.git'), $cloneDirectory)
             Invoke-QuietGit -Arguments @('-C', $cloneDirectory, 'sparse-checkout', 'set', '--no-cone', ('/' + $pin.assetsPath + '/'))
