@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Proves deployed Standard Merge profiles consume the shared headless contract.</summary>
@@ -43,7 +45,7 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
         AuthoringCapabilityRoute withoutRoute = Assert.Single(withoutLdc.Catalog.Routes);
         AuthoringCapabilityRoute withRoute = Assert.Single(withLdc.Catalog.Routes);
         Assert.Equal(withoutRoute.Identity.RouteId, withRoute.Identity.RouteId);
-        Assert.Equal(withoutRoute.CapabilityFingerprint, withRoute.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(withoutRoute.CapabilityFingerprint, withRoute.CapabilityFingerprint, "SHA-256");
         Assert.NotEqual(withoutRoute.CompilationFingerprint, withRoute.CompilationFingerprint);
         Assert.DoesNotContain(withoutRoute.SlotDefinitions, static slot =>
             slot.DefinitionId == CompositionAddressSpaceIds.LdcInput);

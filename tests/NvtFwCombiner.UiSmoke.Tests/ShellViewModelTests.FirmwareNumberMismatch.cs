@@ -313,7 +313,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.True(viewModel.WorkflowSession.IsFirmwareNumberMismatchModalOpen);
         Assert.Equal("3 IC", viewModel.WorkflowSession.FirmwareNumberMismatchDetectedNumber);
         string basePath = Assert.IsType<string>(viewModel.Replace.ReplaceBaseSlot.FilePath);
-        byte[] immutableBase = File.ReadAllBytes(basePath);
+        byte[] immutableBase = GoldenFileIo.ReadAllBytes(basePath);
         FirmwareSlotViewModel nf = viewModel.Replace.ReplaceSlots.Single(slot => slot.SlotId == "replace-ctrlram-nf");
         viewModel.SetSlotFile(nf.SlotId, CanonicalCtrlRamTestData.ReplacementPathFor(fixtureCase, nf.SlotId));
 

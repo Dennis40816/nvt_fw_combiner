@@ -136,7 +136,7 @@ public sealed class TpSvnInputInspectionTests
         CtrlRamBaseInspection second = Assert.IsType<CtrlRamBaseInspection>(after.CtrlRamBaseInspection);
         Assert.Equal(first.Kind, second.Kind);
         Assert.Equal(first.Issues.Select(static issue => issue.Code), second.Issues.Select(static issue => issue.Code));
-        Assert.Equal(first.StandardEventBufferFormatVersion, second.StandardEventBufferFormatVersion);
+        GoldenAssert.AssertValueEqualsGolden(first.StandardEventBufferFormatVersion, second.StandardEventBufferFormatVersion, "firmware field");
         Assert.Equal(before.FirmwareConfig, after.FirmwareConfig);
     }
 
@@ -230,7 +230,7 @@ public sealed class TpSvnInputInspectionTests
 
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), icId, topology,
-            [new("tp-a-input", a, File.ReadAllBytes(a)), new("tp-b-input", b, File.ReadAllBytes(b))],
+            [new("tp-a-input", a, GoldenFileIo.ReadAllBytes(a)), new("tp-b-input", b, GoldenFileIo.ReadAllBytes(b))],
             AbMergeDpMode.Dummy, TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         Assert.Equal(mapId,
@@ -246,7 +246,7 @@ public sealed class TpSvnInputInspectionTests
         Assert.True(run.Succeeded, $"Composition result: status={run.Status}, succeeded={run.Succeeded}.");
         Assert.Equal("desay", run.Report.AbMergeFormat!.FormatId);
 
-        byte[] image = File.ReadAllBytes(output);
+        byte[] image = GoldenFileIo.ReadAllBytes(output);
         Assert.Equal(0x100000, image.Length);
         GoldenAssert.AssertEqualsGolden(Convert.FromHexString("C0202601"), Convert.FromHexString(Convert.ToHexString(image, 0xA024, 4)), "header field");
         GoldenAssert.AssertEqualsGolden(Convert.FromHexString("80202602"), Convert.FromHexString(Convert.ToHexString(image, 0x8A024, 4)), "header field");
@@ -299,7 +299,7 @@ public sealed class TpSvnInputInspectionTests
 
     private static byte[] ReadGolden(string relativePath)
     {
-        return File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot($"{GoldenRoot}/{relativePath}"));
+        return GoldenFileIo.ReadAllBytes(RepositoryPaths.FromRepositoryRoot($"{GoldenRoot}/{relativePath}"));
     }
 
     /// <summary>

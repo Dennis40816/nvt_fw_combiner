@@ -42,7 +42,7 @@ public sealed partial class TrustedProfileBundleCatalogLoweringTests
         Assert.Equal(new ByteRange(0, 16), operation.TargetRange);
         Assert.Equal(OverlapPolicy.Reject, operation.OverlapPolicy);
         V2CompiledCompositionDetails details = Assert.IsType<V2CompiledCompositionDetails>(composition.V2Details);
-        Assert.Equal(BundleHash, details.Provenance.Bundle.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(BundleHash, details.Provenance.Bundle.ContentHash, "SHA-256");
         Assert.Equal("profile-entry", details.Provenance.ProfileEntry.EntryId);
         Assert.Equal("map", details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.Equal(CompiledProfilePromotionStage.Compilable, details.Provenance.Promotion.Stage);

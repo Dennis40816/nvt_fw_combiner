@@ -51,7 +51,7 @@ public sealed partial class AbMergeFormatAdmissionTests
         else
         {
             Assert.Equal("nt51951-ab-merge-1024k", discovery.Selection!.MapId);
-            Assert.Equal(Artifacts(tailed, tailed)[0].Sha256, discovery.Selection.TpAPrimary.Resolved!.ArtifactIdentity.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(Artifacts(tailed, tailed)[0].Sha256, discovery.Selection.TpAPrimary.Resolved!.ArtifactIdentity.Sha256, "SHA-256");
         }
     }
 
@@ -93,8 +93,8 @@ public sealed partial class AbMergeFormatAdmissionTests
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawA], [selection.TpAFormatByte], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawB], [selection.TpBFormatByte], "firmware image");
         Assert.Null(selection.PrimaryInspection);
-        Assert.Equal(artifacts[0].Sha256, selection.TpAPrimary.Resolved!.ArtifactIdentity.Sha256);
-        Assert.Equal(artifacts[1].Sha256, selection.TpBPrimary.Resolved!.ArtifactIdentity.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(artifacts[0].Sha256, selection.TpAPrimary.Resolved!.ArtifactIdentity.Sha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(artifacts[1].Sha256, selection.TpBPrimary.Resolved!.ArtifactIdentity.Sha256, "SHA-256");
         Assert.Equal(new ByteRange(0x22200, 41), selection.TpAPrimary.Resolved.LocatorOutcome.ResolvedRange.Range);
 
         // The migration adapter must select exactly the same semantic result.

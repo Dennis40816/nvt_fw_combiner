@@ -30,7 +30,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal("run-multi-reference-replace", snapshot.RunId);
         Assert.Equal("output-image", snapshot.OutputSpaceId);
         Assert.Equal("output-reference", snapshot.ReferenceSpaceId);
-        Assert.Equal(result.Report.Output.Sha256, snapshot.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(result.Report.Output.Sha256, snapshot.OutputSha256, "SHA-256");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], snapshot.ReferenceBytes.ToArray(), "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x99, 0x30, 0x40], snapshot.OutputBytes.ToArray(), "firmware image");
         GoldenAssert.AssertEqualsGolden(result.OutputBytes.ToArray(), snapshot.OutputBytes.ToArray(), "firmware image");
@@ -90,7 +90,7 @@ public sealed partial class CompositionRunServiceTests
             result.InspectionSnapshot);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x20, 0x30, 0x40], inspection.ReferenceBytes.ToArray(), "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x10, 0x99, 0x30, 0x40], inspection.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(result.Report.Output.Sha256, inspection.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(result.Report.Output.Sha256, inspection.OutputSha256, "SHA-256");
         Assert.Empty(result.Report.Issues);
     }
 }

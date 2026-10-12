@@ -141,7 +141,7 @@ public sealed class OutputDeliverySourceTooltipTests
                 Assert.True(FocusToolTipBehavior.GetIsEnabled(row));
                 OutputConfirmationInputRow input = Assert.IsType<OutputConfirmationInputRow>(row.DataContext);
                 Assert.Equal(input.FileName, AutomationProperties.GetName(row));
-                Assert.Equal($"{input.FileName}\n{input.Size}\n{input.Sha256}", AutomationProperties.GetHelpText(row));
+                GoldenAssert.AssertHashEqualsGolden($"{input.FileName}\n{input.Size}\n{input.Sha256}", AutomationProperties.GetHelpText(row), "SHA-256");
             });
             Assert.True(modal.FindControl<ToggleButton>("SourcesDisclosureToggle")!.Focus(NavigationMethod.Tab));
             foreach ((Grid row, int index) in rows.Select((row, index) => (row, index)))

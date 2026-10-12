@@ -54,21 +54,21 @@ public sealed class CliVersionSelfTestTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(0, exitCode);
-        Assert.Contains("Registry: None", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("Accepted Registry revision: 8", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.Contains("Registry: None", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("Accepted Registry revision: 8", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains(
             "Role=Primary; Issue=None; Revision=8; Selected=True",
             output.ToString(),
-            StringComparison.Ordinal);
-        Assert.Contains(
+            StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains(
             "Role=Backup 1; Issue=None; Revision=7; Selected=False",
             output.ToString(),
-            StringComparison.Ordinal);
-        Assert.Contains(
+            StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains(
             "Status=Latest; Catalog=None; Package=None; Newest=1.0.1; Verified=True",
             output.ToString(),
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(privateRoot, output.ToString(), StringComparison.Ordinal);
+            StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.False(GoldenDiagnostics.Contains(privateRoot, output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
     }
 
     /// <summary>Self-test rejects a selected replica below durable anti-rollback authority.</summary>
@@ -89,8 +89,8 @@ public sealed class CliVersionSelfTestTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(1, exitCode);
-        Assert.Contains("Registry authority: RevisionRollback", output.ToString(), StringComparison.Ordinal);
-        Assert.Contains("Accepted Registry revision: 8", output.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("Registry authority: RevisionRollback", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
+        Assert.True(GoldenDiagnostics.Contains("Accepted Registry revision: 8", output.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output.ToString()));
     }
 
     /// <summary>Malformed command arguments fail before any network or filesystem access.</summary>

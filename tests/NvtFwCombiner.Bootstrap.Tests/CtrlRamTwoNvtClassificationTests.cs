@@ -41,7 +41,7 @@ public sealed class CtrlRamTwoNvtClassificationTests
     public void StandardBaseWithOneNvtMarkerIsNotAb(string ic, string source, int? tailFill, string number)
     {
         byte[] standard = source == "standard-merge"
-            ? File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"))
+            ? GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"))
             : CtrlRamExpectedOutput(source);
         byte[] reference = [.. standard, .. NonNvtTail(standard.Length, tailFill)];
         Assert.Equal(1, TotalMarkers(reference));
@@ -311,7 +311,7 @@ public sealed class CtrlRamTwoNvtClassificationTests
             "nt51950-boe-d82t80" => AbMergeOutput("NT51950", "boe-d82t80"),
             "nt51950-hiway-d82t80" => AbMergeOutput("NT51950", "hiway-d82t80"),
             "perfect-cascade-3" => AbCtrlRamReferencePlanTests.CascadeReference(),
-            Nt51950Osd => File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(CanonicalGoldenTestData.Artifact(
+            Nt51950Osd => GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(CanonicalGoldenTestData.Artifact(
                 CanonicalGoldenTestData.LoadDirectCase("ab-merge", Nt51950Osd), "expected-output"))),
             _ => PartialTwoBankReference(CtrlRamExpectedOutput(source)),
         };
@@ -319,7 +319,7 @@ public sealed class CtrlRamTwoNvtClassificationTests
 
     private static byte[] AbMergeOutput(string ic, string variant)
     {
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", ic, "expected-output", variant));
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", ic, "expected-output", variant));
     }
 
     /// <summary>The existing Partial-family AB evidence: two equal local outputs with B TP addresses relocated.</summary>
@@ -338,13 +338,13 @@ public sealed class CtrlRamTwoNvtClassificationTests
     private static byte[] CtrlRamExpectedOutput(string caseId)
     {
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             CanonicalGoldenTestData.Artifact(golden, "expected-output")));
     }
 
     private static byte[] StandardOutput(string ic)
     {
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", ic, "expected-output"));
     }
 
     private static byte[] NonNvtTail(int length, int? fill)

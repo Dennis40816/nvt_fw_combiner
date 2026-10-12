@@ -63,8 +63,8 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
         CanonicalDynamicRoute route = CanonicalDynamicRouteInventory.Resolve(identity);
         Assert.Equal("nt51929-ab-merge", definition.Layout.ProfileId);
         Assert.Equal("nt51929-ctrlram-replace-fw200-single", definition.Local.ProfileId);
-        Assert.Equal(definition.ContentHash, route.CompilationContract.TrustedDefinitionSha256);
-        Assert.Equal(route.CapabilityFingerprint, CanonicalDynamicRouteInventory.CreateResolver()(identity).CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(definition.ContentHash, route.CompilationContract.TrustedDefinitionSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(route.CapabilityFingerprint, CanonicalDynamicRouteInventory.CreateResolver()(identity).CapabilityFingerprint, "SHA-256");
         output.WriteLine("Registry route: " + identity.RouteId);
         output.WriteLine("Registry fingerprint: " + route.CapabilityFingerprint);
     }
@@ -96,13 +96,13 @@ public sealed class AbCtrlRamRegistryTests(ITestOutputHelper output)
     [InlineData(true, true)]
     public void ActualCompilationMatchesOfficialDefinition(bool a, bool b)
     {
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51929", "expected-output", "t05-d06"));
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("ab-merge", "NT51929", "expected-output", "t05-d06"));
         CompiledComposition compiled = AbCtrlRamRuntimeWiringTests.Compile(reference, a, b, editVersions: true);
         BankReplaceRouteBinding binding = CanonicalDynamicRouteInventory.FindBankReplaceBinding("NT51929", "1-ic")!;
         ResolvedCapabilityRoute route = Catalog().ResolveDynamicRoute(binding.Identity.RouteId).Route!;
         ResolvedCapability capability = route.BindCompilation(compiled, runtimeReferenceProof: AbCtrlRamRuntimeWiringTests.Proof(compiled));
-        Assert.Equal(binding.Definition.ContentHash,
-            capability.CompiledComposition.V2Details.Provenance.BankReplaceDefinition!.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(binding.Definition.ContentHash, capability.CompiledComposition.V2Details.Provenance.BankReplaceDefinition!.ContentHash, "SHA-256"
+);
         Assert.Equal(CapabilityPublicationStatus.Candidate, capability.Publication.Value);
         Assert.NotNull(capability.RuntimeReferenceProof);
     }

@@ -10,9 +10,9 @@ public sealed partial class CompiledCompositionTests
     {
         CompiledComposition composition = CreateExternalProcessorComposition();
 
-        Assert.Equal(
-            "ab62d604a3e8e44d27a80f751055dcd384ab5f007f53e09c28a6a4a407457c88",
-            composition.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("ab62d604a3e8e44d27a80f751055dcd384ab5f007f53e09c28a6a4a407457c88", composition.CompilationFingerprint, "SHA-256"
+
+);
     }
 
     /// <summary>Verifies every scalar-transform declaration field contributes to compilation identity.</summary>

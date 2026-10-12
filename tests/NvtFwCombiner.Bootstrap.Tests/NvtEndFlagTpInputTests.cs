@@ -32,11 +32,11 @@ public sealed class NvtEndFlagTpInputTests
     /// from the end flag, and the complete output is the owner Golden with only the copied TP byte change.
     /// </summary>
     [Theory]
-    [InlineData("51950-dp-256k", "NT51950")]
-    [InlineData("51951-dp-512k", "NT51951")]
-    public async Task StandardMergeTpMarkerAwayFromTheEndFlagIsNeitherCountedNorRejectedAsync(string caseId, string icId)
+    [MemberData(nameof(StandardMergeTpMarkerAwayFromTheEndFlagIsNeitherCountedNorRejectedAsyncCases))]
+
+    public async Task StandardMergeTpMarkerAwayFromTheEndFlagIsNeitherCountedNorRejectedAsync(GoldenCaseId caseId, string icId)
     {
-        (byte[] dp, byte[] tp, byte[] expected) = ReadStandardCase(caseId);
+        (byte[] dp, byte[] tp, byte[] expected) = ReadStandardCase(caseId.Value);
         byte[] tpWithMarkers = [.. tp];
         Marker.CopyTo(tpWithMarkers.AsSpan(UncopiedTpMarker));
         Marker.CopyTo(tpWithMarkers.AsSpan(CopiedTpMarker));
@@ -61,8 +61,8 @@ public sealed class NvtEndFlagTpInputTests
         (CompositionRunResult baseline, byte[] baselineOutput) = await BuildStandardAsync(workspace, icId, dp, tp, "baseline");
         (CompositionRunResult result, byte[] output) = await BuildStandardAsync(workspace, icId, dp, tpWithMarkers, "markers");
 
-        GoldenAssert.AssertEqualsGolden(expected, baselineOutput, GoldenDiagnostics.Label(caseId));
-        GoldenAssert.AssertEqualsGolden(expectedWithMarker, output, GoldenDiagnostics.Label(caseId));
+        GoldenAssert.AssertEqualsGolden(expected, baselineOutput, GoldenDiagnostics.Label(caseId.Value));
+        GoldenAssert.AssertEqualsGolden(expectedWithMarker, output, GoldenDiagnostics.Label(caseId.Value));
         Assert.Equal(NamingTokens(baseline), NamingTokens(result));
         Assert.Contains(NamingTokens(result), static token => token.TokenId == "tp-version" && token.IsKnown);
     }
@@ -72,11 +72,11 @@ public sealed class NvtEndFlagTpInputTests
     /// without it, although a complete Backup ending at 0x1FFC is what the previous whole-image rule accepted.
     /// </summary>
     [Theory]
-    [InlineData("51950-dp-256k", "NT51950")]
-    [InlineData("51951-dp-512k", "NT51951")]
-    public void StandardMergeTpWithoutTheEndFlagMarkerIsRejectedEvenWithABackupElsewhere(string caseId, string icId)
+    [MemberData(nameof(StandardMergeTpWithoutTheEndFlagMarkerIsRejectedEvenWithABackupElsewhereCases))]
+
+    public void StandardMergeTpWithoutTheEndFlagMarkerIsRejectedEvenWithABackupElsewhere(GoldenCaseId caseId, string icId)
     {
-        (byte[] dp, byte[] tp, _) = ReadStandardCase(caseId);
+        (byte[] dp, byte[] tp, _) = ReadStandardCase(caseId.Value);
         byte[] missing = [.. tp];
         missing[EndFlagStart + 1] ^= 0xFF;
         byte[] moved = [.. missing];
@@ -101,11 +101,11 @@ public sealed class NvtEndFlagTpInputTests
     /// resolves at 0x36000 with one match; with only a misplaced marker it has no match.
     /// </summary>
     [Theory]
-    [InlineData("51950-dp-256k", "NT51950", "nt51950-standard-merge-256k")]
-    [InlineData("51951-dp-512k", "NT51951", "nt51951-standard-merge-512k")]
-    public void RetiredDpReplaceReferenceLocatorReadsOnlyTheDeclaredEndFlag(string caseId, string icId, string mapId)
+    [MemberData(nameof(RetiredDpReplaceReferenceLocatorReadsOnlyTheDeclaredEndFlagCases))]
+
+    public void RetiredDpReplaceReferenceLocatorReadsOnlyTheDeclaredEndFlag(GoldenCaseId caseId, string icId, string mapId)
     {
-        (_, _, byte[] reference) = ReadStandardCase(caseId);
+        (_, _, byte[] reference) = ReadStandardCase(caseId.Value);
         FirmwareFamilyResolutionDefinition family = BuiltInV2BundleRegistry.All["nt51950-nt51951-standard-merge"]
             .GetFirmwareFamily($"nt{icId[2..]}-standard-merge-dp-perspective", "0.8.0");
         byte[] withExtraMarker = [.. reference];
@@ -168,9 +168,9 @@ public sealed class NvtEndFlagTpInputTests
         CliRunResult admitted = await PreviewSavedRuleAsync(workspace.Write("current.json", Json(current)), source);
 
         Assert.Equal(64, stale.ExitCode);
-        Assert.Contains("saved-rule.v2.parent-narrowing-invalid", stale.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("saved-rule.v2.parent-narrowing-invalid", admitted.Error, StringComparison.Ordinal);
-        Assert.Contains("saved-rule.lifecycle.execution-not-trusted-published", admitted.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("saved-rule.v2.parent-narrowing-invalid", stale.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(stale.Error));
+        Assert.False(GoldenDiagnostics.Contains("saved-rule.v2.parent-narrowing-invalid", admitted.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(admitted.Error));
+        Assert.True(GoldenDiagnostics.Contains("saved-rule.lifecycle.execution-not-trusted-published", admitted.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(admitted.Error));
     }
 
     private static (byte[] Dp, byte[] Tp, byte[] Expected) ReadStandardCase(string caseId)
@@ -178,7 +178,7 @@ public sealed class NvtEndFlagTpInputTests
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(ExperienceIds.StandardMerge, caseId);
         byte[] Read(string artifactId)
         {
-            return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
                 CanonicalGoldenTestData.Artifact(goldenCase, artifactId)));
         }
 
@@ -205,7 +205,7 @@ public sealed class NvtEndFlagTpInputTests
         CompositionRunResult result = await StandardMergeTestSupport.RunAsync(
             BootstrapTestHost.Services, icId, paths, build: true, TestContext.Current.CancellationToken, outputPath);
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        return (result, File.ReadAllBytes(outputPath));
+        return (result, GoldenFileIo.ReadAllBytes(outputPath));
     }
 
     private static (string TokenId, string Value, bool IsKnown)[] NamingTokens(CompositionRunResult result)
@@ -249,4 +249,25 @@ public sealed class NvtEndFlagTpInputTests
     {
         return System.Text.Encoding.UTF8.GetBytes(json.ToJsonString());
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string> StandardMergeTpMarkerAwayFromTheEndFlagIsNeitherCountedNorRejectedAsyncCases() => new()
+    {
+        { new GoldenCaseId("51950-dp-256k"), "NT51950" },
+        { new GoldenCaseId("51951-dp-512k"), "NT51951" },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string> StandardMergeTpWithoutTheEndFlagMarkerIsRejectedEvenWithABackupElsewhereCases() => new()
+    {
+        { new GoldenCaseId("51950-dp-256k"), "NT51950" },
+        { new GoldenCaseId("51951-dp-512k"), "NT51951" },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string> RetiredDpReplaceReferenceLocatorReadsOnlyTheDeclaredEndFlagCases() => new()
+    {
+        { new GoldenCaseId("51950-dp-256k"), "NT51950", "nt51950-standard-merge-256k" },
+        { new GoldenCaseId("51951-dp-512k"), "NT51951", "nt51951-standard-merge-512k" },
+    };
 }

@@ -24,7 +24,7 @@ public sealed class AbCtrlRamAuthoringTests
         }
         string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
             "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
-        byte[] reference = File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+        byte[] reference = GoldenFileIo.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
         (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = Inputs();
         bytes[CompositionSlotIds.ReplaceBase] = reference;
         paths["replace-ctrlram-normal"] = Path.Combine(Path.GetTempPath(), "captured-950-normal.bin");
@@ -63,7 +63,7 @@ public sealed class AbCtrlRamAuthoringTests
         }
         string expectedDirectory = Path.Combine(CanonicalGoldenTestData.Root, "NT51950", "ab-merge",
             "boe-d82t80", "topology-unscoped", "nt51950-ab-boe-d82t80", "expected");
-        byte[] reference = File.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
+        byte[] reference = GoldenFileIo.ReadAllBytes(Directory.GetFiles(expectedDirectory, "*.bin").Single());
         (Dictionary<string, string> paths, Dictionary<string, byte[]> bytes) = Inputs();
         bytes[CompositionSlotIds.ReplaceBase] = reference;
         paths["replace-ctrlram-normal"] = Path.Combine(Path.GetTempPath(), "captured-950-normal.bin");
@@ -106,7 +106,7 @@ public sealed class AbCtrlRamAuthoringTests
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCase);
         JsonElement artifact = golden.GetProperty("artifacts").EnumerateArray().Single(static item =>
             item.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] source = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
+        byte[] source = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact));
         byte[] bank = new byte[bankLength];
         source.AsSpan(0, localLength).CopyTo(bank);
         if (localLength < bankLength)
@@ -140,7 +140,7 @@ public sealed class AbCtrlRamAuthoringTests
             ExternalProcessorEnvironmentTestSupport.AcquireCurrent().Processor, TestContext.Current.CancellationToken);
         Assert.Equal(CompositionExecutionStatus.Succeeded, built.Status);
         GoldenAssert.AssertEqualsGolden(reference[..bankLength], built.OutputBytes[..bankLength].ToArray(), "firmware image");
-        Assert.Equal(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[bankLength + 0x25610]);
+        GoldenAssert.AssertValueEqualsGolden(bytes["replace-ctrlram-normal"][0], built.OutputBytes.Span[bankLength + 0x25610], "firmware field");
         if (localLength < bankLength)
         {
             GoldenAssert.AssertEqualsGolden(reference.AsSpan(bankLength + localLength, bankLength - localLength).ToArray(),
@@ -601,7 +601,7 @@ public sealed class AbCtrlRamAuthoringTests
             }
             uint crc = AbMergeGoldenRegressionTests.CalculateCrc32Mpeg2(expected.AsSpan(bankBase + 0xA100, 0x30));
             BinaryPrimitives.WriteUInt32LittleEndian(expected.AsSpan(bankBase + 0xA130, sizeof(uint)), crc);
-            Assert.Equal(crc, BinaryPrimitives.ReadUInt32LittleEndian(actual.Span.Slice(bankBase + 0xA130, sizeof(uint))));
+            GoldenAssert.AssertValueEqualsGolden(crc, BinaryPrimitives.ReadUInt32LittleEndian(actual.Span.Slice(bankBase + 0xA130, sizeof(uint))), "firmware field");
         }
         GoldenAssert.AssertEqualsGolden(expected, actual.ToArray(), "firmware image");
     }

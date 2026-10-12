@@ -45,7 +45,7 @@ public sealed class CliExecutionRefusalTests
             TestContext.Current.CancellationToken);
 
         AssertTypedRefusal(exitCode, output, error, execution, outputPath, reportPath, ExperienceIds.CtrlRamReplace);
-        Assert.Contains("runtime generation changed from", error.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("runtime generation changed from", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public sealed class CliExecutionRefusalTests
             TestContext.Current.CancellationToken);
 
         AssertTypedRefusal(exitCode, output, error, execution, outputPath, reportPath, ExperienceIds.CtrlRamReplace);
-        Assert.Contains("is no longer available", error.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("is no longer available", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
     }
 
     /// <summary>
@@ -123,9 +123,9 @@ public sealed class CliExecutionRefusalTests
             error,
             TestContext.Current.CancellationToken);
 
-        Assert.True(exitCode == 1, error + Environment.NewLine + output);
+        Assert.True(exitCode == 1, GoldenDiagnostics.TextSummary(error.ToString()) + "; " + GoldenDiagnostics.TextSummary(output.ToString()));
         Assert.Equal(1, execution.Calls);
-        Assert.StartsWith("error: AB_FORMAT_SESSION_STALE: ", error.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.StartsWith("error: AB_FORMAT_SESSION_STALE: ", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
         Assert.Empty(output.ToString());
         Assert.False(File.Exists(outputPath));
         Assert.False(File.Exists(reportPath));
@@ -181,7 +181,7 @@ public sealed class CliExecutionRefusalTests
                 "build", "--profile", "NT51926", "--ic-num", "single",
                 "--base", workspace.Write(
                     "reference.bin",
-                    File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"))),
+                    GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"))),
                 "--mapping", $"0x3E020+0x2={workspace.Write("source.bin", [0xBE, 0xEF])}",
                 "--output", outputPath, "--report", reportPath,
             ],
@@ -300,13 +300,13 @@ public sealed class CliExecutionRefusalTests
         string reportPath,
         string workflowId)
     {
-        Assert.True(exitCode == 1, error + Environment.NewLine + output);
+        Assert.True(exitCode == 1, GoldenDiagnostics.TextSummary(error.ToString()) + "; " + GoldenDiagnostics.TextSummary(output.ToString()));
         Assert.Equal(1, execution.Calls);
-        Assert.StartsWith("Issues:", error.ToString(), StringComparison.Ordinal);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.StartsWith("Issues:", error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
+        Assert.True(GoldenDiagnostics.Contains(
             $"  {CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale} [{workflowId}]: ",
             error.ToString(),
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
         Assert.Empty(output.ToString());
         Assert.False(File.Exists(outputPath));
         Assert.False(File.Exists(reportPath));

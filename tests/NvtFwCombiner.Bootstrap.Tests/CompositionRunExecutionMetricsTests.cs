@@ -203,7 +203,7 @@ public sealed class CompositionRunExecutionMetricsTests
         Assert.Equal(baseline.Status, optimized.Status);
         GoldenAssert.AssertEqualsGolden(baseline.OutputBytes.ToArray(), optimized.OutputBytes.ToArray(), "firmware image");
         Assert.Equal(baseline.Report.Output.Size, optimized.Report.Output.Size);
-        Assert.Equal(baseline.Report.Output.Sha256, optimized.Report.Output.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(baseline.Report.Output.Sha256, optimized.Report.Output.Sha256, "SHA-256");
         Assert.Equal(
             baseline.Report.Mutations.Select(static mutation => (
                 mutation.OperationId,

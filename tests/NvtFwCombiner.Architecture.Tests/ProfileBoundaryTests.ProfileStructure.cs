@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class ProfileBoundaryTests
@@ -523,9 +525,9 @@ public sealed partial class ProfileBoundaryTests
                 entry => StringComparer.Ordinal.Equals(
                     entry.GetProperty("path").GetString(),
                     destination));
-            Assert.Equal(
-                familyEntry.GetProperty("contentHash").GetString(),
-                Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant());
+            GoldenAssert.AssertHashEqualsGolden(familyEntry.GetProperty("contentHash").GetString(), Convert.ToHexString(SHA256.HashData(GoldenFileIo.ReadAllBytes(sourcePath))).ToLowerInvariant(), "SHA-256"
+
+);
         }
 
         string project = ReadText(

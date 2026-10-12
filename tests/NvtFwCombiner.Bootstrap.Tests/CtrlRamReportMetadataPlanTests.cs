@@ -178,7 +178,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         };
         var inputBytes = slotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
         CtrlRamAuthoringSessionPreparation preparation =
             BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
@@ -234,7 +234,7 @@ public sealed class CtrlRamReportMetadataPlanTests
             "expected-output");
         var inputBytes = slotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
         CtrlRamAuthoringSessionPreparation preparation =
             BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
@@ -283,14 +283,12 @@ public sealed class CtrlRamReportMetadataPlanTests
 
     /// <summary>A non-map Base fails closed at classification or at exact-route length admission.</summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", -1, "input.reference.unrecognized")]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", -1, "input.reference.unrecognized")]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch)]
+    [MemberData(nameof(NonMapReferenceCapacityFailsClosedAtItsAdmissionStageCases))]
+
+
+
     public void NonMapReferenceCapacityFailsClosedAtItsAdmissionStage(
-        string caseId,
+        GoldenCaseId caseId,
         string icId,
         string baseArtifactId,
         int lengthDelta,
@@ -298,12 +296,12 @@ public sealed class CtrlRamReportMetadataPlanTests
     {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            caseId);
+            caseId.Value);
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("artifactId").GetString() == baseArtifactId);
         JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
-        byte[] source = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] source = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
         byte[] invalid = lengthDelta > 0
             ? [.. source, 0x00]
             : source[..^1];
@@ -316,7 +314,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         };
         Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
         CtrlRamAuthoringSessionPreparation? preparation = null;
 
@@ -363,16 +361,16 @@ public sealed class CtrlRamReportMetadataPlanTests
     /// prefix and accepted as a Display-OSD envelope with the nonstandard-length warning.
     /// </summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
-    public void LongerThanFullFlashBaseIsAcceptedAsAnEnvelope(string caseId, string icId)
+    [MemberData(nameof(LongerThanFullFlashBaseIsAcceptedAsAnEnvelopeCases))]
+
+    public void LongerThanFullFlashBaseIsAcceptedAsAnEnvelope(GoldenCaseId caseId, string icId)
     {
-        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             static artifact => artifact.GetProperty("artifactId").GetString() == "expected-output");
         JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             static artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
-        byte[] source = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] source = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ctrlram-envelope-capacity");
         var slotPaths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -381,7 +379,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         };
         Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
 
         CtrlRamAuthoringSessionPreparation preparation = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
@@ -404,13 +402,12 @@ public sealed class CtrlRamReportMetadataPlanTests
     /// not matching that capacity.
     /// </summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", 0x40000, 0x60000, 0x40000)]
-    [InlineData("nt51951-fw200-cascade2-auto-prj-599-20260731", "NT51950", 0x80000, 0xC0000, 0x80000)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", 0x80000, 0xC0000, 0x80000)]
+    [MemberData(nameof(NonstandardEnvelopeFlashIsFlashCodeByItsLargestShorterPrefixCases))]
+
     public void NonstandardEnvelopeFlashIsFlashCodeByItsLargestShorterPrefix(
-        string caseId, string icId, int flashLength, int candidateLength, int expectedPrefixLength)
+        GoldenCaseId caseId, string icId, int flashLength, int candidateLength, int expectedPrefixLength)
     {
-        byte[] candidate = CreateEnvelopeCandidate(caseId, flashLength, candidateLength);
+        byte[] candidate = CreateEnvelopeCandidate(caseId.Value, flashLength, candidateLength);
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-envelope-inspection");
 
         FirmwareInspectionSnapshot inspection = FirmwareInspectionTestSupport.InspectFirmware(
@@ -454,7 +451,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         JsonElement flashArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             static artifact => artifact.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] flash = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(flashArtifact));
+        byte[] flash = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(flashArtifact));
         Assert.Equal(flashLength, flash.Length);
         byte[] candidate = new byte[candidateLength];
         flash.CopyTo(candidate, 0);
@@ -517,7 +514,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         };
         Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
 
         CtrlRamAuthoringSessionPreparation preparation = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
@@ -591,7 +588,7 @@ public sealed class CtrlRamReportMetadataPlanTests
         };
         Dictionary<string, byte[]> inputBytes = slotPaths.ToDictionary(
             static pair => pair.Key,
-            static pair => File.ReadAllBytes(pair.Value),
+            static pair => GoldenFileIo.ReadAllBytes(pair.Value),
             StringComparer.Ordinal);
         return BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51950", "single", slotPaths, inputBytes);
@@ -599,29 +596,23 @@ public sealed class CtrlRamReportMetadataPlanTests
 
     /// <summary>The shared firmware-inspection result preserves an exact CtrlRAM compilation failure.</summary>
     [Theory]
-    [InlineData(
-        "nt51950-fw200-single-auto-prj-676-20260717",
-        "NT51950",
-        "Base firmware BIN length 0x37001 is unsupported for NT51950 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x40000.")]
-    [InlineData(
-        "nt51951-fw200-single-auto-prj-695-20260718",
-        "NT51951",
-        "Base firmware BIN length 0x37001 is unsupported for NT51951 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x80000.")]
+    [MemberData(nameof(FirmwareInspectionPreservesNonMapReferenceIssueCases))]
+
     public void FirmwareInspectionPreservesNonMapReferenceIssue(
-        string caseId,
+        GoldenCaseId caseId,
         string icId,
         string expectedMessage)
     {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            caseId);
+            caseId.Value);
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
         JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
-        byte[] validBase = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] validBase = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
         byte[] invalidBase = [.. validBase, 0x00];
-        byte[] replacement = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(replacementArtifact));
+        byte[] replacement = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(replacementArtifact));
         const string basePath = "invalid-reference.bin";
         const string replacementPath = "nf-ctrlram.bin";
         ReplaceInputSlot nfSlot = BootstrapTestHost.Services.CtrlRamAuthoring
@@ -657,13 +648,13 @@ public sealed class CtrlRamReportMetadataPlanTests
 
     /// <summary>A valid target-family base alone remains a facts-only discovery input.</summary>
     [Theory]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950")]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951")]
+    [MemberData(nameof(FirmwareInspectionKeepsValidBaseOnlyFreeOfCompilationIssuesCases))]
+
     public void FirmwareInspectionKeepsValidBaseOnlyFreeOfCompilationIssues(
-        string caseId,
+        GoldenCaseId caseId,
         string icId)
     {
-        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
         string basePath = CanonicalGoldenTestData.ArtifactPath(baseArtifact);
@@ -683,4 +674,44 @@ public sealed class CtrlRamReportMetadataPlanTests
         Assert.Null(inspection.InputSlotStatus);
         Assert.NotNull(inspection.CtrlRamDisplay);
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, int, string> NonMapReferenceCapacityFailsClosedAtItsAdmissionStageCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "tp-input", -1, "input.reference.unrecognized" },
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch },
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "tp-input", -1, "input.reference.unrecognized" },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "tp-input", 1, CompositionIssueCodes.InputAddressSpaceLengthMismatch },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "expected-output", -1, CompositionIssueCodes.InputAddressSpaceLengthMismatch },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string> LongerThanFullFlashBaseIsAcceptedAsAnEnvelopeCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950" },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951" },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, int, int, int> NonstandardEnvelopeFlashIsFlashCodeByItsLargestShorterPrefixCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", 0x40000, 0x60000, 0x40000 },
+        { new GoldenCaseId("nt51951-fw200-cascade2-auto-prj-599-20260731"), "NT51950", 0x80000, 0xC0000, 0x80000 },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", 0x80000, 0xC0000, 0x80000 },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string> FirmwareInspectionPreservesNonMapReferenceIssueCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "Base firmware BIN length 0x37001 is unsupported for NT51950 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x40000." },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "Base firmware BIN length 0x37001 is unsupported for NT51951 / single CtrlRAM Replace; accepted exact reference lengths are 0x37000 / 0x80000." },
+    };
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string> FirmwareInspectionKeepsValidBaseOnlyFreeOfCompilationIssuesCases() => new()
+    {
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950" },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951" },
+    };
 }

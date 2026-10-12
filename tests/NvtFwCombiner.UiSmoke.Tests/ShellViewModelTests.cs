@@ -29,7 +29,7 @@ public abstract partial class ShellViewModelTestBase
     {
         System.Text.Json.JsonElement golden = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace", "nt51950-fw200-single-auto-prj-676-20260717");
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             golden.GetProperty("artifacts").EnumerateArray().Single(artifact =>
                 artifact.GetProperty("role").GetString() == "expected")));
     }
@@ -38,7 +38,7 @@ public abstract partial class ShellViewModelTestBase
     {
         System.Text.Json.JsonElement golden = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace", "nt51950-fw200-single-auto-prj-676-20260717");
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             golden.GetProperty("artifacts").EnumerateArray().Single(artifact =>
                 artifact.GetProperty("role").GetString() == "input" &&
                 artifact.GetProperty("originalFileName").GetString() == "Normal_Ctrlram.bin")));

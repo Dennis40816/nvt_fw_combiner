@@ -63,7 +63,7 @@ public sealed class EventBufferFormatConfigurationHostTests
             TestContext.Current.CancellationToken);
         Assert.NotSame(current, reloaded);
         Assert.Equal(EventBufferFormatConfigurationStatus.Ready, reloaded.Current.Status);
-        Assert.Equal(current.Current.SourceSha256, reloaded.Current.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(current.Current.SourceSha256, reloaded.Current.SourceSha256, "SHA-256");
     }
 
     /// <summary>A transient trusted-family load error is retryable instead of poisoning a cached Task.</summary>

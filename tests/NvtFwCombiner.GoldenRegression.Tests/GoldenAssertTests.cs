@@ -35,6 +35,11 @@ public sealed class GoldenAssertTests
             GoldenAssert.AssertEqualsGolden(new byte[] { 1, 2, 3 }, new byte[] { 1, 9, 3 }, "header magic"));
 
         Assert.Equal("Golden mismatch [header magic]: expected 3 bytes, actual 3 bytes, first difference at offset 0x1, expected sha256 omitted, actual sha256 omitted.", failure.Message);
+        GoldenAssert.AssertValueEqualsGolden(256, 256, "field");
+        GoldenAssert.AssertValueEqualsGolden((int?)256, (int?)256, "field");
+        XunitException fieldFailure = Assert.Throws<XunitException>(() =>
+            GoldenAssert.AssertValueEqualsGolden(256, 257, "field"));
+        Assert.Equal("Golden value mismatch [field]: values differ.", fieldFailure.Message);
     }
 
     [Fact]
@@ -50,6 +55,26 @@ public sealed class GoldenAssertTests
         string expectedHash = Convert.ToHexStringLower(SHA256.HashData(expected))[..12];
         string actualHash = Convert.ToHexStringLower(SHA256.HashData(actual))[..12];
         Assert.Equal($"Golden mismatch [long image]: expected 32 bytes, actual 32 bytes, first difference at offset 0x7, expected sha256 {expectedHash}, actual sha256 {actualHash}.", failure.Message);
+        string expectedDigest = Convert.ToHexStringLower(SHA256.HashData(expected));
+        string actualDigest = Convert.ToHexStringLower(SHA256.HashData(actual));
+        GoldenAssert.AssertHashEqualsGolden(expectedDigest, expectedDigest, "hash");
+        GoldenAssert.AssertHashEqualsGolden(expectedDigest, expectedDigest.ToUpperInvariant(), "hash", ignoreCase: true);
+        GoldenAssert.AssertHashEqualsGolden((string?)null, (string?)null, "hash");
+        XunitException hashFailure = Assert.Throws<XunitException>(() =>
+            GoldenAssert.AssertHashEqualsGolden(expectedDigest, actualDigest, "hash"));
+        Assert.Equal($"Golden hash mismatch [hash]: expected sha256 {expectedHash}, actual sha256 {actualHash}.", hashFailure.Message);
+        Assert.False(GoldenDiagnostics.Contains(expectedDigest, hashFailure.Message, StringComparison.Ordinal));
+        Assert.False(GoldenDiagnostics.Contains(actualDigest, hashFailure.Message, StringComparison.Ordinal));
+        XunitException caseFailure = Assert.Throws<XunitException>(() =>
+            GoldenAssert.AssertHashEqualsGolden(expectedDigest, expectedDigest.ToUpperInvariant(), "hash"));
+        Assert.StartsWith("Golden hash mismatch [hash]:", caseFailure.Message, StringComparison.Ordinal);
+        XunitException invalidHashFailure = Assert.Throws<XunitException>(() =>
+            GoldenAssert.AssertHashEqualsGolden("invalid", null, "hash"));
+        Assert.Equal("Golden hash mismatch [hash]: expected sha256 omitted, actual sha256 omitted.", invalidHashFailure.Message);
+        GoldenAssert.AssertHashSequenceEqualsGolden([expectedDigest, actualDigest], [expectedDigest, actualDigest], "hashes");
+        XunitException sequenceFailure = Assert.Throws<XunitException>(() =>
+            GoldenAssert.AssertHashSequenceEqualsGolden([expectedDigest, actualDigest], [actualDigest, expectedDigest], "hashes"));
+        Assert.Equal("Golden hash sequence mismatch [hashes]: values differ.", sequenceFailure.Message);
     }
 
     [Fact]
@@ -121,6 +146,25 @@ public sealed class GoldenAssertTests
             GoldenAssert.AssertFileEqualsGolden(expectedPath, new byte[] { 1 }, "complete image"));
 
         Assert.Equal("Golden expected file could not be read.", failure.Message);
+        FileNotFoundException missingBytes = Assert.Throws<FileNotFoundException>(() => GoldenFileIo.ReadAllBytes(expectedPath));
+        Assert.True(string.Equals("Golden file was not found.", missingBytes.Message, StringComparison.Ordinal), "Missing-file diagnostic was not redacted.");
+        Assert.True(missingBytes.FileName is null && missingBytes.InnerException is null, "Missing-file metadata was not redacted.");
+        FileNotFoundException missingText = Assert.Throws<FileNotFoundException>(() => GoldenFileIo.ReadAllText(expectedPath));
+        Assert.True(string.Equals(missingBytes.Message, missingText.Message, StringComparison.Ordinal), "Missing-file diagnostics differed.");
+        Task<byte[]> missingBytesTask = GoldenFileIo.ReadAllBytesAsync(expectedPath, TestContext.Current.CancellationToken);
+        FileNotFoundException missingAsyncBytes = Assert.IsType<FileNotFoundException>(missingBytesTask.Exception!.InnerException);
+        Assert.True(missingAsyncBytes.FileName is null && missingAsyncBytes.InnerException is null, "Missing-file metadata was not redacted.");
+        Task<string> missingTextTask = GoldenFileIo.ReadAllTextAsync(expectedPath, TestContext.Current.CancellationToken);
+        FileNotFoundException missingAsyncText = Assert.IsType<FileNotFoundException>(missingTextTask.Exception!.InnerException);
+        Assert.True(string.Equals(missingBytes.Message, missingAsyncText.Message, StringComparison.Ordinal), "Missing-file diagnostics differed.");
+        string missingDirectory = workspace.PathFor(Path.Combine("missing-parent", "missing.bin"));
+        DirectoryNotFoundException missingParent = Assert.Throws<DirectoryNotFoundException>(() => GoldenFileIo.ReadAllBytes(missingDirectory));
+        Assert.True(string.Equals("Golden directory was not found.", missingParent.Message, StringComparison.Ordinal), "Missing-directory diagnostic was not redacted.");
+        Assert.Null(missingParent.InnerException);
+        FileNotFoundException missingManifest = Assert.Throws<FileNotFoundException>(() =>
+            CanonicalGoldenTestData.LoadDirectWorkflowManifest(nameof(GoldenAssertTests), workspace.Root));
+        Assert.True(string.Equals(missingBytes.Message, missingManifest.Message, StringComparison.Ordinal), "Missing-manifest diagnostic was not redacted.");
+        Assert.True(missingManifest.FileName is null && missingManifest.InnerException is null, "Missing-manifest metadata was not redacted.");
     }
 
     [Fact]
@@ -174,6 +218,12 @@ public sealed class GoldenAssertTests
         Assert.Equal(
             GoldenDiagnostics.Label("customer-private-case", GoldenDiagnostics.IsVerbose(setting)),
             GoldenDiagnostics.Label("customer-private-case"));
+        var identity = new GoldenCaseId(nameof(GoldenAssertTests));
+        Assert.Equal(GoldenDiagnostics.Label(identity.Value), identity.ToString());
+        string serialized = SerializationHelper.Instance.Serialize(identity);
+        GoldenCaseId restored = Assert.IsType<GoldenCaseId>(SerializationHelper.Instance.Deserialize(serialized));
+        Assert.Equal(identity.Value, restored.Value);
+        Assert.Equal(identity.ToString(), restored.ToString());
     }
 
     [Fact]

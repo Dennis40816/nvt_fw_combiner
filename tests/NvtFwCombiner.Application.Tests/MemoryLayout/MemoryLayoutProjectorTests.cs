@@ -3,6 +3,8 @@ using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.MemoryLayout;
 
 /// <summary>Exercises the pure canonical memory-layout projection contract.</summary>
@@ -24,12 +26,12 @@ public sealed partial class MemoryLayoutProjectorTests
             session,
             fixture.Composition);
 
-        Assert.Equal(
-            fixture.Capability.CapabilityFingerprint,
-            snapshot.CapabilityFingerprint);
-        Assert.Equal(
-            fixture.Composition.CompilationFingerprint,
-            snapshot.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(fixture.Capability.CapabilityFingerprint, snapshot.CapabilityFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(fixture.Composition.CompilationFingerprint, snapshot.CompilationFingerprint, "SHA-256"
+
+);
         Assert.NotEqual(
             snapshot.CapabilityFingerprint,
             snapshot.CompilationFingerprint);

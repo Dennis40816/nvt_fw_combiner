@@ -31,31 +31,29 @@ public sealed partial class ReplaceCliCommandTests
             ["ctrlram-replace", "build", "--profile", "NT51929", "--ic-num", "single", "--base", basePath, .. sources]);
 
         CanonicalGoldenDifferenceResult differences = CanonicalGoldenTestData.AssertAllowedByteDifferences(
-            goldenCase, File.ReadAllBytes(basePath), built.Bytes);
+            goldenCase, GoldenFileIo.ReadAllBytes(basePath), built.Bytes);
         Assert.Equal(goldenCase.GetProperty("phaseBResult").GetProperty("differenceCounts").GetProperty("ownerToV2").GetInt64(),
             differences.DifferenceCount);
-        Assert.Equal(goldenCase.GetProperty("phaseBResult").GetProperty("v2OutputSha256").GetString(),
-            CliGoldenByteEvidence.Hash(built.Bytes));
+        GoldenAssert.AssertHashEqualsGolden(goldenCase.GetProperty("phaseBResult").GetProperty("v2OutputSha256").GetString(), CliGoldenByteEvidence.Hash(built.Bytes), "SHA-256"
+);
     }
 
     /// <summary>Every selected bank writes the real replacement, while every unselected bank retains every Base byte.</summary>
     [Theory]
-    [InlineData("NT51929", AbByteCaseId, "nt51929-andes-normal-cross-110us-to-115us-20260724", "normal-ctrlram-input", "a")]
-    [InlineData("NT51929", AbByteCaseId, "nt51929-andes-normal-cross-110us-to-115us-20260724", "normal-ctrlram-input", "b")]
-    [InlineData("NT51929", AbByteCaseId, "nt51929-andes-normal-cross-110us-to-115us-20260724", "normal-ctrlram-input", "both")]
-    [InlineData("NT51950", "nt51950-ab-osd-d03t02-20260924", "nt51950-fw200-single-auto-prj-676-20260717", "postbuild-normal-ctrlram", "a")]
-    [InlineData("NT51950", "nt51950-ab-osd-d03t02-20260924", "nt51950-fw200-single-auto-prj-676-20260717", "postbuild-normal-ctrlram", "b")]
-    [InlineData("NT51950", "nt51950-ab-osd-d03t02-20260924", "nt51950-fw200-single-auto-prj-676-20260717", "postbuild-normal-ctrlram", "both")]
+    [MemberData(nameof(CtrlRamBankBuildWritesOnlySelectedRealBankRangesAsyncCases))]
+
+
+
     public async Task CtrlRamBankBuildWritesOnlySelectedRealBankRangesAsync(
-        string profile, string baseCaseId, string sourceCaseId, string sourceArtifactId, string bank)
+        string profile, GoldenCaseId baseCaseId, GoldenCaseId sourceCaseId, string sourceArtifactId, string bank)
     {
         if (!OperatingSystem.IsWindows())
         {
             Assert.Skip("Real CtrlRAM Golden Build requires the packaged Windows processor.");
         }
 
-        JsonElement baseCase = CanonicalGoldenTestData.LoadDirectCase("ab-merge", baseCaseId);
-        JsonElement sourceCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCaseId);
+        JsonElement baseCase = CanonicalGoldenTestData.LoadDirectCase("ab-merge", baseCaseId.Value);
+        JsonElement sourceCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", sourceCaseId.Value);
         string basePath = CliGoldenByteEvidence.ArtifactPath(baseCase, "expected-output");
         string sourcePath = CliGoldenByteEvidence.ArtifactPath(sourceCase, sourceArtifactId);
         string[] inputs = ["ctrlram-replace", "build", "--profile", profile, "--ic-num", "single", "--base", basePath,
@@ -65,8 +63,8 @@ public sealed partial class ReplaceCliCommandTests
             [.. inputs, "--bank", "both"]);
         CliGoldenByteEvidence.BuildEvidence selected = bank == "both" ? both :
             await CliGoldenByteEvidence.BuildAsync(workspace, bank, [.. inputs, "--bank", bank]);
-        byte[] reference = File.ReadAllBytes(basePath);
-        byte[] source = File.ReadAllBytes(sourcePath);
+        byte[] reference = GoldenFileIo.ReadAllBytes(basePath);
+        byte[] source = GoldenFileIo.ReadAllBytes(sourcePath);
         Assert.Equal(reference.Length, selected.Bytes.Length);
         ByteRange[] bankRanges = [CliGoldenByteEvidence.TargetRange(both.Report, "a-bank/publish"),
             CliGoldenByteEvidence.TargetRange(both.Report, "b-bank/publish")];
@@ -142,4 +140,15 @@ public sealed partial class ReplaceCliCommandTests
         AssertVersionDifferencesAreDeclared(control, edited, draft);
         AssertAcceptedOutputName(basePath, sourcePaths, draft, edited.Report);
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<string, GoldenCaseId, GoldenCaseId, string, string> CtrlRamBankBuildWritesOnlySelectedRealBankRangesAsyncCases() => new()
+    {
+        { "NT51929", new GoldenCaseId(AbByteCaseId), new GoldenCaseId("nt51929-andes-normal-cross-110us-to-115us-20260724"), "normal-ctrlram-input", "a" },
+        { "NT51929", new GoldenCaseId(AbByteCaseId), new GoldenCaseId("nt51929-andes-normal-cross-110us-to-115us-20260724"), "normal-ctrlram-input", "b" },
+        { "NT51929", new GoldenCaseId(AbByteCaseId), new GoldenCaseId("nt51929-andes-normal-cross-110us-to-115us-20260724"), "normal-ctrlram-input", "both" },
+        { "NT51950", new GoldenCaseId("nt51950-ab-osd-d03t02-20260924"), new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "postbuild-normal-ctrlram", "a" },
+        { "NT51950", new GoldenCaseId("nt51950-ab-osd-d03t02-20260924"), new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "postbuild-normal-ctrlram", "b" },
+        { "NT51950", new GoldenCaseId("nt51950-ab-osd-d03t02-20260924"), new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "postbuild-normal-ctrlram", "both" },
+    };
 }

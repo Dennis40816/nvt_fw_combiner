@@ -154,16 +154,16 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), GoldenDiagnostics.Label(runtimeCase.CaseId));
         string computedOutputSha256 = Convert.ToHexStringLower(
             SHA256.HashData(preview.OutputBytes.Span));
-        Assert.Equal(computedOutputSha256, preview.OutputSha256);
-        Assert.Equal(computedOutputSha256, build.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(computedOutputSha256, preview.OutputSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(computedOutputSha256, build.OutputSha256, "SHA-256");
         Assert.Equal(preview.OutputBytes.Length, preview.OutputSize);
         Assert.Equal(build.OutputBytes.Length, build.OutputSize);
-        Assert.Equal(preview.OutputSha256, build.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(preview.OutputSha256, build.OutputSha256, "SHA-256");
         Assert.Equal(preview.OutputSize, build.OutputSize);
         GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), ReadInputBytes(outputPath), GoldenDiagnostics.Label(runtimeCase.CaseId));
-        Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
-            preview.Report.CompilationFingerprint);
-        Assert.Equal(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(capability.CompiledComposition.CompilationFingerprint, preview.Report.CompilationFingerprint, "SHA-256"
+);
+        GoldenAssert.AssertHashEqualsGolden(preview.Report.CompilationFingerprint, build.Report.CompilationFingerprint, "SHA-256");
         AssertOperationsSucceededAndConstrained(preview);
         AssertOperationsSucceededAndConstrained(build);
     }
@@ -391,17 +391,17 @@ internal static class CanonicalFormalRouteRuntimeExecutor
         CanonicalCapabilityPolicyRoute policy = runtimeCase.Fixture.Policy;
         Assert.Equal(policy.Identity.RouteId, accepted.SelectedRouteId);
         Assert.Equal(policy.Identity.RouteId, capability.Identity.RouteId);
-        Assert.Equal(policy.CapabilityFingerprint, accepted.CapabilityFingerprint);
-        Assert.Equal(policy.CapabilityFingerprint, capability.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(policy.CapabilityFingerprint, accepted.CapabilityFingerprint, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(policy.CapabilityFingerprint, capability.CapabilityFingerprint, "SHA-256");
         Assert.Equal(policy.Evidence.Value, capability.Evidence.Value);
         Assert.Equal(policy.Identity.RouteId, capability.Evidence.RouteId);
-        Assert.Equal(policy.CapabilityFingerprint, capability.Evidence.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(policy.CapabilityFingerprint, capability.Evidence.CapabilityFingerprint, "SHA-256");
         Assert.Equal(runtimeCase.ExpectedMapId,
             capability.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
         Assert.False(string.IsNullOrWhiteSpace(
             capability.CompiledComposition.CompilationFingerprint));
-        Assert.Equal(capability.CompiledComposition.CompilationFingerprint,
-            accepted.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(capability.CompiledComposition.CompilationFingerprint, accepted.CompilationFingerprint, "SHA-256"
+);
         Assert.True(accepted.ExecutionAdmitted);
         Assert.True(accepted.HasCurrentInputInspection);
     }

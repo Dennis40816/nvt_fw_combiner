@@ -28,12 +28,12 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
         TrustedProfileBundleDocumentProjection projection = bundle.CreateDocumentProjection();
 
         GoldenAssert.AssertEqualsGolden(manifest, projection.ManifestSnapshot.Content.ToArray(), "firmware image");
-        Assert.Equal(Hash(manifest), projection.ManifestSha256);
+        GoldenAssert.AssertHashEqualsGolden(Hash(manifest), projection.ManifestSha256, "SHA-256");
         Assert.Equal(["family-entry", "profile-entry"], projection.Documents.Select(x => x.Entry.EntryId));
         GoldenAssert.AssertEqualsGolden(family, projection.Documents[0].FileSnapshot.Content.ToArray(), "firmware image");
         GoldenAssert.AssertEqualsGolden(profile, projection.Documents[1].FileSnapshot.Content.ToArray(), "firmware image");
         Assert.All(projection.Documents, entry =>
-            Assert.Equal(entry.Entry.ContentHash, Hash(entry.FileSnapshot.Content.ToArray())));
+            GoldenAssert.AssertHashEqualsGolden(entry.Entry.ContentHash, Hash(entry.FileSnapshot.Content.ToArray()), "SHA-256"));
         Assert.True(((IList<ProfileBundleEntrySnapshot>)projection.Documents).IsReadOnly);
         Assert.Same(projection.ManifestSnapshot, bundle.CreateDocumentProjection().ManifestSnapshot);
         Assert.Same(projection.Documents[0], bundle.CreateDocumentProjection().Documents[0]);
@@ -48,15 +48,15 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
 
         TrustedProfileBundleDocumentProjection projection = bundle.CreateDocumentProjection();
 
-        Assert.Equal(facts.ManifestSha256, projection.ManifestSha256);
+        GoldenAssert.AssertHashEqualsGolden(facts.ManifestSha256, projection.ManifestSha256, "SHA-256");
         Assert.Equal("bundle", projection.BundleId);
         Assert.Equal("1.0.0", projection.BundleVersion);
-        Assert.Equal(facts.BundleContentHash, projection.BundleContentHash);
+        GoldenAssert.AssertHashEqualsGolden(facts.BundleContentHash, projection.BundleContentHash, "SHA-256");
         Assert.Equal("release-manifest", projection.TrustAnchorBindingId);
         TrustedFirmwareFamilyDocumentEntry family = Assert.Single(projection.Families);
         Assert.Equal("family-entry", family.Identity.EntryId);
         Assert.Equal("families/family.json", family.Identity.Path);
-        Assert.Equal(facts.FamilyContentHash, family.Identity.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(facts.FamilyContentHash, family.Identity.ContentHash, "SHA-256");
         Assert.Equal("family", family.Document.GetProperty("familyId").GetString());
         Assert.Equal(
             "NT00001",
@@ -64,7 +64,7 @@ public sealed class TrustedProfileBundleDocumentProjectionTests
         TrustedCompositionProfileDocumentEntry profile = Assert.Single(projection.Profiles);
         Assert.Equal("profile-entry", profile.Identity.EntryId);
         Assert.Equal("profiles/profile.json", profile.Identity.Path);
-        Assert.Equal(facts.ProfileContentHash, profile.Identity.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(facts.ProfileContentHash, profile.Identity.ContentHash, "SHA-256");
         Assert.Equal("profile", profile.Document.GetProperty("profileId").GetString());
         Assert.Equal(
             "copy-range",

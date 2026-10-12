@@ -28,7 +28,7 @@ public sealed class SharedDpcmiMetadataProviderTests
             bundle.MetadataProviderFamilies.Any(family => family.FamilyId == "nt51929-nt51932" && family.FamilyVersion == "1.4.0"));
         Assert.Equal(Provider, provider.BundleDirectory);
         Assert.Equal("1.1.13-tp-svn.1", provider.BundleVersion);
-        Assert.Equal(ProviderHash, provider.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(ProviderHash, provider.ContentHash, "SHA-256");
         Assert.Empty(provider.RuntimeRegistrations);
         Assert.DoesNotContain(index.Bundles, static bundle => bundle.BundleDirectory == "nt51929-dp-replace");
         var reference = new FirmwareMetadataStructureDefinitionReferenceDocument(
@@ -49,14 +49,14 @@ public sealed class SharedDpcmiMetadataProviderTests
     public void SourceAndDeployedProvidersPreserveCompleteFamilyBytesWithoutDpRuntime()
     {
         string source = RepositoryPaths.FromRepositoryRoot("profiles", "built-in", Provider);
-        byte[] family = File.ReadAllBytes(Path.Combine(source, FamilyPath));
-        Assert.Equal(FamilyHash, Convert.ToHexString(SHA256.HashData(family)).ToLowerInvariant());
-        using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(source, "profile-bundle.json")));
+        byte[] family = GoldenFileIo.ReadAllBytes(Path.Combine(source, FamilyPath));
+        GoldenAssert.AssertHashEqualsGolden(FamilyHash, Convert.ToHexString(SHA256.HashData(family)).ToLowerInvariant(), "SHA-256");
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllBytes(Path.Combine(source, "profile-bundle.json")));
         ProfileBundleEntryDocument[] entries = [.. manifest.RootElement.GetProperty("entries").EnumerateArray()
             .Select(entry => new ProfileBundleEntryDocument(entry.GetProperty("entryId").GetString()!,
                 entry.GetProperty("kind").GetString()!, entry.GetProperty("path").GetString()!,
                 entry.GetProperty("schemaId").GetString()!, entry.GetProperty("contentHash").GetString()!))];
-        Assert.Equal(ProviderHash, ProfileBundleEntryArrayHasher.CalculateContentHash(entries));
+        GoldenAssert.AssertHashEqualsGolden(ProviderHash, ProfileBundleEntryArrayHasher.CalculateContentHash(entries), "SHA-256");
         _ = Assert.Single(entries, entry => entry.Kind == "schema");
         _ = Assert.Single(entries, entry => entry.Kind == "firmware-family");
         Assert.DoesNotContain(entries, entry => entry.Kind == "composition-profile");
@@ -83,7 +83,7 @@ public sealed class SharedDpcmiMetadataProviderTests
 
     private static void AssertClosedInventory(string root)
     {
-        using var manifest = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(root, "profile-bundle.json")));
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllBytes(Path.Combine(root, "profile-bundle.json")));
         string[] expected = ["profile-bundle.json", .. manifest.RootElement.GetProperty("entries").EnumerateArray()
             .Select(entry => entry.GetProperty("path").GetString()!)];
         string[] actual = [.. Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)

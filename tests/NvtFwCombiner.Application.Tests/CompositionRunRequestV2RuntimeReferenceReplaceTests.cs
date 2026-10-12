@@ -368,9 +368,9 @@ public sealed partial class CompositionRunRequestV2RuntimeReferenceReplaceTests
             modeId: ExperienceIds.GeneralReplace,
             experienceId: ExperienceIds.GeneralReplace,
             sourceArtifactClass: CompiledInputArtifactClass.Auxiliary);
-        Assert.Equal(
-            "2033ebd60caa4c4c058088533be283b044da14f463b2012ea3a998b3a10dbe3b",
-            candidate.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("2033ebd60caa4c4c058088533be283b044da14f463b2012ea3a998b3a10dbe3b", candidate.CompilationFingerprint, "SHA-256"
+
+);
     }
 
     /// <summary>Verifies the conditional processor capability is explicit fingerprint-bound authority.</summary>

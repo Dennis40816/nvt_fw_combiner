@@ -77,7 +77,7 @@ public sealed partial class ReplaceCliCommandTests
             await GoldenFileIo.ReadAllBytesAsync(
             reference,
             TestContext.Current.CancellationToken), "firmware image");
-        byte[] outputBytes = await File.ReadAllBytesAsync(
+        byte[] outputBytes = await GoldenFileIo.ReadAllBytesAsync(
             output,
             TestContext.Current.CancellationToken);
         GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0x5A], outputBytes[0x3E020..0x3E022], "firmware image");
@@ -229,7 +229,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task Nt51926GeneralReplaceDpOnlyBuildUsesV2Candidate()
     {
         using var workspace = TempWorkspace.Create();
-        byte[] baseBytes = await File.ReadAllBytesAsync(
+        byte[] baseBytes = await GoldenFileIo.ReadAllBytesAsync(
             GoldenArtifactPath("51926", "expected-output"),
             TestContext.Current.CancellationToken);
         string reference = workspace.Write("reference.bin", baseBytes);
@@ -256,9 +256,9 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.Equal(0, result.ExitCode);
         GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken), "firmware image");
-        byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        byte[] outputBytes = await GoldenFileIo.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         GoldenAssert.AssertEqualsGolden((byte[])[0xA5, 0x5A], outputBytes[0x3E020..0x3E022], "firmware image");
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using var document = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = document.RootElement;
@@ -309,7 +309,7 @@ public sealed partial class ReplaceCliCommandTests
     {
         using var workspace = TempWorkspace.Create();
         string reference = GoldenArtifactPath("51950", "expected-output", "dp-256k");
-        byte[] baseBytes = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
+        byte[] baseBytes = await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
         string input = workspace.Write("input.bin", baseBytes[0x22C00..0x22C02]);
         string report = workspace.PathFor("general-replace-tp-report.json");
 

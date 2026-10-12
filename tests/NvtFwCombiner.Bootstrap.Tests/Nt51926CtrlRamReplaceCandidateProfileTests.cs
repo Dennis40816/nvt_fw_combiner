@@ -253,16 +253,16 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         CompiledComposition first = CompileRegisteredCascade(referenceBase);
         CompiledComposition second = CompileRegisteredCascade([.. referenceBase]);
 
-        Assert.Equal(
-            "9b3c01ce065cbbc97ac78c0d7044d98916ba9d66b49a9e6eeed388390f66b087",
-            first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint);
-        Assert.Equal(
-            "d58278d6b1dd32289532c77462984e6fe85031b21ed0600e6127422fbe265a78",
-            first.CompilationFingerprint);
-        Assert.Equal(
-            first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint,
-            second.V2Details.Provenance.ResolvedMap.ResolutionFingerprint);
-        Assert.Equal(first.CompilationFingerprint, second.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("9b3c01ce065cbbc97ac78c0d7044d98916ba9d66b49a9e6eeed388390f66b087", first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden("d58278d6b1dd32289532c77462984e6fe85031b21ed0600e6127422fbe265a78", first.CompilationFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(first.V2Details.Provenance.ResolvedMap.ResolutionFingerprint, second.V2Details.Provenance.ResolvedMap.ResolutionFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(first.CompilationFingerprint, second.CompilationFingerprint, "SHA-256");
     }
 
     /// <summary>The candidate accepts only the declared TP and full-Flash container shapes.</summary>
@@ -422,7 +422,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 routedReport.RootElement.GetProperty("ProfileId").GetString());
         }
 
-        byte[] routedOutput = File.ReadAllBytes(routedOutputPath);
+        byte[] routedOutput = GoldenFileIo.ReadAllBytes(routedOutputPath);
 
         Dictionary<string, byte[]> candidateInputs = new(StringComparer.Ordinal)
         {
@@ -446,7 +446,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
             CompositionIssueCodes.InputAddressSpaceTruncated,
             issue.Code));
         GoldenAssert.AssertEqualsGolden(routedOutput, v2.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(routed.OutputSha256, Hash(v2.OutputBytes.Span));
+        GoldenAssert.AssertHashEqualsGolden(routed.OutputSha256, Hash(v2.OutputBytes.Span), "SHA-256");
         GoldenAssert.AssertEqualsGolden(originalReference, referenceBase, "firmware image");
         if (fullFlashBase)
         {
@@ -527,9 +527,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 report.RootElement.GetProperty("ProfileId").GetString());
         }
 
-        byte[] output = File.ReadAllBytes(outputPath);
+        byte[] output = GoldenFileIo.ReadAllBytes(outputPath);
         Assert.Equal(FullFlashCapacity, output.Length);
-        Assert.Equal(routed.OutputSha256, Hash(output));
+        GoldenAssert.AssertHashEqualsGolden(routed.OutputSha256, Hash(output), "SHA-256");
         // SHA-256 and all four output-image CRC byte vectors were captured from both paths in
         // RoutedV2MatchesCompiledCandidateForOwnerApprovedSelfReplacementAsync (temporary probe, 2026-10-03):
         // the registered cascade route and CompileCandidate's independently compiled unregistered
@@ -537,7 +537,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         // The manifest/case.json hash pins the owner artifact, not this self-replacement output.
         // R54 retirement plan step 4 moves those Golden evidence references to this test before
         // deleting the comparator; the fixed expectations and approved range bounds remain here.
-        Assert.Equal("a2169f9fc908207dae0820ebff2b88879fa68795a311337a87c0a4e8a30c8222", Hash(output));
+        GoldenAssert.AssertHashEqualsGolden("a2169f9fc908207dae0820ebff2b88879fa68795a311337a87c0a4e8a30c8222", Hash(output), "SHA-256");
         GoldenAssert.AssertEqualsGolden((byte[])[0x3E, 0x6F, 0x40, 0x88], output[0x1C..0x20], "firmware image");
         GoldenAssert.AssertEqualsGolden((byte[])[0x00, 0xEA, 0x10, 0x60], output[0xFC..0x100], "firmware image");
         GoldenAssert.AssertEqualsGolden((byte[])[0x51, 0x0F, 0xF4, 0x42], output[0x32F6C..0x32F70], "firmware image");
@@ -586,7 +586,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(CompositionExecutionStatus.Succeeded, result.Status);
         Assert.Empty(result.Issues);
         GoldenAssert.AssertEqualsGolden(evidence.Expected.Bytes, result.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(Hash(evidence.Expected.Bytes), Hash(result.OutputBytes.Span));
+        GoldenAssert.AssertHashEqualsGolden(Hash(evidence.Expected.Bytes), Hash(result.OutputBytes.Span), "SHA-256");
         GoldenAssert.AssertEqualsGolden(originalReference, referenceBase, "firmware image");
         GoldenAssert.AssertEqualsGolden(originalVn, evidence.Vn.Bytes, "firmware image");
     }
@@ -860,9 +860,9 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
     private static OwnerIntakeFile ReadManifestArtifact(string goldenRoot, JsonElement entry)
     {
         string path = RepositoryPaths.ManifestPath(goldenRoot, entry);
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-        Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+        GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
         return new OwnerIntakeFile(path, bytes);
     }
 

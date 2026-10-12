@@ -81,8 +81,8 @@ public sealed partial class AbMergeFormatAdmissionTests
         AbMergeFormatSelection selected = Assert.IsType<AbMergeFormatSelection>(result.Selection);
         Assert.Equal(format, selected.FormatId);
         Assert.Equal(map, selected.MapId);
-        Assert.Equal(Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))), selected.ConfigurationSourceSha256);
-        Assert.Equal(saved.State.SourceSha256, current.State.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(GoldenFileIo.ReadAllBytes(path))), selected.ConfigurationSourceSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(saved.State.SourceSha256, current.State.SourceSha256, "SHA-256");
     }
 
     /// <summary>Raw format IDs may differ within one format; both observed TP counts must agree.</summary>
@@ -114,8 +114,8 @@ public sealed partial class AbMergeFormatAdmissionTests
         Assert.Equal(format, selected.FormatId);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawA], [selected.TpAFormatByte], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[rawB], [selected.TpBFormatByte], "firmware image");
-        Assert.Equal(ConfigHash, selected.ConfigurationSourceSha256);
-        Assert.Equal(family.FamilyContentHash, selected.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(ConfigHash, selected.ConfigurationSourceSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(family.FamilyContentHash, selected.FamilyContentHash, "SHA-256");
         Assert.Same(primary, selected.PrimaryInspection);
     }
 

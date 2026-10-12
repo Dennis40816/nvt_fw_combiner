@@ -10,7 +10,7 @@ public sealed partial class BundleCliCommandTests
     public async Task ReferenceReplaceBuildCommitsBundleFromAcceptedInputs()
     {
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-dp-replace");
-        string referencePath = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        string referencePath = workspace.Write("reference.bin", GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
         string dpPath = workspace.Write("dp.bin", new byte[2]);
         string reportPath = workspace.PathFor("dp-bundle-report.json");
 
@@ -37,7 +37,7 @@ public sealed partial class BundleCliCommandTests
 
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         Assert.Equal(
             3,
             report.RootElement.GetProperty("BundleDelivery")
@@ -53,7 +53,7 @@ public sealed partial class BundleCliCommandTests
     public async Task AutomaticAndExplicitOutputRetainDistinctNamingIdentity(string workflow)
     {
         using var workspace = TempWorkspace.Create("nfc-cli-naming-identity");
-        byte[] expected = File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"));
+        byte[] expected = GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"));
         string[] inputs;
         if (workflow == "standard-merge")
         {
@@ -73,7 +73,7 @@ public sealed partial class BundleCliCommandTests
             ReplaceCliCommandTests.Nt51926SelectiveVnRegression fixture = ReplaceCliCommandTests.LoadNt51926SelectiveVnRegression();
             inputs = ["--ic-num", "cascade", "--base", CanonicalGoldenTestData.ArtifactPath(fixture.BaseArtifact),
                 "--ctrlram", $"replace-ctrlram-vn={CanonicalGoldenTestData.ArtifactPath(fixture.VnArtifact)}"];
-            expected = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(fixture.ExpectedArtifact));
+            expected = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(fixture.ExpectedArtifact));
         }
         string automaticReportPath = workspace.PathFor("automatic-report.json");
         string explicitReportPath = workspace.PathFor("explicit-report.json");
@@ -89,9 +89,9 @@ public sealed partial class BundleCliCommandTests
                     "--report", explicitReportPath], TestContext.Current.CancellationToken);
             Assert.True(automatic.ExitCode == 0, "Golden assertion condition was not satisfied.");
             Assert.True(explicitResult.ExitCode == 0, "Golden assertion condition was not satisfied.");
-            using JsonDocument automaticReport = JsonDocument.Parse(await File.ReadAllTextAsync(
+            using JsonDocument automaticReport = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
                 automaticReportPath, TestContext.Current.CancellationToken));
-            using JsonDocument explicitReport = JsonDocument.Parse(await File.ReadAllTextAsync(
+            using JsonDocument explicitReport = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
                 explicitReportPath, TestContext.Current.CancellationToken));
             string automaticFileName = automaticReport.RootElement.GetProperty("Output").GetProperty("FileName").GetString()!;
             Assert.Equal("explicit.bin", explicitReport.RootElement.GetProperty("Output").GetProperty("FileName").GetString());
@@ -119,7 +119,7 @@ public sealed partial class BundleCliCommandTests
             })
             {
                 Assert.Equal(expected.LongLength, output.GetProperty("Size").GetInt64());
-                Assert.Equal(expectedSha256, output.GetProperty("Sha256").GetString());
+                GoldenAssert.AssertHashEqualsGolden(expectedSha256, output.GetProperty("Sha256").GetString(), "SHA-256");
             }
             GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(explicitOutputPath, TestContext.Current.CancellationToken), "firmware image");
             GoldenAssert.AssertEqualsGolden(expected, await GoldenFileIo.ReadAllBytesAsync(automaticOutputPath, TestContext.Current.CancellationToken), "firmware image");
@@ -138,7 +138,7 @@ public sealed partial class BundleCliCommandTests
     public async Task GeneralReplaceBuildCommitsCanonicalBundleOutput()
     {
         using var workspace = TempWorkspace.Create("nfc-cli-bundle-general-replace");
-        byte[] baseBytes = await File.ReadAllBytesAsync(
+        byte[] baseBytes = await GoldenFileIo.ReadAllBytesAsync(
             BootstrapTestData.GoldenArtifactPath("51926", "expected-output"),
             TestContext.Current.CancellationToken);
         string referencePath = workspace.Write("reference.bin", baseBytes);
@@ -168,11 +168,11 @@ public sealed partial class BundleCliCommandTests
 
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement outputArtifact = report.RootElement.GetProperty("BundleDelivery")
             .GetProperty("Artifacts")[0];
         string outputName = outputArtifact.GetProperty("DeliveredFileName").GetString()!;
-        byte[] outputBytes = await File.ReadAllBytesAsync(
+        byte[] outputBytes = await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(workspace.Root, "general_replace_bundle", outputName),
             TestContext.Current.CancellationToken);
         byte[] expected = [.. baseBytes];

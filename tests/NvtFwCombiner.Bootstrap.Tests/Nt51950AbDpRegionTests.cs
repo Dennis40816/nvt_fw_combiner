@@ -32,7 +32,7 @@ public sealed class Nt51950AbDpRegionTests
             TestContext.Current.TestOutputHelper!.WriteLine(
                 $"ROUTE-PIN {policy.Identity.RouteId} {policy.CapabilityFingerprint} {current.CapabilityFingerprint}");
         }
-        Assert.All(actual, pair => Assert.Equal(pair.Current.CapabilityFingerprint, pair.Policy.CapabilityFingerprint));
+        Assert.All(actual, pair => GoldenAssert.AssertHashEqualsGolden(pair.Current.CapabilityFingerprint, pair.Policy.CapabilityFingerprint, "SHA-256"));
     }
 
     /// <summary>Every map exposes its exact compiled writes for before/after auditing, including dummy DP.</summary>
@@ -103,7 +103,7 @@ public sealed class Nt51950AbDpRegionTests
             TestContext.Current.TestOutputHelper!.WriteLine("WRITE-AUDIT " + audit);
             string sha256 = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(audit)));
             TestContext.Current.TestOutputHelper.WriteLine($"WRITE-AUDIT-SHA {mapId} {dummy} {sha256}");
-            Assert.Equal(dummy ? dummySha256 : normalSha256, sha256);
+            GoldenAssert.AssertHashEqualsGolden(dummy ? dummySha256 : normalSha256, sha256, "SHA-256");
         }
     }
 

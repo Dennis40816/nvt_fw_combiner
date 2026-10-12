@@ -46,7 +46,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         byte[] expected = ReadExpected(goldenCase);
         GoldenAssert.AssertEqualsGolden(expected, baseline.Output, "firmware image");
         GoldenAssert.AssertEqualsGolden(expected, markers.Output, "firmware image");
-        Assert.Equal(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(markers.Output));
+        GoldenAssert.AssertHashEqualsGolden(ExpectedArtifact(goldenCase).GetProperty("sha256").GetString(), Hash(markers.Output), "SHA-256");
         Assert.Equal(AbNamingTokens(baseline.Result), AbNamingTokens(markers.Result));
         AssertOnlyTheEndFlagCounts(markers.Composition, tpWithMarker, inputs[CompositionAddressSpaceIds.TpAInput]);
     }

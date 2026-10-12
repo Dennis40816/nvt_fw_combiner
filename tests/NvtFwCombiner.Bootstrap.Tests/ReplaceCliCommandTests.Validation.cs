@@ -18,11 +18,11 @@ public sealed partial class ReplaceCliCommandTests
             "NT51950",
         ], TestContext.Current.CancellationToken);
 
-        Assert.DoesNotContain("dp-replace", help.Output, StringComparison.Ordinal);
+        Assert.False(GoldenDiagnostics.Contains("dp-replace", help.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(help.Output));
         Assert.Equal(64, direct.ExitCode);
-        Assert.Contains("cli.retired-experience", direct.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("--ic-num is required", direct.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("--base is required", direct.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("cli.retired-experience", direct.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(direct.Error));
+        Assert.False(GoldenDiagnostics.Contains("--ic-num is required", direct.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(direct.Error));
+        Assert.False(GoldenDiagnostics.Contains("--base is required", direct.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(direct.Error));
     }
 
     /// <summary>Atomically replaces an unrelated existing Replace output.</summary>
@@ -30,7 +30,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task GeneralReplaceBuildReplacesExistingOutputWithoutOverwrite()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        string reference = workspace.Write("reference.bin", GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
         byte[] dpBytes = [0x3C, 0x4D];
         dpBytes[0] = 0x3C;
         string dp = workspace.Write("dp.bin", dpBytes);
@@ -53,10 +53,10 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, result.ExitCode);
-        byte[] outputBytes = await File.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
+        byte[] outputBytes = await GoldenFileIo.ReadAllBytesAsync(output, TestContext.Current.CancellationToken);
         Assert.Equal(0x40000, outputBytes.Length);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x3C], [outputBytes[0x3E020]], "firmware image");
-        byte[] expected = await File.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
+        byte[] expected = await GoldenFileIo.ReadAllBytesAsync(reference, TestContext.Current.CancellationToken);
         dpBytes.CopyTo(expected, 0x3E020);
         GoldenAssert.AssertEqualsGolden(expected, outputBytes, "firmware image");
     }
@@ -66,7 +66,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task GeneralReplaceBuildRejectsOutputPathThatAliasesInput()
     {
         using var workspace = TempWorkspace.Create();
-        byte[] referenceBytes = File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"));
+        byte[] referenceBytes = GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"));
         string reference = workspace.Write("reference.bin", referenceBytes);
         string dp = workspace.Write("dp.bin", new byte[2]);
 
@@ -95,7 +95,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task GeneralReplaceBuildRejectsReportPathThatAliasesOutput()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        string reference = workspace.Write("reference.bin", GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
         string dp = workspace.Write("dp.bin", new byte[2]);
         string output = workspace.PathFor("out.bin");
 
@@ -126,7 +126,7 @@ public sealed partial class ReplaceCliCommandTests
     public async Task ReplacePreviewRejectsMissingIcNumber()
     {
         using var workspace = TempWorkspace.Create();
-        string reference = workspace.Write("reference.bin", File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
+        string reference = workspace.Write("reference.bin", GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output")));
         string dp = workspace.Write("dp.bin", new byte[2]);
 
         CliRunResult result = await RunCliAsync([

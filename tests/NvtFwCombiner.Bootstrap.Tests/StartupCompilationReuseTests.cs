@@ -6,6 +6,8 @@ using NvtFwCombiner.Infrastructure.Bundles;
 using ResolvedFirmwareImageMap =
     NvtFwCombiner.Domain.Firmware.FirmwareFamilyResolutionDefinition.ResolvedFirmwareImageMap;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Reused startup compilations must equal the compilations they replace, without widening their lifetime.</summary>
@@ -254,8 +256,8 @@ public sealed class StartupCompilationReuseTests
     {
         ResolvedFirmwareImageMap expectedMap = expected.V2Details.Provenance.ResolvedMap;
         ResolvedFirmwareImageMap actualMap = actual.V2Details.Provenance.ResolvedMap;
-        Assert.Equal(expected.CompilationFingerprint, actual.CompilationFingerprint);
-        Assert.Equal(expectedMap.ResolutionFingerprint, actualMap.ResolutionFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(expected.CompilationFingerprint, actual.CompilationFingerprint, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(expectedMap.ResolutionFingerprint, actualMap.ResolutionFingerprint, "SHA-256");
         Assert.Equal(
             (expectedMap.FamilyId, expectedMap.FamilyVersion, expectedMap.FamilyContentHash, expectedMap.ImageMap.MapId),
             (actualMap.FamilyId, actualMap.FamilyVersion, actualMap.FamilyContentHash, actualMap.ImageMap.MapId));
@@ -299,7 +301,7 @@ public sealed class StartupCompilationReuseTests
             Assert.Same(left.ImageMap, right.ImageMap);
             Assert.Same(left.MetadataSetBinding, right.MetadataSetBinding);
             Assert.Same(left.StructureDefinition, right.StructureDefinition);
-            Assert.Equal(left.ResolvedMap.ResolutionFingerprint, right.ResolvedMap.ResolutionFingerprint);
+            GoldenAssert.AssertHashEqualsGolden(left.ResolvedMap.ResolutionFingerprint, right.ResolvedMap.ResolutionFingerprint, "SHA-256");
             Assert.Equal(left.TargetReferences, right.TargetReferences);
             Assert.Equal(left.FieldIds, right.FieldIds);
             Assert.Equal(left.Purposes, right.Purposes);

@@ -76,8 +76,8 @@ public sealed class FirmwareInspectionExtensionAdmissionTests
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
         JsonElement replacementArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("originalFileName").GetString() == "NF_Ctrlram.bin");
-        byte[] baseBytes = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
-        byte[] replacementBytes = File.ReadAllBytes(
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] replacementBytes = GoldenFileIo.ReadAllBytes(
             CanonicalGoldenTestData.ArtifactPath(replacementArtifact));
         const string basePath = "ctrlram-base.bin";
         const string replacementPath = "nf-ctrlram.txt";

@@ -223,8 +223,8 @@ public sealed partial class CompositionRunRequestV2Tests
         Assert.Equal(CompositionExecutionStatus.Succeeded, build.Status);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[1, 2, 3, 4], preview.OutputBytes.ToArray(), "firmware image");
         GoldenAssert.AssertEqualsGolden(preview.OutputBytes.ToArray(), build.OutputBytes.ToArray(), "firmware image");
-        Assert.Equal(composition.CompilationFingerprint, preview.Report.CompilationFingerprint);
-        Assert.Equal(composition.CompilationFingerprint, build.Report.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(composition.CompilationFingerprint, preview.Report.CompilationFingerprint, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(composition.CompilationFingerprint, build.Report.CompilationFingerprint, "SHA-256");
         Assert.Equal("map", preview.Report.MapId);
         Assert.Equal("map", build.Report.MapId);
         Assert.Equal("input.bin", Assert.Single(preview.Report.Inputs).OriginalFileName);

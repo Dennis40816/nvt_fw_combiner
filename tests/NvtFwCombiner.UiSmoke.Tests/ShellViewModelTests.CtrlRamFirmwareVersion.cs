@@ -359,7 +359,7 @@ public sealed partial class CtrlRamWorkflowTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath));
-        Assert.Equal(previewSha256, viewModel.Reports.LoadedReport.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(previewSha256, viewModel.Reports.LoadedReport.OutputSha256, "SHA-256");
     }
 
     /// <summary>IC, number, and slot changes revoke both Preserve and Edit confirmation intent.</summary>
@@ -450,7 +450,7 @@ public sealed partial class CtrlRamWorkflowTests
 
         Assert.True(viewModel.RunSession.LastRunResult.Succeeded, viewModel.RunSession.LastRunResult.Detail);
         Assert.True(File.Exists(outputPath));
-        Assert.Equal(acceptedOutputSha256, viewModel.Reports.LoadedReport.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(acceptedOutputSha256, viewModel.Reports.LoadedReport.OutputSha256, "SHA-256");
     }
 
     /// <summary>Open and Edit use canonical inspection facts even when the accepted Base path changes or disappears.</summary>

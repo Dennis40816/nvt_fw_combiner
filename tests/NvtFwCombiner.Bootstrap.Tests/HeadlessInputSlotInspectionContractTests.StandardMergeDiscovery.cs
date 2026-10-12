@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 public sealed partial class HeadlessInputSlotInspectionContractTests
@@ -79,8 +81,8 @@ public sealed partial class HeadlessInputSlotInspectionContractTests
                 completed.Snapshot);
         Assert.True(retained.Slots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.TpInput).CanSelect);
-        Assert.Equal(completed.Snapshot.CompilationFingerprint,
-            Assert.Single(retained.Catalog.Routes).CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(completed.Snapshot.CompilationFingerprint, Assert.Single(retained.Catalog.Routes).CompilationFingerprint, "SHA-256"
+);
 
         CompiledAuthoringSelectionSnapshot missingDpStamp =
             _host.Services.StandardMergeAuthoring.GetAuthoringSnapshot(

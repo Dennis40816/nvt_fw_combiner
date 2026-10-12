@@ -483,6 +483,6 @@ public sealed class GeneralSelectedFileExecutionLifecycleTests
             input => StringComparer.Ordinal.Equals(
                 input.GetProperty("OriginalFileName").GetString(),
                 originalFileName));
-        Assert.Equal(expectedSha256, input.GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(expectedSha256, input.GetProperty("Sha256").GetString(), "SHA-256");
     }
 }
