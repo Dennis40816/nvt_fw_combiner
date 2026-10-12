@@ -9,7 +9,6 @@ using NvtFwCombiner.Infrastructure.ExternalTools;
 using NvtFwCombiner.Profiles.V2;
 using NvtFwCombiner.TestSupport;
 
-
 namespace NvtFwCombiner.Bootstrap.Tests;
 
 /// <summary>Owner-approved AB fixture evidence for supported and retained candidate profiles.</summary>

@@ -105,9 +105,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
         GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
-        Assert.All(
-            ownerCase.Artifacts,
-            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
+        foreach (var artifact in ownerCase.Artifacts) { GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"); }
     }
 
     /// <summary>Structurally valid base and display-only metadata variations retain the requested V2 route.</summary>
@@ -367,8 +365,6 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
     private sealed record OwnerArtifact(string FileName, string Role, string Path, byte[] Bytes);
 
     private static string GoldenRoot => CanonicalGoldenTestData.Root;
-
-    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
 
     /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
     public static TheoryData<GoldenCaseId, string, string, string> ProductionRouteAcceptsNonAuthoritativeMetadataVariationsAsyncCases() => new()

@@ -111,9 +111,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
         AssertReportIdentity(v2Report.RootElement, v2ProfileId);
         AssertProcessEvidence(v2Report.RootElement, topology);
         GoldenAssert.AssertHashEqualsGolden(ownerExpectedSha256, Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
-        Assert.All(
-            evidence.Artifacts,
-            pair => GoldenAssert.AssertHashEqualsGolden(immutableInputHashes[pair.Key], Hash(GoldenFileIo.ReadAllBytes(pair.Value.Path)), "SHA-256"));
+        foreach (var pair in evidence.Artifacts) { GoldenAssert.AssertHashEqualsGolden(immutableInputHashes[pair.Key], Hash(GoldenFileIo.ReadAllBytes(pair.Value.Path)), "SHA-256"); }
     }
 
     /// <summary>FW2 profile selection remains version-driven while PID and reported count do not gate the requested plan.</summary>
@@ -448,6 +446,4 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
                 : throw new InvalidOperationException($"Owner case is missing '{fileName}'.");
         }
     }
-
-    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
 }

@@ -4623,7 +4623,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 90
+        "methodLines": 88
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",
@@ -4651,7 +4651,7 @@
     {
       "owner": "NFC",
       "ceilings": {
-        "methodLines": 97
+        "methodLines": 95
       },
       "kind": "member",
       "project": "NvtFwCombiner.Bootstrap.Tests",

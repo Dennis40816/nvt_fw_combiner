@@ -144,13 +144,13 @@ public sealed class BuildEntryInspectionTests(ShellViewModelTestHostFixture fixt
         Assert.Equal(acceptedCanonicalName, viewModel.OutputDelivery.CanonicalOutputFileName);
         Assert.Equal(acceptedCanonicalName, viewModel.OutputDelivery.OutputFileName);
         Assert.Equal(3, viewModel.OutputDelivery.Sources.Count);
-        Assert.All(viewModel.OutputDelivery.Sources, source =>
+        foreach (var source in viewModel.OutputDelivery.Sources)
         {
             AcceptedSourceEvidence evidence = acceptedEvidence[source.SlotId];
-            Assert.Equal(evidence.FileName, source.OriginalFileName);
+            Assert.True(string.Equals(evidence.FileName, source.OriginalFileName, StringComparison.Ordinal), "Source file name differs.");
             Assert.Equal(evidence.Size, source.Size);
             GoldenAssert.AssertHashEqualsGolden(evidence.Sha256, source.Sha256, "SHA-256");
-        });
+        }
     }
 
     /// <summary>Opening CtrlRAM Build Settings after source mutation never starts a second input inspection batch.</summary>
