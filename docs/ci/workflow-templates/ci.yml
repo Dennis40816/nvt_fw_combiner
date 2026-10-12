@@ -62,14 +62,6 @@ jobs:
             $key = ($env:TESTDATA_DEPLOY_KEY -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($env:NFC_ASSETS_KEY_FILE, $key, [Text.UTF8Encoding]::new($false))
             & icacls.exe $env:NFC_ASSETS_KEY_FILE /inheritance:r /grant:r "$($env:USERNAME):(F)" | Out-Null
-            $openSsh = (Join-Path $env:SystemRoot 'System32/OpenSSH/ssh.exe').Replace('\', '/')
-            foreach ($sshProgram in @('ssh', ('"' + $openSsh + '"'))) {
-              $env:GIT_SSH_COMMAND = $sshProgram + ' -i "' + $env:NFC_ASSETS_KEY_FILE + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
-              $probe = & git ls-remote --exit-code git@github.com:Dennis40816/nvt-testdata.git HEAD 2>&1
-              Write-Host ('preflight ' + $sshProgram.Trim('"') + ' exit code ' + $LASTEXITCODE)
-              $probe | Select-Object -First 8 | ForEach-Object { Write-Host $(if ([string]$_ -match '^[0-9a-f]{40}\s') { 'ok: ref listed' } else { [string]$_ }) }
-            }
-            Remove-Item Env:GIT_SSH_COMMAND -ErrorAction SilentlyContinue
             & pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode Clone
             if ($LASTEXITCODE -ne 0) { throw 'Golden assembly failed.' }
           } finally {
@@ -170,14 +162,6 @@ jobs:
             $key = ($env:TESTDATA_DEPLOY_KEY -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($env:NFC_ASSETS_KEY_FILE, $key, [Text.UTF8Encoding]::new($false))
             & icacls.exe $env:NFC_ASSETS_KEY_FILE /inheritance:r /grant:r "$($env:USERNAME):(F)" | Out-Null
-            $openSsh = (Join-Path $env:SystemRoot 'System32/OpenSSH/ssh.exe').Replace('\', '/')
-            foreach ($sshProgram in @('ssh', ('"' + $openSsh + '"'))) {
-              $env:GIT_SSH_COMMAND = $sshProgram + ' -i "' + $env:NFC_ASSETS_KEY_FILE + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
-              $probe = & git ls-remote --exit-code git@github.com:Dennis40816/nvt-testdata.git HEAD 2>&1
-              Write-Host ('preflight ' + $sshProgram.Trim('"') + ' exit code ' + $LASTEXITCODE)
-              $probe | Select-Object -First 8 | ForEach-Object { Write-Host $(if ([string]$_ -match '^[0-9a-f]{40}\s') { 'ok: ref listed' } else { [string]$_ }) }
-            }
-            Remove-Item Env:GIT_SSH_COMMAND -ErrorAction SilentlyContinue
             & pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode Clone
             if ($LASTEXITCODE -ne 0) { throw 'Golden assembly failed.' }
           } finally {
@@ -323,14 +307,6 @@ jobs:
             $key = ($env:TESTDATA_DEPLOY_KEY -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($env:NFC_ASSETS_KEY_FILE, $key, [Text.UTF8Encoding]::new($false))
             & icacls.exe $env:NFC_ASSETS_KEY_FILE /inheritance:r /grant:r "$($env:USERNAME):(F)" | Out-Null
-            $openSsh = (Join-Path $env:SystemRoot 'System32/OpenSSH/ssh.exe').Replace('\', '/')
-            foreach ($sshProgram in @('ssh', ('"' + $openSsh + '"'))) {
-              $env:GIT_SSH_COMMAND = $sshProgram + ' -i "' + $env:NFC_ASSETS_KEY_FILE + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
-              $probe = & git ls-remote --exit-code git@github.com:Dennis40816/nvt-testdata.git HEAD 2>&1
-              Write-Host ('preflight ' + $sshProgram.Trim('"') + ' exit code ' + $LASTEXITCODE)
-              $probe | Select-Object -First 8 | ForEach-Object { Write-Host $(if ([string]$_ -match '^[0-9a-f]{40}\s') { 'ok: ref listed' } else { [string]$_ }) }
-            }
-            Remove-Item Env:GIT_SSH_COMMAND -ErrorAction SilentlyContinue
             & pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode Clone
             if ($LASTEXITCODE -ne 0) { throw 'Golden assembly failed.' }
           } finally {

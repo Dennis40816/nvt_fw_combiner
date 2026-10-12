@@ -101,6 +101,9 @@ try {
                 # git stops on an empty GIT_WORK_TREE.
                 Remove-Item -LiteralPath ('Env:' + $name) -ErrorAction SilentlyContinue
             }
+            foreach ($name in $previousEnvironment.Keys) {
+                if ($null -ne [Environment]::GetEnvironmentVariable($name)) { throw $failure }
+            }
             $env:GIT_TERMINAL_PROMPT = '0'
             $env:GIT_SSH_COMMAND = 'ssh -i "' + $keyFile + '" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes'
             Invoke-QuietGit -Arguments @('clone', '--filter=blob:none', '--no-checkout', '--sparse',
@@ -145,10 +148,16 @@ try {
             $assemblyFailed = $true
         }
         foreach ($name in $previousEnvironment.Keys) {
-            if ($null -eq $previousEnvironment[$name]) {
-                Remove-Item -LiteralPath ('Env:' + $name) -ErrorAction SilentlyContinue
-            } else {
-                Set-Item -LiteralPath ('Env:' + $name) -Value $previousEnvironment[$name]
+            try {
+                # A variable that was set to an empty value comes back absent. An empty git variable breaks git.
+                if ([string]::IsNullOrEmpty($previousEnvironment[$name])) {
+                    Remove-Item -LiteralPath ('Env:' + $name) -ErrorAction SilentlyContinue
+                } else {
+                    Set-Item -LiteralPath ('Env:' + $name) -Value $previousEnvironment[$name]
+                }
+            } catch {
+                [Console]::Error.WriteLine('Golden assembly failed.')
+                $assemblyFailed = $true
             }
         }
     }
