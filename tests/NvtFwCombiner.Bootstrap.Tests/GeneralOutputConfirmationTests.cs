@@ -92,20 +92,20 @@ public sealed class GeneralOutputConfirmationTests
         Assert.All(fileInputs, input =>
         {
             Assert.Equal(2, input.SizeBytes);
-            Assert.Equal(FileStamp.FromBytes(sourceBytes).Sha256, input.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(FileStamp.FromBytes(sourceBytes).Sha256, input.Sha256, "SHA-256");
             Assert.Null(input.Inspection);
             Assert.Null(input.InspectionLifecycle);
             Assert.Empty(input.ExpectedLengths);
         });
         Assert.False(summary.HasGeneratedInputs);
         Assert.Equal(replace ? 2 : 1, proposal.Sources.Count);
-        Assert.Equal(FileStamp.FromBytes(sourceBytes).Sha256,
-            Assert.Single(proposal.Sources, item => item.OriginalFileName == "source.bin").Sha256);
+        GoldenAssert.AssertHashEqualsGolden(FileStamp.FromBytes(sourceBytes).Sha256, Assert.Single(proposal.Sources, item => item.OriginalFileName == "source.bin").Sha256, "SHA-256"
+);
         if (replace)
         {
             CompositionOutputInputSummary baseline = Assert.Single(summary.Inputs, item => item.SourceFileName == "base.bin");
             Assert.Equal(referenceBytes.Length, baseline.SizeBytes);
-            Assert.Equal(FileStamp.FromBytes(referenceBytes).Sha256, baseline.Sha256);
+            GoldenAssert.AssertHashEqualsGolden(FileStamp.FromBytes(referenceBytes).Sha256, baseline.Sha256, "SHA-256");
         }
     }
 }

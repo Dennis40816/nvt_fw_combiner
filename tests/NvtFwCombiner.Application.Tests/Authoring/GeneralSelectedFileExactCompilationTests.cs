@@ -2,6 +2,8 @@ using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Authoring;
 
 /// <summary>Verifies General terminal health remains exact-compilation-bound.</summary>
@@ -27,7 +29,7 @@ public sealed class GeneralSelectedFileExactCompilationTests
         AuthoringSlotState slot = Assert.Single(rejected.Snapshot!.Slots);
         Assert.Equal(AuthoringSlotLifecycle.Error, slot.Lifecycle);
         Assert.Equal(GeneralSelectedFileInspectionIssueCodes.InspectionFailed, slot.BlockingIssue!.IssueId);
-        Assert.Equal(route.CompilationFingerprint, Assert.Single(rejected.Snapshot.DerivedPublications).CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(route.CompilationFingerprint, Assert.Single(rejected.Snapshot.DerivedPublications).CompilationFingerprint, "SHA-256");
     }
 
     /// <summary>An accepted hash cannot cross the exact candidate length compiled before Checking.</summary>

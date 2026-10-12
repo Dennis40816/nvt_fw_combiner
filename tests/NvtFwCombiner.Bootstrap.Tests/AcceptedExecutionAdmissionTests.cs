@@ -68,7 +68,7 @@ public sealed class AcceptedExecutionAdmissionTests
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(outputPath, result.CommittedOutputId);
-        byte[] committed = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] committed = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         Assert.Equal(accepted.OutputLength, committed.Length);
         GoldenAssert.AssertEqualsGolden(Replacement, committed.AsSpan(TargetStart, Replacement.Length).ToArray(), "firmware image");
         Assert.Equal(1, destinations.Calls);
@@ -98,7 +98,7 @@ public sealed class AcceptedExecutionAdmissionTests
             "ctrlram-replace", "nt51927-3chip-self-20260705");
         Dictionary<string, string> paths = fixture.GetProperty("artifacts").EnumerateArray()
             .ToDictionary(artifact => artifact.GetProperty("slotId").GetString()!, CanonicalGoldenTestData.ArtifactPath);
-        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => GoldenFileIo.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
         Assert.True(prepared.Succeeded, CompositionExecutionTestSupport.FormatIssues(prepared.Issues));

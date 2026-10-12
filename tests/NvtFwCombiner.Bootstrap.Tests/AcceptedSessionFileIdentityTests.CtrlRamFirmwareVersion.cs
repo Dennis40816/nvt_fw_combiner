@@ -19,7 +19,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             "nt51926-fw200-single-auto-prj-597-20260718");
         JsonElement expectedArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(artifact =>
             artifact.GetProperty("artifactId").GetString() == "expected-output");
-        byte[] acceptedBytes = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expectedArtifact));
+        byte[] acceptedBytes = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expectedArtifact));
         string sharedPath = workspace.Write("accepted-reference.bin", acceptedBytes);
         var paths = new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -48,7 +48,7 @@ public sealed partial class AcceptedSessionFileIdentityTests
             .ProjectFirmwareVersionConfirmationLease(accepted);
         Assert.Equal(metadata, projected);
 
-        byte[] changed = File.ReadAllBytes(sharedPath);
+        byte[] changed = GoldenFileIo.ReadAllBytes(sharedPath);
         changed[^1] ^= 0x01;
         File.WriteAllBytes(sharedPath, changed);
 

@@ -24,7 +24,7 @@ public sealed class PrebuiltProfileCatalogAcceptanceTests
         foreach (ProfileBundlePackageTrustEntry entry in index.Bundles)
         {
             TrustedProfileBundle bundle = ProfileBundleLoader.Load(accepted, entry.BundleDirectory);
-            Assert.Equal(entry.ContentHash, bundle.Manifest.ContentHash);
+            GoldenAssert.AssertHashEqualsGolden(entry.ContentHash, bundle.Manifest.ContentHash, "SHA-256");
             Assert.NotEmpty(bundle.CreateDocumentProjection().Documents);
         }
     }

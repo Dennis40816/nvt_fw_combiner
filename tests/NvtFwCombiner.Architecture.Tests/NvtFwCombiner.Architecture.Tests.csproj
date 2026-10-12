@@ -10,6 +10,8 @@
              Link="RepositoryPaths.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\GoldenAssert.cs"
              Link="GoldenAssert.cs" />
+    <Compile Include="..\NvtFwCombiner.TestSupport\GoldenFileIo.cs"
+             Link="GoldenFileIo.cs" />
   </ItemGroup>
   <!-- Build-only: the metadata scanner reads the built assemblies of these projects and never loads them. -->
   <ItemGroup>

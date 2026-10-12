@@ -20,7 +20,7 @@ public sealed class CtrlRamMemorySectionTests
         JsonElement fixture = CanonicalGoldenTestData.LoadDirectEvidenceCase("ctrlram-replace", "nt51927-3chip-self-20260705");
         Dictionary<string, string> paths = fixture.GetProperty("artifacts").EnumerateArray()
             .ToDictionary(artifact => artifact.GetProperty("slotId").GetString()!, CanonicalGoldenTestData.ArtifactPath);
-        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => GoldenFileIo.ReadAllBytes(pair.Value));
         bytes[CompositionSlotIds.ReplaceBase] = bytes[CompositionSlotIds.ReplaceBase][..capacity];
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
@@ -56,17 +56,16 @@ public sealed class CtrlRamMemorySectionTests
 
     /// <summary>Reportless full images use explicit Standard context without modifying the primary map or Report plan.</summary>
     [Theory]
-    [InlineData("NT51919", "nt51929-fw200-single-auto-prj-594-20260717", "postbuild-nf-ctrlram")]
-    [InlineData("NT51950", "nt51950-fw200-single-auto-prj-676-20260717", "postbuild-nf-ctrlram")]
-    [InlineData("NT51951", "nt51951-fw200-single-auto-prj-695-20260718", "nf-ctrlram-input")]
-    public void ExplicitContextPreservesPrimaryFacts(string ic, string caseId, string nfArtifact)
+    [MemberData(nameof(ExplicitContextPreservesPrimaryFactsCases))]
+
+    public void ExplicitContextPreservesPrimaryFacts(string ic, GoldenCaseId caseId, string nfArtifact)
     {
-        JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         JsonElement[] artifacts = [.. fixture.GetProperty("artifacts").EnumerateArray()];
         string basePath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact => artifact.GetProperty("artifactId").GetString() == "expected-output"));
         string nfPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact => artifact.GetProperty("artifactId").GetString() == nfArtifact));
         var paths = new Dictionary<string, string> { [CompositionSlotIds.ReplaceBase] = basePath, ["replace-ctrlram-nf"] = nfPath };
-        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => GoldenFileIo.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), ic, "single", paths, bytes);
         ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(prepared.AcceptedSession);
@@ -113,4 +112,12 @@ public sealed class CtrlRamMemorySectionTests
             new string('a', 64), context.Map);
         _ = Assert.Throws<ArgumentException>(() => Rebind(wrongHash));
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<string, GoldenCaseId, string> ExplicitContextPreservesPrimaryFactsCases() => new()
+    {
+        { "NT51919", new GoldenCaseId("nt51929-fw200-single-auto-prj-594-20260717"), "postbuild-nf-ctrlram" },
+        { "NT51950", new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "postbuild-nf-ctrlram" },
+        { "NT51951", new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "nf-ctrlram-input" },
+    };
 }

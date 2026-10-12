@@ -43,15 +43,15 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         }
 
         OwnerCase ownerCase = ReadOwnerCase();
-        Assert.Equal(
-            "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a",
-            Hash(ownerCase.Expected.Bytes));
+        GoldenAssert.AssertHashEqualsGolden("fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a", Hash(ownerCase.Expected.Bytes), "SHA-256"
+
+);
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(
             ownerCase.Expected.Bytes,
             out FirmwareConfigMetadata metadata));
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
         Assert.Equal(1, metadata.ChipNumber);
-        Assert.Equal(0x5709, metadata.ProjectId);
+        GoldenAssert.AssertValueEqualsGolden(0x5709, metadata.ProjectId, "firmware field");
 
         var immutableHashes = ownerCase.Artifacts.ToDictionary(
             static artifact => artifact.Path,
@@ -88,9 +88,9 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
             v2OutputPath);
 
         Assert.True(v2.Succeeded, $"Composition result: status={v2.Status}, succeeded={v2.Succeeded}.");
-        byte[] v2Bytes = File.ReadAllBytes(v2OutputPath);
+        byte[] v2Bytes = GoldenFileIo.ReadAllBytes(v2OutputPath);
         const string outputSha256 = "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9";
-        Assert.Equal(outputSha256, Hash(v2Bytes));
+        GoldenAssert.AssertHashEqualsGolden(outputSha256, Hash(v2Bytes), "SHA-256");
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
             "nt51927-fw141-single-auto-prj-529-20260717");
@@ -105,10 +105,10 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
         using var v2Report = JsonDocument.Parse(CompositionRunReportJson.Serialize(v2));
         AssertReportIdentity(v2Report.RootElement, expectedProfileId, icId);
         AssertProcessEvidence(v2Report.RootElement, expectedProcessorId, icId);
-        Assert.Equal(Hash(ownerCase.Expected.Bytes), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(ownerCase.Expected.Bytes), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     /// <summary>Retains NT51917 fact-scoped alias comparison separately from direct NT51927 evidence.</summary>
@@ -176,10 +176,10 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
                 $"{icId.ToLowerInvariant()}-ctrlram-replace-fw141-single",
                 icId);
         }
-        Assert.Equal(Hash(reference), Hash(File.ReadAllBytes(referencePath)));
+        GoldenAssert.AssertHashEqualsGolden(Hash(reference), Hash(GoldenFileIo.ReadAllBytes(referencePath)), "SHA-256");
         Assert.All(
             ownerCase.Artifacts,
-            artifact => Assert.Equal(immutableHashes[artifact.Path], Hash(File.ReadAllBytes(artifact.Path))));
+            artifact => GoldenAssert.AssertHashEqualsGolden(immutableHashes[artifact.Path], Hash(GoldenFileIo.ReadAllBytes(artifact.Path)), "SHA-256"));
     }
 
     private static void AssertOwnerCrcOnlyDifference(ReadOnlySpan<byte> expected, ReadOnlySpan<byte> actual)
@@ -292,9 +292,9 @@ public sealed class Nt51927CtrlRamFw141SingleEvidenceTests
                 .Select(entry =>
                 {
                     string path = RepositoryPaths.ManifestPath(GoldenRoot, entry);
-                    byte[] bytes = File.ReadAllBytes(path);
+                    byte[] bytes = GoldenFileIo.ReadAllBytes(path);
                     Assert.Equal(entry.GetProperty("size").GetInt64(), bytes.LongLength);
-                    Assert.Equal(entry.GetProperty("sha256").GetString(), Hash(bytes));
+                    GoldenAssert.AssertHashEqualsGolden(entry.GetProperty("sha256").GetString(), Hash(bytes), "SHA-256");
                     return new OwnerArtifact(
                         entry.GetProperty("originalFileName").GetString()!,
                         entry.GetProperty("sourceRole").GetString()!,

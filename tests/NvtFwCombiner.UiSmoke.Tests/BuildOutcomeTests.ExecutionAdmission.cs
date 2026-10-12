@@ -86,7 +86,7 @@ public sealed partial class BuildOutcomeTests
             "ctrlram-replace", "nt51927-3chip-self-20260705");
         Dictionary<string, string> paths = fixture.GetProperty("artifacts").EnumerateArray()
             .ToDictionary(artifact => artifact.GetProperty("slotId").GetString()!, CanonicalGoldenTestData.ArtifactPath);
-        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => File.ReadAllBytes(pair.Value));
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(static pair => pair.Key, static pair => GoldenFileIo.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = host.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), "NT51927", "3", paths, bytes);
         Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");

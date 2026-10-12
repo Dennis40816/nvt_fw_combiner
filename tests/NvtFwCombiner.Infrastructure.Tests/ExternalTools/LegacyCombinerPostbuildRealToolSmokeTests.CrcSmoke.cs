@@ -30,12 +30,12 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         try
         {
-            byte[] goldenBytes = File.ReadAllBytes(FindGoldenExpectedOutput("51927"));
+            byte[] goldenBytes = GoldenFileIo.ReadAllBytes(FindGoldenExpectedOutput("51927"));
             ExternalCombinerToolManifest manifest = LoadManifest(
                 Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
-            Assert.Equal(
-                manifest.Sha256,
-                Sha256(Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName)));
+            GoldenAssert.AssertHashEqualsGolden(manifest.Sha256, Sha256(Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName)), "SHA-256"
+
+);
 
             var crcOnlyCommand = new LegacyCombinerPostbuildCommand(
                 "nt51927-real-tool-crc-smoke",

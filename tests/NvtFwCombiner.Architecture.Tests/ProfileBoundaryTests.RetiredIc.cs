@@ -1,3 +1,5 @@
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class ProfileBoundaryTests
@@ -101,7 +103,7 @@ public sealed partial class ProfileBoundaryTests
                         Path.GetExtension(path),
                         StringComparer.OrdinalIgnoreCase))
                 {
-                    string source = File.ReadAllText(path);
+                    string source = GoldenFileIo.ReadAllText(path);
                     if (historicalEvidenceStatements.TryGetValue(
                             relativePath,
                             out string[]? statements))

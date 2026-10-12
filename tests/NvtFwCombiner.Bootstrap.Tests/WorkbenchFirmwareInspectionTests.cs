@@ -20,22 +20,16 @@ public sealed partial class FirmwareInspectionSnapshotTests
     /// support state, or CtrlRAM subtype.
     /// </summary>
     [Theory]
-    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51923-fw141-single-auto-prj-662-20260717", "NT51923", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
-    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51926-fw200-single-auto-prj-597-20260718", "NT51926", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
-    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51927-fw141-single-auto-prj-529-20260717", "NT51927", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
-    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51929-fw200-single-auto-prj-594-20260717", "NT51929", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
-    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51932-fw200-cascade3-auto-prj-525-20260718", "NT51932", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51950-fw200-single-auto-prj-676-20260717", "NT51950", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false)]
-    [InlineData("nt51951-fw200-single-auto-prj-695-20260718", "NT51951", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true)]
+    [MemberData(nameof(DirectCtrlRamFixtureRolesClassifyDisplayWithoutAdmittingRouteSupportOrSubtypeCases))]
+
+
+
+
+
+
+
     public void DirectCtrlRamFixtureRolesClassifyDisplayWithoutAdmittingRouteSupportOrSubtype(
-        string caseId,
+        GoldenCaseId caseId,
         string icId,
         string artifactId,
         BaseFirmwareArtifactKind expectedBaseKind,
@@ -44,7 +38,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     {
         JsonElement fixtureCase = CanonicalGoldenTestData.LoadDirectCase(
             "ctrlram-replace",
-            caseId);
+            caseId.Value);
         JsonElement artifact = fixtureCase.GetProperty("artifacts")
             .EnumerateArray()
             .Single(candidate => StringComparer.Ordinal.Equals(
@@ -207,7 +201,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                         tpPath,
                         StandardMergeAddressSpaceId: CompositionAddressSpaceIds.TpInput),
                 ],
-                static path => File.ReadAllBytes(path));
+                static path => GoldenFileIo.ReadAllBytes(path));
         FirmwareInspectionSnapshot typedInspection = typedResults
             .Single(static result => result.InspectionId == "merge-dp")
             .Inspection;
@@ -295,7 +289,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
                         IcNumberSelectionTokens.Cascade),
                     CtrlRamReplaceAddressSpaceId:
                         CompositionAddressSpaceIds.ReferenceBase)],
-                static path => File.ReadAllBytes(path)))
+                static path => GoldenFileIo.ReadAllBytes(path)))
             .Inspection;
         CapabilityResolutionResult authoring =
             BootstrapTestHost.ProductCanonical.Catalog.ResolveUniqueRoute(
@@ -354,7 +348,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
             BootstrapTestHost.Services.CtrlRamAuthoring.GetDiscoveryDisplayFromAcceptedBase(
                 "NT51926",
                 ctrlRamRequest.NumberToken,
-                File.ReadAllBytes(basePath));
+                GoldenFileIo.ReadAllBytes(basePath));
         Assert.Equal(ctrlRamRequest.NumberToken, display.NumberToken);
         Assert.Equal(expectedDisplay.Regions, display.Regions);
         AssertCtrlRamInputSlotsEqual(expectedDisplay.InputSlots, display.InputSlots);
@@ -390,9 +384,9 @@ public sealed partial class FirmwareInspectionSnapshotTests
     [Fact]
     public void InspectionReadsEachDistinctPathAtMostOnce()
     {
-        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
-        byte[] dpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
-        byte[] tpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] dpBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
+        byte[] tpBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
         var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["base.bin"] = baseBytes,
@@ -567,7 +561,7 @@ public sealed partial class FirmwareInspectionSnapshotTests
     [Fact]
     public void InspectionKeepsMultiProfileSelectionIndependentFromFirmwareVersionBar()
     {
-        byte[] validBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] validBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         FirmwareInspectionSnapshot validInspection = FirmwareInspectionTestSupport.InspectFirmware(
             "NT51926",
             "base.bin",
@@ -619,8 +613,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
     [Fact]
     public void GenericDistinctTpMetadataUsesOnlyTheSuppliedTpPrerequisite()
     {
-        byte[] dp = File.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
-        byte[] tp = File.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
+        byte[] dp = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
+        byte[] tp = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
         // The DP-only artifact has no IC Count authority. Place TP-like decoy bytes
         // at the same coordinates to catch accidental DP-as-TP substitution.
         StampTpLikeBytes(dp, 2);
@@ -667,8 +661,8 @@ public sealed partial class FirmwareInspectionSnapshotTests
     [Fact]
     public void InspectionBatchReadsEveryDistinctPathOnce()
     {
-        byte[] dpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
-        byte[] tpBytes = File.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
+        byte[] dpBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51950", "dp-input", "dp-256k"));
+        byte[] tpBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51950", "tp-input", "dp-256k"));
         var artifacts = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             ["dp.bin"] = dpBytes,
@@ -738,4 +732,23 @@ public sealed partial class FirmwareInspectionSnapshotTests
 
         Assert.Equal(0, reads);
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<GoldenCaseId, string, string, BaseFirmwareArtifactKind, CompiledFirmwareArtifactKind, bool> DirectCtrlRamFixtureRolesClassifyDisplayWithoutAdmittingRouteSupportOrSubtypeCases() => new()
+    {
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "NT51923", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51923-fw141-single-auto-prj-662-20260717"), "NT51923", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+        { new GoldenCaseId("nt51926-fw200-single-auto-prj-597-20260718"), "NT51926", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51926-fw200-single-auto-prj-597-20260718"), "NT51926", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+        { new GoldenCaseId("nt51927-fw141-single-auto-prj-529-20260717"), "NT51927", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51927-fw141-single-auto-prj-529-20260717"), "NT51927", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+        { new GoldenCaseId("nt51929-fw200-single-auto-prj-594-20260717"), "NT51929", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51929-fw200-single-auto-prj-594-20260717"), "NT51929", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+        { new GoldenCaseId("nt51932-fw200-cascade3-auto-prj-525-20260718"), "NT51932", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51932-fw200-cascade3-auto-prj-525-20260718"), "NT51932", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "NT51950", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "tp-input", BaseFirmwareArtifactKind.TpFirmware, CompiledFirmwareArtifactKind.TpFirmware, false },
+        { new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "NT51951", "expected-output", BaseFirmwareArtifactKind.FlashCode, CompiledFirmwareArtifactKind.FlashCode, true },
+    };
 }

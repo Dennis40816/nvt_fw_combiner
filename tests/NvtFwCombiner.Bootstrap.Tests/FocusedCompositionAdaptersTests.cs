@@ -97,7 +97,7 @@ public sealed class FocusedCompositionAdaptersTests
     public async Task StandardMergePreviewIgnoresNonAuthoritativeDpTail()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-length");
-        byte[] dp = File.ReadAllBytes(GoldenArtifactPath("51926", "dp-input"));
+        byte[] dp = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "dp-input"));
         Array.Resize(ref dp, dp.Length + 1);
         dp[^1] = 0xA5;
         string dpPath = workspace.Write("dp-nonstandard.bin", dp);
@@ -114,9 +114,9 @@ public sealed class FocusedCompositionAdaptersTests
             TestContext.Current.CancellationToken);
 
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
-        Assert.Equal(
-            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output")))).ToLowerInvariant(),
-            result.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexString(SHA256.HashData(GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output")))).ToLowerInvariant(), result.OutputSha256, "SHA-256"
+
+);
         using var document = JsonDocument.Parse(CompositionRunReportJson.Serialize(result));
         Assert.Empty(document.RootElement.GetProperty("Issues").EnumerateArray());
     }
@@ -130,7 +130,7 @@ public sealed class FocusedCompositionAdaptersTests
             GoldenArtifactPath("51926", "expected-output"));
 
         Assert.NotNull(metadata);
-        byte[] image = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] image = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(image, out FirmwareConfigMetadata backup));
         Assert.Equal(backup.StructureStart, metadata.FirmwareConfigBackupStart);
         Assert.Equal("1.4.1", metadata.CommonFwVersion);
@@ -158,7 +158,7 @@ public sealed class FocusedCompositionAdaptersTests
     public void FirmwareContextSuggestionKeepsBackupAuthorityWhenPrimaryDiffers()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fwconfig-mismatch");
-        byte[] bytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] bytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(BuiltInTpFlashMapCatalog.TryFind("NT51926", out TpFlashMapProfile? flashMap));
         long firmwareConfigStart = flashMap!.FirmwareConfigPrimaryStart;
         bytes[checked((int)firmwareConfigStart + FirmwareConfigLayout.ChipNumberOffset)] = 0x01;
@@ -179,7 +179,7 @@ public sealed class FocusedCompositionAdaptersTests
     public void FirmwareContextSuggestionUsesEffectiveProfileAndRegisteredV2Route()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-effective-number-suggestion");
-        byte[] bytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] bytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(bytes, out FirmwareConfigMetadata metadata));
         int start = checked((int)metadata.StructureStart);
         bytes[start + FirmwareConfigLayout.CommonFwMajorVersionOffset] = 2;
@@ -229,7 +229,7 @@ public sealed class FocusedCompositionAdaptersTests
                 tpPath));
 
         Assert.Equal(0x3B016, metadata.Register16Offset);
-        Assert.Equal(576, metadata.JiraNumber);
+        GoldenAssert.AssertValueEqualsGolden(576, metadata.JiraNumber, "firmware field");
         Assert.Equal("AUTO_PRJ-576", metadata.JiraBadge);
     }
 
@@ -275,7 +275,7 @@ public sealed class FocusedCompositionAdaptersTests
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-general-tp");
         string basePath = GoldenArtifactPath("51950", "expected-output", "dp-256k");
         string replacementPath = workspace.PathFor("replacement.bin");
-        byte[] baseBytes = File.ReadAllBytes(basePath);
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(basePath);
         File.WriteAllBytes(replacementPath, baseBytes[0x22C00..0x22C02]);
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
         {
@@ -336,7 +336,7 @@ public sealed class FocusedCompositionAdaptersTests
     public async Task GeneralReplaceBuildRejectsOutputPathThatAliasesInput()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-dp-alias");
-        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         string basePath = workspace.Write("base.bin", baseBytes);
         string dpPath = workspace.Write("dp.bin", CreatePattern(2, 0x80));
         Dictionary<string, string> slotPaths = new(StringComparer.Ordinal)
@@ -364,7 +364,7 @@ public sealed class FocusedCompositionAdaptersTests
     public async Task CtrlRamReplaceKeepsPostbuildSelectionIndependentFromFirmwareVersionBar()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-invalid-fwbar");
-        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         Assert.True(FirmwareConfigMetadataReader.TryReadBackup(baseBytes, out FirmwareConfigMetadata backup));
         baseBytes[checked((int)backup.StructureStart + FirmwareConfigLayout.FirmwareVersionBarOffset)] ^= 0x01;
 
@@ -436,7 +436,7 @@ public sealed class FocusedCompositionAdaptersTests
         Assert.True(result.Succeeded, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(1, processor.CallCount);
         GoldenAssert.AssertEqualsGolden(baseBytes, await GoldenFileIo.ReadAllBytesAsync(basePath, TestContext.Current.CancellationToken), "firmware image");
-        byte[] outputBytes = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] outputBytes = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x27], [outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionOffset]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0xD8], [outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareVersionBarOffset]], "firmware image");
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[0x04], [outputBytes[firmwareConfigSourceStart + FirmwareConfigLayout.FirmwareSubVersionOffset]], "firmware image");
@@ -502,7 +502,7 @@ public sealed class FocusedCompositionAdaptersTests
     public async Task CtrlRamReplaceBuildWithFirmwareCountMismatchFailsClosed()
     {
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-workbench-fw-version-preserve");
-        byte[] baseBytes = File.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(GoldenArtifactPath("51926", "expected-output"));
         string basePath = workspace.Write("base.bin", baseBytes);
         string replacementPath = workspace.Write("normal.bin", baseBytes[0x22800..0x25400]);
         string outputPath = workspace.PathFor("preserved.bin");
@@ -521,7 +521,7 @@ public sealed class FocusedCompositionAdaptersTests
             slotPaths,
             slotPaths.ToDictionary(
                 static pair => pair.Key,
-                static pair => File.ReadAllBytes(pair.Value),
+                static pair => GoldenFileIo.ReadAllBytes(pair.Value),
                 StringComparer.Ordinal),
             firmwareVersionEdit: null);
 
@@ -590,7 +590,7 @@ public sealed class FocusedCompositionAdaptersTests
             "nt51926-fw200-single-auto-prj-597-20260718");
         JsonElement expected = goldenCase.GetProperty("artifacts").EnumerateArray().Single(artifact =>
             artifact.GetProperty("role").GetString() == "expected");
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expected));
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(expected));
     }
 
 }

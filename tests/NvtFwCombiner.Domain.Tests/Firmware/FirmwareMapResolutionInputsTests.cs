@@ -16,9 +16,9 @@ public sealed class FirmwareMapResolutionInputsTests
 
         Assert.Equal("tp-firmware", payload.ArtifactId);
         Assert.Equal(3, payload.LengthBytes);
-        Assert.Equal(
-            "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
-            payload.Identity.Sha256);
+        GoldenAssert.AssertHashEqualsGolden("039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81", payload.Identity.Sha256, "SHA-256"
+
+);
         Assert.Equal(payload.ArtifactId, payload.Identity.ArtifactId);
         Assert.Equal(payload.LengthBytes, payload.Identity.LengthBytes);
     }

@@ -26,9 +26,9 @@ public sealed class FileSystemLauncherInstallationSelfTestTests
         Assert.True(result.IsHealthy);
         Assert.Equal(LauncherInstallationSelfTestIssue.None, result.Issue);
         Assert.Equal(fixture.BootstrapPath, result.Bootstrap!.Path);
-        Assert.Equal(fixture.BootstrapSha256, result.Bootstrap.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(fixture.BootstrapSha256, result.Bootstrap.Sha256, "SHA-256");
         Assert.Equal(fixture.Admission, result.ActiveLauncher!.OwnerAdmission);
-        Assert.Equal(fixture.LauncherSha256, result.ActiveLauncher.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(fixture.LauncherSha256, result.ActiveLauncher.Sha256, "SHA-256");
         AssertFileSnapshotsEqual(before, after);
     }
 

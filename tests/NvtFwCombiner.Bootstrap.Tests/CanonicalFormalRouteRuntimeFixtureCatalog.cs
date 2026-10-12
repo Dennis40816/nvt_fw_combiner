@@ -127,7 +127,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             sourceIc,
             CompositionAddressSpaceIds.TpInput,
             variant);
-        byte[] dp = ResizeCanonicalInput(File.ReadAllBytes(dpSource), capacity, 0x31);
+        byte[] dp = ResizeCanonicalInput(GoldenFileIo.ReadAllBytes(dpSource), capacity, 0x31);
         string dpPath = dp.Length == new FileInfo(dpSource).Length
             ? dpSource
             : workspace.Write($"inputs/{fixture.Policy.Identity.IcId}-{caseSuffix}-dp.bin", dp);
@@ -476,7 +476,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         if (ic == "NT51928")
         {
             return new CanonicalFormalRuntimeSource(
-                File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
                     ExperienceIds.StandardMerge,
                     "51928",
                     "expected-output")),
@@ -488,7 +488,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         {
             // NT51919 is an approved NT51929-family alias; never borrow NT51932 bytes here.
             return new CanonicalFormalRuntimeSource(
-                File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
                     ExperienceIds.StandardMerge,
                     "51929",
                     "expected-output")),
@@ -536,7 +536,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         {
             // Keep this contract witness on the declared IC even when another family happens to admit it.
             return new CanonicalFormalRuntimeSource(
-                File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
                     ExperienceIds.StandardMerge,
                     "51932",
                     "expected-output")),
@@ -571,7 +571,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         if (identity.IcId is "NT51919" or "NT51929" or "NT51932")
         {
             byte[] bytes = chipCount == 1
-                ? File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+                ? GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
                     ExperienceIds.AbMerge, "NT51929", "expected-output", "t05-d06"))
                 : AbCtrlRamReferencePlanTests.CascadeReference();
             if (chipCount > 1)
@@ -597,7 +597,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         {
             JsonElement golden = CanonicalGoldenTestData.LoadDirectCase(
                 ExperienceIds.AbMerge, "nt51950-ab-boe-d82t80");
-            return new(File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+            return new(GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
                     CanonicalGoldenTestData.Artifact(golden, "expected-output"))),
                 ExperienceIds.AbMerge, "NT51950", "nt51950-ab-boe-d82t80");
         }
@@ -631,7 +631,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         JsonElement goldenCase = directEvidence
             ? CanonicalGoldenTestData.LoadDirectEvidenceCase(ExperienceIds.CtrlRamReplace, caseId)
             : CanonicalGoldenTestData.LoadDirectCase(ExperienceIds.CtrlRamReplace, caseId);
-        return File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        return GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             CanonicalGoldenTestData.Artifact(goldenCase, artifactId)));
     }
 
@@ -645,7 +645,7 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
             .Where(static artifact => artifact.GetProperty("role").GetString() == "input")
             .ToDictionary(
                 static artifact => artifact.GetProperty("artifactId").GetString()!,
-                static artifact => File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact)),
+                static artifact => GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(artifact)),
                 StringComparer.Ordinal);
     }
 

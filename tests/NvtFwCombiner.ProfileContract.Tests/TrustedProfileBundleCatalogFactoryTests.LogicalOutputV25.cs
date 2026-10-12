@@ -301,9 +301,9 @@ catalog.CompileLogicalOutput(
             LogicalTestMemberId,
                 LogicalRequest(outputCapacity: 7)).CompiledComposition);
 
-        Assert.Equal(
-            "5a94482a7990095f25ca562dc4b5fa7f523deac261b35575524f469924a508e0",
-            six.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("5a94482a7990095f25ca562dc4b5fa7f523deac261b35575524f469924a508e0", six.CompilationFingerprint, "SHA-256"
+
+);
         Assert.NotEqual(six.CompilationFingerprint, seven.CompilationFingerprint);
     }
 

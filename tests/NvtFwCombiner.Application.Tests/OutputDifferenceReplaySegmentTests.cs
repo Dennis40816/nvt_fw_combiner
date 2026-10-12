@@ -73,8 +73,8 @@ public sealed class OutputDifferenceReplaySegmentTests
             after,
             difference);
 
-        Assert.Equal(Hash(replay.BeforeBytes.Span), replay.BeforeSha256);
-        Assert.Equal(Hash(replay.AfterBytes.Span), replay.AfterSha256);
+        GoldenAssert.AssertHashEqualsGolden(Hash(replay.BeforeBytes.Span), replay.BeforeSha256, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(Hash(replay.AfterBytes.Span), replay.AfterSha256, "SHA-256");
         Assert.True(replay.MatchesDifferenceEvidence(
             difference,
             4,

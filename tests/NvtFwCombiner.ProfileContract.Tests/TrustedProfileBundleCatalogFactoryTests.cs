@@ -22,13 +22,13 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             [Profile("profile-entry", profileHash, profile)]);
 
         Assert.Equal("bundle", catalog.BundleIdentity.BundleId);
-        Assert.Equal(BundleHash, catalog.BundleIdentity.ContentHash);
-        Assert.Equal(ManifestHash, catalog.ManifestSha256);
+        GoldenAssert.AssertHashEqualsGolden(BundleHash, catalog.BundleIdentity.ContentHash, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(ManifestHash, catalog.ManifestSha256, "SHA-256");
         TrustedFirmwareFamilyCatalogEntry familyEntry = Assert.Single(catalog.Families);
-        Assert.Equal(familyHash, familyEntry.Identity.ContentHash);
-        Assert.Equal(familyHash, familyEntry.Family.FamilyContentHash);
+        GoldenAssert.AssertHashEqualsGolden(familyHash, familyEntry.Identity.ContentHash, "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(familyHash, familyEntry.Family.FamilyContentHash, "SHA-256");
         TrustedCompositionProfileCatalogEntry profileEntry = Assert.Single(catalog.Profiles);
-        Assert.Equal(profileHash, profileEntry.Identity.ContentHash);
+        GoldenAssert.AssertHashEqualsGolden(profileHash, profileEntry.Identity.ContentHash, "SHA-256");
         Assert.Same(familyEntry, profileEntry.Family);
         Assert.Equal("map", Assert.Single(profileEntry.Profile.MapBinding.MapIds));
         Assert.DoesNotContain(

@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json.Nodes;
 using NvtFwCombiner.Infrastructure.ExternalTools;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Infrastructure.Tests.ExternalTools;
 
 /// <summary>Tests strict loading of the hash-pinned built-in CtrlRAM postbuild profile data.</summary>
@@ -84,7 +86,7 @@ public sealed class BuiltInPostbuildProfileCatalogTests
         byte[] bytes = Encoding.UTF8.GetBytes(source);
         byte[] canonicalBytes = Encoding.UTF8.GetBytes(source.ReplaceLineEndings("\n"));
 
-        Assert.Equal(Hash(canonicalBytes), PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes));
+        GoldenAssert.AssertHashEqualsGolden(Hash(canonicalBytes), PinnedJsonCatalogLoader.ComputeCanonicalSha256(bytes), "SHA-256");
     }
 
     /// <summary>Unknown config fields fail closed after their exact bytes are explicitly trusted.</summary>

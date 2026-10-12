@@ -241,17 +241,17 @@ public sealed partial class AbMergeRuntimeAdmissionTests
             TestContext.Current.CancellationToken);
 
         Assert.True(tailed.Succeeded, $"Composition result: status={tailed.Status}, succeeded={tailed.Succeeded}.");
-        Assert.Equal(exact.OutputSha256, tailed.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(exact.OutputSha256, tailed.OutputSha256, "SHA-256");
         using var report = JsonDocument.Parse(CompositionRunReportJson.Serialize(tailed));
         Assert.Empty(report.RootElement.GetProperty("Issues").EnumerateArray());
         JsonElement input = Assert.Single(
             report.RootElement.GetProperty("Inputs").EnumerateArray(),
             input => input.GetProperty("AddressSpaceId").GetString() == oversizedAddressSpaceId);
         Assert.Equal(oversized.LongLength, input.GetProperty("Size").GetInt64());
-        Assert.Equal(Sha256(oversized), input.GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(Sha256(oversized), input.GetProperty("Sha256").GetString(), "SHA-256");
         JsonElement snapshot = input.GetProperty("ExecutionSnapshot");
         Assert.Equal(original.LongLength, snapshot.GetProperty("AcceptedSize").GetInt64());
-        Assert.Equal(Sha256(original), snapshot.GetProperty("AcceptedSha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(Sha256(original), snapshot.GetProperty("AcceptedSha256").GetString(), "SHA-256");
         Assert.Equal(0, snapshot.GetProperty("AcceptedRange").GetProperty("Start").GetInt64());
         Assert.Equal(original.LongLength, snapshot.GetProperty("AcceptedRange").GetProperty("EndExclusive").GetInt64());
         Assert.Equal(1, snapshot.GetProperty("IgnoredTrailingBytes").GetInt64());
@@ -288,7 +288,7 @@ public sealed partial class AbMergeRuntimeAdmissionTests
         Assert.True(result.IsDeliveryComplete, $"Composition result: status={result.Status}, succeeded={result.Succeeded}.");
         Assert.Equal(DpLength, result.OutputSize);
         byte[] output = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
-        Assert.Equal(result.OutputSha256, Sha256(output));
+        GoldenAssert.AssertHashEqualsGolden(result.OutputSha256, Sha256(output), "SHA-256");
 
         CompositionDeliveryArtifact aFlashCodeDelivery = Assert.Single(result.DeliveryArtifacts);
         Assert.Equal(CompiledAdditionalDelivery.AbAFlashCodeKind, aFlashCodeDelivery.DeliveryKind);

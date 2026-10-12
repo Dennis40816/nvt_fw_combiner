@@ -55,11 +55,11 @@ public sealed partial class ReplaceCliCommandTests
             ]);
 
             Assert.Equal(64, whitespace.ExitCode);
-            Assert.Contains(
+            Assert.True(GoldenDiagnostics.Contains(
                 "real IC CtrlRAM Replace expects --ctrlram <slot-id=path>",
                 whitespace.Error,
-                StringComparison.Ordinal);
-            Assert.DoesNotContain("input.artifact.read-failed", whitespace.Error, StringComparison.Ordinal);
+                StringComparison.Ordinal), GoldenDiagnostics.TextSummary(whitespace.Error));
+            Assert.False(GoldenDiagnostics.Contains("input.artifact.read-failed", whitespace.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(whitespace.Error));
         }
     }
 
@@ -122,19 +122,19 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(0, build.ExitCode);
-        Assert.Contains("Status: Succeeded", build.Output, StringComparison.Ordinal);
-        Assert.Contains("Size: 245760 bytes", build.Output, StringComparison.Ordinal);
-        Assert.Contains("changed=16", build.Output, StringComparison.Ordinal);
-        byte[] baseBytes = File.ReadAllBytes(basePath);
-        byte[] outputBytes = File.ReadAllBytes(outputPath);
-        byte[] expectedBytes = File.ReadAllBytes(expectedPath);
+        Assert.True(GoldenDiagnostics.Contains("Status: Succeeded", build.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(build.Output));
+        Assert.True(GoldenDiagnostics.Contains("Size: 245760 bytes", build.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(build.Output));
+        Assert.True(GoldenDiagnostics.Contains("changed=16", build.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(build.Output));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(basePath);
+        byte[] outputBytes = GoldenFileIo.ReadAllBytes(outputPath);
+        byte[] expectedBytes = GoldenFileIo.ReadAllBytes(expectedPath);
         Assert.Equal(0x3C000, outputBytes.Length);
         GoldenAssert.AssertEqualsGolden(expectedBytes, outputBytes, "firmware image");
-        Assert.Equal(
-            fixture.ExpectedArtifact.GetProperty("sha256").GetString(),
-            Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant());
+        GoldenAssert.AssertHashEqualsGolden(fixture.ExpectedArtifact.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(outputBytes)).ToLowerInvariant(), "SHA-256"
+
+);
         AssertExactChangedRanges(baseBytes, outputBytes, ReadManifestRanges(fixture.Regression));
-        using (var report = JsonDocument.Parse(File.ReadAllText(buildReport)))
+        using (var report = JsonDocument.Parse(GoldenFileIo.ReadAllText(buildReport)))
         {
             Assert.Equal(
                 "nt51926-ctrlram-replace-fw141-runtime-cascade",
@@ -163,7 +163,7 @@ public sealed partial class ReplaceCliCommandTests
             CanonicalGoldenTestData.Artifact(fixtureCase, "expected-output"));
         string vnPath = CanonicalGoldenTestData.ArtifactPath(
             CanonicalGoldenTestData.Artifact(fixtureCase, "postbuild-vn-ctrlram"));
-        byte[] fullFlashBase = File.ReadAllBytes(fullFlashPath);
+        byte[] fullFlashBase = GoldenFileIo.ReadAllBytes(fullFlashPath);
         Assert.Equal(0x40000, fullFlashBase.Length);
         string tpBasePath = workspace.Write("base-tp.bin", fullFlashBase[..0x3C000]);
         string tpOutputPath = workspace.PathFor("output-tp.bin");
@@ -196,8 +196,8 @@ public sealed partial class ReplaceCliCommandTests
 
         Assert.True(tpRun.Succeeded, $"Composition result: status={tpRun.Status}, succeeded={tpRun.Succeeded}.");
         Assert.True(fullFlashRun.Succeeded, $"Composition result: status={fullFlashRun.Status}, succeeded={fullFlashRun.Succeeded}.");
-        byte[] tpOutput = File.ReadAllBytes(tpOutputPath);
-        byte[] fullFlashOutput = File.ReadAllBytes(fullFlashOutputPath);
+        byte[] tpOutput = GoldenFileIo.ReadAllBytes(tpOutputPath);
+        byte[] fullFlashOutput = GoldenFileIo.ReadAllBytes(fullFlashOutputPath);
         Assert.Equal(0x3C000, tpOutput.Length);
         Assert.Equal(0x40000, fullFlashOutput.Length);
         GoldenAssert.AssertEqualsGolden(tpOutput, fullFlashOutput[..0x3C000], "firmware image");
@@ -253,8 +253,8 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, unreadableBase.ExitCode);
-        Assert.Contains("input.artifact.read-failed [replace-base]", unreadableBase.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Base firmware BIN path does not exist.", unreadableBase.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [replace-base]", unreadableBase.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(unreadableBase.Error));
+        Assert.False(GoldenDiagnostics.Contains("Base firmware BIN path does not exist.", unreadableBase.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(unreadableBase.Error));
 
         string missingReplacement = workspace.PathFor("missing-vn.bin");
         CliRunResult missingRegion = await RunCliAsync([
@@ -271,8 +271,8 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, missingRegion.ExitCode);
-        Assert.Contains("input.artifact.read-failed [replace-ctrlram-vn]", missingRegion.Error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Base firmware BIN path does not exist.", missingRegion.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [replace-ctrlram-vn]", missingRegion.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(missingRegion.Error));
+        Assert.False(GoldenDiagnostics.Contains("Base firmware BIN path does not exist.", missingRegion.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(missingRegion.Error));
 
         string oversizedBase = workspace.PathFor("oversized-base.bin");
         await CreateSparseCtrlRamFileAsync(oversizedBase, 100_000_001);
@@ -290,9 +290,9 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, oversizedBaseResult.ExitCode);
-        Assert.Contains("input.artifact.read-failed [replace-base]", oversizedBaseResult.Error, StringComparison.Ordinal);
-        Assert.Contains("100000001", oversizedBaseResult.Error, StringComparison.Ordinal);
-        Assert.Contains("100000000-byte limit", oversizedBaseResult.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [replace-base]", oversizedBaseResult.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(oversizedBaseResult.Error));
+        Assert.True(GoldenDiagnostics.Contains("100000001", oversizedBaseResult.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(oversizedBaseResult.Error));
+        Assert.True(GoldenDiagnostics.Contains("100000000-byte limit", oversizedBaseResult.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(oversizedBaseResult.Error));
 
         string oversizedReplacement = workspace.PathFor("oversized-vn.bin");
         await CreateSparseCtrlRamFileAsync(oversizedReplacement, 100_000_001);
@@ -310,9 +310,9 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, oversizedRegion.ExitCode);
-        Assert.Contains("input.artifact.read-failed [replace-ctrlram-vn]", oversizedRegion.Error, StringComparison.Ordinal);
-        Assert.Contains("100000001", oversizedRegion.Error, StringComparison.Ordinal);
-        Assert.Contains("byte limit", oversizedRegion.Error, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains("input.artifact.read-failed [replace-ctrlram-vn]", oversizedRegion.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(oversizedRegion.Error));
+        Assert.True(GoldenDiagnostics.Contains("100000001", oversizedRegion.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(oversizedRegion.Error));
+        Assert.True(GoldenDiagnostics.Contains("byte limit", oversizedRegion.Error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(oversizedRegion.Error));
 
         string replacementDirectory = workspace.PathFor("replacement-directory");
         _ = Directory.CreateDirectory(replacementDirectory);
@@ -333,10 +333,10 @@ public sealed partial class ReplaceCliCommandTests
         ]);
 
         Assert.Equal(1, unreadableReplacement.ExitCode);
-        Assert.Contains(
+        Assert.True(GoldenDiagnostics.Contains(
             "input.artifact.read-failed [replace-ctrlram-vn]",
             unreadableReplacement.Error,
-            StringComparison.Ordinal);
+            StringComparison.Ordinal), GoldenDiagnostics.TextSummary(unreadableReplacement.Error));
         Assert.Empty(unreadableReplacement.Output);
         Assert.False(File.Exists(replacementDirectoryReport));
     }
@@ -398,7 +398,7 @@ public sealed partial class ReplaceCliCommandTests
         Assert.True(GoldenDiagnostics.Contains("Profile: nt51927-ctrlram-replace-fw132-twochip (NT51927)", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(GoldenDiagnostics.Contains("postbuild-twochip", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.True(File.Exists(report), report);
-        using var reportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+        using var reportDocument = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
             report,
             TestContext.Current.CancellationToken));
         JsonElement root = reportDocument.RootElement;
@@ -488,13 +488,13 @@ public sealed partial class ReplaceCliCommandTests
             Assert.True(
                 canonicalPreview.ExitCode == 0,
                 "Golden assertion condition was not satisfied.");
-            Assert.Contains(
+            Assert.True(GoldenDiagnostics.Contains(
                 $"Profile: {fw200Case.ExpectedProfileId} (NT51926)",
                 canonicalPreview.Output,
-                StringComparison.Ordinal);
+                StringComparison.Ordinal), GoldenDiagnostics.TextSummary(canonicalPreview.Output));
             Assert.True(File.Exists(canonicalReport), canonicalReport);
 
-            using var canonicalReportDocument = JsonDocument.Parse(await File.ReadAllTextAsync(
+            using var canonicalReportDocument = JsonDocument.Parse(await GoldenFileIo.ReadAllTextAsync(
                 canonicalReport,
                 TestContext.Current.CancellationToken));
             JsonElement canonicalReportRoot = canonicalReportDocument.RootElement;
@@ -524,9 +524,9 @@ public sealed partial class ReplaceCliCommandTests
             Assert.Equal(
                 fw200Case.ExpectedProfileId,
                 acceptedSession.ExactCapability!.CompiledComposition.V2Details.ProfileId);
-            Assert.Equal(
-                acceptedSession.CompilationFingerprint,
-                canonicalReportRoot.GetProperty("CompilationFingerprint").GetString());
+            GoldenAssert.AssertHashEqualsGolden(acceptedSession.CompilationFingerprint, canonicalReportRoot.GetProperty("CompilationFingerprint").GetString(), "SHA-256"
+
+);
             Assert.Equal(
                 acceptedSession.ExactCapability.CompiledComposition.Plan.OrderedOperations
                     .Select(static acceptedOperation => acceptedOperation.OperationId),
@@ -541,7 +541,7 @@ public sealed partial class ReplaceCliCommandTests
         JsonElement baseArtifact,
         JsonElement expectedArtifact)
     {
-        using var reportDocument = JsonDocument.Parse(File.ReadAllText(reportPath));
+        using var reportDocument = JsonDocument.Parse(GoldenFileIo.ReadAllText(reportPath));
         JsonElement trace = regression.GetProperty("processorTrace");
         JsonElement operation = reportDocument.RootElement.GetProperty("Operations").EnumerateArray()
             .Single(candidate => candidate.TryGetProperty("ProcessorId", out JsonElement processorId) &&
@@ -591,16 +591,16 @@ public sealed partial class ReplaceCliCommandTests
                 expectedCommands[index].GetProperty("arguments").EnumerateArray().Select(argument => argument.GetString()),
                 arguments);
         }
-        Assert.Equal(
-            trace.GetProperty("executableSha256").GetString(),
-            Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(executablePath))).ToLowerInvariant());
+        GoldenAssert.AssertHashEqualsGolden(trace.GetProperty("executableSha256").GetString(), Convert.ToHexString(SHA256.HashData(GoldenFileIo.ReadAllBytes(executablePath))).ToLowerInvariant(), "SHA-256"
+
+);
 
         JsonElement mutation = reportDocument.RootElement.GetProperty("Mutations").EnumerateArray()
             .Single(candidate => candidate.GetProperty("OperationId").GetString() == "postbuild-cascade");
         Assert.Equal(16, mutation.GetProperty("ChangedByteCount").GetInt64());
         Assert.Equal(0x3C000, mutation.GetProperty("TargetRange").GetProperty("Length").GetInt64());
-        Assert.Equal(baseArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString());
-        Assert.Equal(expectedArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(baseArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("BeforeSha256").GetString(), "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(expectedArtifact.GetProperty("sha256").GetString(), mutation.GetProperty("AfterSha256").GetString(), "SHA-256");
     }
 
     private static (int Start, int EndExclusive)[] ReadManifestRanges(JsonElement fixtureCase)

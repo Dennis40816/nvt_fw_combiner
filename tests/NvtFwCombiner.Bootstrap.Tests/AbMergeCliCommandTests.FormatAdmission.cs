@@ -48,8 +48,8 @@ public sealed partial class AbMergeCliCommandTests
 
         Assert.Equal(1, exitCode);
         Assert.Equal(1, changingExecution.Calls);
-        Assert.Contains(change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_MISMATCH",
-            error.ToString(), StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains(change == "invalid" ? "AB_FORMAT_CONFIGURATION_INVALID" : "AB_FORMAT_MISMATCH",
+            error.ToString(), StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error.ToString()));
         Assert.Equal(0, acquisitions);
         Assert.Equal(0, destinations.Calls);
         Assert.Empty(output.ToString());

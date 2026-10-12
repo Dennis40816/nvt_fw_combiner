@@ -35,8 +35,8 @@ public sealed class CliReportReceiptTests
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string sha256 = await AssertCommittedReceiptAsync(result.Output, outputPath);
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
-        Assert.Equal(sha256, report.RootElement.GetProperty("Output").GetProperty("Sha256").GetString());
+            await GoldenFileIo.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
+        GoldenAssert.AssertHashEqualsGolden(sha256, report.RootElement.GetProperty("Output").GetProperty("Sha256").GetString(), "SHA-256");
         int committedLine = result.Output.IndexOf($"Committed: {outputPath}", StringComparison.Ordinal);
         int reportLine = result.Output.IndexOf($"Report: {reportPath}", StringComparison.Ordinal);
         Assert.True(committedLine >= 0 && reportLine > committedLine, "Golden assertion condition was not satisfied.");
@@ -268,7 +268,7 @@ public sealed class CliReportReceiptTests
                 command, action, "--profile", "NT51926", "--ic-num", "single",
                 "--base", workspace.Write(
                     "reference.bin",
-                    File.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"))),
+                    GoldenFileIo.ReadAllBytes(BootstrapTestData.GoldenArtifactPath("51926", "expected-output"))),
                 "--mapping", $"0x3E020+0x2={workspace.Write("source.bin", [0xBE, 0xEF])}",
             ],
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unknown build command."),
@@ -289,26 +289,26 @@ public sealed class CliReportReceiptTests
 
     private static async Task<string> AssertCommittedReceiptAsync(string output, string outputPath)
     {
-        byte[] committed = await File.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
+        byte[] committed = await GoldenFileIo.ReadAllBytesAsync(outputPath, TestContext.Current.CancellationToken);
         string sha256 = Convert.ToHexStringLower(SHA256.HashData(committed));
         Assert.NotEmpty(committed);
-        Assert.Contains($"Output: {Path.GetFileName(outputPath)}", output, StringComparison.Ordinal);
-        Assert.Contains(
-            $"Size: {committed.LongLength.ToString(CultureInfo.InvariantCulture)} bytes",
-            output,
-            StringComparison.Ordinal);
-        Assert.Contains($"SHA256: {sha256}", output, StringComparison.Ordinal);
-        Assert.Contains($"Committed: {outputPath}", output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"Output: {Path.GetFileName(outputPath)}", output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output));
+        Assert.True(GoldenDiagnostics.Contains($"Size: {committed.LongLength.ToString(CultureInfo.InvariantCulture)} bytes", output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output)
+
+
+);
+        Assert.True(GoldenDiagnostics.Contains($"SHA256: {sha256}", output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output));
+        Assert.True(GoldenDiagnostics.Contains($"Committed: {outputPath}", output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output));
         return sha256;
     }
 
     private static async Task AssertBundleArtifactMatchesReceiptAsync(string output, string role, string artifactPath)
     {
-        byte[] delivered = await File.ReadAllBytesAsync(artifactPath, TestContext.Current.CancellationToken);
-        Assert.Contains(
-            $"  {role}: {Path.GetFileName(artifactPath)} ({Convert.ToHexStringLower(SHA256.HashData(delivered))})",
-            output,
-            StringComparison.Ordinal);
+        byte[] delivered = await GoldenFileIo.ReadAllBytesAsync(artifactPath, TestContext.Current.CancellationToken);
+        Assert.True(GoldenDiagnostics.Contains($"  {role}: {Path.GetFileName(artifactPath)} ({Convert.ToHexStringLower(SHA256.HashData(delivered))})", output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output)
+
+
+);
     }
 
     private static string ReadReceiptArtifactFileName(string output, string role)
@@ -322,13 +322,13 @@ public sealed class CliReportReceiptTests
 
     private static void AssertReportFailedAfterCommit(string output, string error, string reportPath)
     {
-        Assert.Contains(
-            $"  {CliCompositionRunSupport.CommittedReportFailedIssueCode}: Partial success: ",
-            error,
-            StringComparison.Ordinal);
-        Assert.Contains($"'{reportPath}'", error, StringComparison.Ordinal);
-        Assert.DoesNotContain("error:", error, StringComparison.Ordinal);
-        Assert.DoesNotContain("Report:", output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"  {CliCompositionRunSupport.CommittedReportFailedIssueCode}: Partial success: ", error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error)
+
+
+);
+        Assert.True(GoldenDiagnostics.Contains($"'{reportPath}'", error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error));
+        Assert.False(GoldenDiagnostics.Contains("error:", error, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(error));
+        Assert.False(GoldenDiagnostics.Contains("Report:", output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(output));
     }
 
     private static byte[] CreateStandardMergeDp()

@@ -15,7 +15,7 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
-        Assert.Equal(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output));
+        Assert.True(Enumerable.SequenceEqual<string>(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output), StringComparer.Ordinal), GoldenDiagnostics.TextSummary(result.Output));
     }
 
     /// <summary>Standard discovery pins the committed IC inventory and does not invent count selectors.</summary>
@@ -26,10 +26,10 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
-        Assert.Equal(
-            ["profile=NT51917", "profile=NT51919", "profile=NT51923", "profile=NT51926", "profile=NT51927",
-                "profile=NT51928", "profile=NT51929", "profile=NT51932", "profile=NT51950", "profile=NT51951"],
-            Lines(result.Output));
+        Assert.True(Enumerable.SequenceEqual<string>(["profile=NT51917", "profile=NT51919", "profile=NT51923", "profile=NT51926", "profile=NT51927",
+                "profile=NT51928", "profile=NT51929", "profile=NT51932", "profile=NT51950", "profile=NT51951"], Lines(result.Output), StringComparer.Ordinal), GoldenDiagnostics.TextSummary(result.Output)
+
+);
     }
 
     /// <summary>AB discovery exposes the declared topology tokens and accepts the CLI's numeric IC alias.</summary>
@@ -40,7 +40,7 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
-        Assert.Equal(["profile=NT51950 ab-topology=cascade", "profile=NT51950 ab-topology=single"], Lines(result.Output));
+        Assert.True(Enumerable.SequenceEqual<string>(["profile=NT51950 ab-topology=cascade", "profile=NT51950 ab-topology=single"], Lines(result.Output), StringComparer.Ordinal), GoldenDiagnostics.TextSummary(result.Output));
     }
 
     /// <summary>CtrlRAM discovery renders exactly the Application's declared slot ids for every count.</summary>
@@ -87,9 +87,9 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
-        Assert.Equal("profile=NT51927 ic-num=2", lines[0]);
+        Assert.True(string.Equals("profile=NT51927 ic-num=2", lines[0], StringComparison.Ordinal), GoldenDiagnostics.TextSummary(lines[0]));
         Assert.True(lines.Length > 1);
-        Assert.All(lines[1..], static line => Assert.StartsWith("profile=NT51927 ic-num=2 slot=", line, StringComparison.Ordinal));
+        Assert.All(lines[1..], static line => Assert.True(GoldenDiagnostics.StartsWith("profile=NT51927 ic-num=2 slot=", line, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(line)));
     }
 
     /// <summary>Invalid filters and shared-parser failures never emit a partial listing or files.</summary>
@@ -122,7 +122,7 @@ public sealed class CliWorkflowListingTests
 
         Assert.Equal(0, result.ExitCode);
         Assert.True((result.Error).Length == 0, "Captured text has an unexpected length.");
-        Assert.Equal(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output));
+        Assert.True(Enumerable.SequenceEqual<string>(["ab-merge", "ctrlram-replace", "standard-merge"], Lines(result.Output), StringComparer.Ordinal), GoldenDiagnostics.TextSummary(result.Output));
     }
 
     /// <summary>A known IC without an AB route is distinguished from an unknown IC.</summary>

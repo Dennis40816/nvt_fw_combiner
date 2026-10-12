@@ -126,11 +126,11 @@ public sealed partial class BundleCliCommandTests
         Assert.True(second.ExitCode == 0, "Golden assertion condition was not satisfied.");
         Assert.True(edited.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument firstReport = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportOne, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportOne, TestContext.Current.CancellationToken));
         using JsonDocument secondReport = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportTwo, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportTwo, TestContext.Current.CancellationToken));
         using JsonDocument editedReport = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportEdited, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportEdited, TestContext.Current.CancellationToken));
         JsonElement firstBundle = firstReport.RootElement.GetProperty("BundleDelivery");
         JsonElement secondBundle = secondReport.RootElement.GetProperty("BundleDelivery");
         JsonElement editedBundle = editedReport.RootElement.GetProperty("BundleDelivery");
@@ -142,9 +142,9 @@ public sealed partial class BundleCliCommandTests
             Path.GetFileName(firstDirectory));
         Assert.Equal(firstDirectory + " (2)", secondDirectory);
         Assert.Equal(editedDirectory, editedBundle.GetProperty("ResolvedDirectory").GetString());
-        Assert.Contains($"Bundle: {firstDirectory}", first.Output, StringComparison.Ordinal);
-        Assert.Contains($"Bundle: {secondDirectory}", second.Output, StringComparison.Ordinal);
-        Assert.Contains($"Bundle: {editedDirectory}", edited.Output, StringComparison.Ordinal);
+        Assert.True(GoldenDiagnostics.Contains($"Bundle: {firstDirectory}", first.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(first.Output));
+        Assert.True(GoldenDiagnostics.Contains($"Bundle: {secondDirectory}", second.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(second.Output));
+        Assert.True(GoldenDiagnostics.Contains($"Bundle: {editedDirectory}", edited.Output, StringComparison.Ordinal), GoldenDiagnostics.TextSummary(edited.Output));
         Assert.True(Directory.Exists(firstDirectory));
         Assert.True(Directory.Exists(secondDirectory));
         Assert.True(Directory.Exists(editedDirectory));
@@ -231,7 +231,7 @@ public sealed partial class BundleCliCommandTests
         string bundleDirectory = Path.Combine(workspace.Root, "ab_bundle");
         Assert.True(GoldenDiagnostics.Contains($"Bundle: {bundleDirectory}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement bundle = report.RootElement.GetProperty("BundleDelivery");
         Assert.Equal(bundleDirectory, bundle.GetProperty("ResolvedDirectory").GetString());
         JsonElement[] artifacts = [.. bundle.GetProperty("Artifacts").EnumerateArray()];
@@ -251,10 +251,10 @@ public sealed partial class BundleCliCommandTests
         JsonElement primary = Assert.Single(
             artifacts,
             artifact => artifact.GetProperty("Role").GetString() == "output");
-        byte[] primaryBytes = await File.ReadAllBytesAsync(
+        byte[] primaryBytes = await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(bundleDirectory, primary.GetProperty("DeliveredFileName").GetString()!),
             TestContext.Current.CancellationToken);
-        byte[] additionalBytes = await File.ReadAllBytesAsync(
+        byte[] additionalBytes = await GoldenFileIo.ReadAllBytesAsync(
             Path.Combine(bundleDirectory, additional.GetProperty("DeliveredFileName").GetString()!),
             TestContext.Current.CancellationToken);
         JsonElement delivery = Assert.Single(
@@ -263,9 +263,9 @@ public sealed partial class BundleCliCommandTests
         Assert.Equal(0, delivery.GetProperty("SourceRange").GetProperty("Start").GetInt64());
         Assert.Equal(additionalBytes.LongLength, delivery.GetProperty("SourceRange").GetProperty("Length").GetInt64());
         GoldenAssert.AssertEqualsGolden(primaryBytes.AsSpan(0, additionalBytes.Length), additionalBytes, "firmware image");
-        Assert.Equal(
-            Convert.ToHexStringLower(SHA256.HashData(additionalBytes)),
-            delivery.GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(additionalBytes)), delivery.GetProperty("Sha256").GetString(), "SHA-256"
+
+);
         string[] remainingInputs =
         [
             .. Directory.EnumerateFiles(workspace.Root, "*.bin")
@@ -305,11 +305,11 @@ public sealed partial class BundleCliCommandTests
                 CompositionAddressSpaceIds.TpBInput,
             ],
             [.. inputs.Select(input => input.GetProperty("AddressSpaceId").GetString()!)]);
-        Assert.Equal(inputs[1].GetProperty("Sha256").GetString(), inputs[2].GetProperty("Sha256").GetString());
-        Assert.Equal(
-            distinctReport.RootElement.GetProperty("Inputs").EnumerateArray()
-                .Select(input => input.GetProperty("Sha256").GetString()),
-            inputs.Select(input => input.GetProperty("Sha256").GetString()));
+        GoldenAssert.AssertHashEqualsGolden(inputs[1].GetProperty("Sha256").GetString(), inputs[2].GetProperty("Sha256").GetString(), "SHA-256");
+        GoldenAssert.AssertHashSequenceEqualsGolden(distinctReport.RootElement.GetProperty("Inputs").EnumerateArray()
+                .Select(input => input.GetProperty("Sha256").GetString()), inputs.Select(input => input.GetProperty("Sha256").GetString()), "SHA-256"
+
+);
 
         JsonElement[] artifacts =
         [
@@ -349,16 +349,16 @@ public sealed partial class BundleCliCommandTests
         Assert.Equal<string>(
             [CompositionAddressSpaceIds.DpAbInput, CompositionAddressSpaceIds.TpAInput],
             [.. sources.Select(source => source.GetProperty("BindingId").GetString()!)]);
-        Assert.Equal(
-            [inputs[0].GetProperty("Sha256").GetString(), inputs[1].GetProperty("Sha256").GetString()],
-            sources.Select(source => source.GetProperty("Sha256").GetString()));
+        GoldenAssert.AssertHashSequenceEqualsGolden([inputs[0].GetProperty("Sha256").GetString(), inputs[1].GetProperty("Sha256").GetString()], sources.Select(source => source.GetProperty("Sha256").GetString()), "SHA-256"
+
+);
         foreach (JsonElement artifact in artifacts)
         {
             byte[] delivered = await ReadDeliveredAsync(sharedBundle, artifact);
             Assert.Equal(delivered.LongLength, artifact.GetProperty("Size").GetInt64());
-            Assert.Equal(
-                Convert.ToHexStringLower(SHA256.HashData(delivered)),
-                artifact.GetProperty("Sha256").GetString());
+            GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(delivered)), artifact.GetProperty("Sha256").GetString(), "SHA-256"
+
+);
         }
         GoldenAssert.AssertEqualsGolden(dp, await ReadDeliveredAsync(sharedBundle, sources[0]), "firmware image");
         GoldenAssert.AssertEqualsGolden(tp, await ReadDeliveredAsync(sharedBundle, sources[1]), "firmware image");
@@ -383,8 +383,8 @@ public sealed partial class BundleCliCommandTests
         byte[] sharedAdditional = await ReadDeliveredAsync(sharedBundle, additional);
         string additionalSha256 = Convert.ToHexStringLower(SHA256.HashData(sharedAdditional));
         Assert.Equal(sharedAdditional.LongLength, additional.GetProperty("Size").GetInt64());
-        Assert.Equal(additionalSha256, additional.GetProperty("Sha256").GetString());
-        Assert.Equal(additionalSha256, delivery.GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(additionalSha256, additional.GetProperty("Sha256").GetString(), "SHA-256");
+        GoldenAssert.AssertHashEqualsGolden(additionalSha256, delivery.GetProperty("Sha256").GetString(), "SHA-256");
         GoldenAssert.AssertEqualsGolden(sharedOutput.AsSpan(0, sharedAdditional.Length), sharedAdditional, "firmware image");
         byte[] distinctOutput = await ReadDeliveredAsync(
             distinctBundle,
@@ -426,7 +426,7 @@ public sealed partial class BundleCliCommandTests
                 ],
                 TestContext.Current.CancellationToken);
             Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
-            string reportJson = await File.ReadAllTextAsync(
+            string reportJson = await GoldenFileIo.ReadAllTextAsync(
                 reportPath,
                 TestContext.Current.CancellationToken);
             return (reportJson, Path.Combine(workspace.Root, bundleName));
@@ -434,7 +434,7 @@ public sealed partial class BundleCliCommandTests
 
         static Task<byte[]> ReadDeliveredAsync(string bundleDirectory, JsonElement artifact)
         {
-            return File.ReadAllBytesAsync(
+            return GoldenFileIo.ReadAllBytesAsync(
                 Path.Combine(bundleDirectory, artifact.GetProperty("DeliveredFileName").GetString()!),
                 TestContext.Current.CancellationToken);
         }
@@ -555,7 +555,7 @@ public sealed partial class BundleCliCommandTests
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         string bundleDirectory = Path.Combine(workspace.Root, "general_bundle");
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement[] artifacts =
         [
             .. report.RootElement.GetProperty("BundleDelivery")
@@ -605,7 +605,7 @@ public sealed partial class BundleCliCommandTests
 
         Assert.True(result.ExitCode == 0, "Golden assertion condition was not satisfied.");
         using JsonDocument report = JsonDocument.Parse(
-            await File.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
+            await GoldenFileIo.ReadAllTextAsync(reportPath, TestContext.Current.CancellationToken));
         JsonElement[] artifacts =
         [
             .. report.RootElement.GetProperty("BundleDelivery")

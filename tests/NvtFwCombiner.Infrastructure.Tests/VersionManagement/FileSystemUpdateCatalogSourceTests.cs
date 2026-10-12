@@ -32,10 +32,10 @@ public sealed class FileSystemUpdateCatalogSourceTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(1, result.ContentIdentity!.SchemaVersion);
-        Assert.Equal(
-            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expectedBytes))
-                .ToLowerInvariant(),
-            result.ContentIdentity.Sha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(expectedBytes))
+                .ToLowerInvariant(), result.ContentIdentity.Sha256, "SHA-256"
+
+);
     }
 
     /// <summary>A direct source prefers strict v2 while exact-path loading dispatches by schema.</summary>
@@ -149,19 +149,23 @@ public sealed class FileSystemUpdateCatalogSourceTests
     [Theory]
     [MemberData(nameof(InvalidStrictV2Documents))]
     public async Task StrictV2PolicyShapeFailsClosedWithoutV1Fallback(
-        string caseId,
+        GoldenCaseId caseId,
         string v2Document)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(caseId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(caseId.Value);
         ArgumentNullException.ThrowIfNull(v2Document);
         using var workspace = TempWorkspace.Create();
         string root = workspace.PathFor("source");
         _ = Directory.CreateDirectory(root);
         await WriteCatalogAsync(root);
-        await File.WriteAllTextAsync(
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+        await using (FileStream stream = new(
             Path.Combine(root, FileSystemUpdateCatalogSource.CatalogV2FileName),
-            v2Document,
-            TestContext.Current.CancellationToken);
+            FileMode.Create, FileAccess.Write, FileShare.Read, 4096, FileOptions.Asynchronous))
+        {
+            await stream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(v2Document),
+                TestContext.Current.CancellationToken);
+        }
 
         UpdateCatalogLoadResult result = await new FileSystemUpdateCatalogSource().LoadAsync(
             root,
@@ -491,7 +495,7 @@ public sealed class FileSystemUpdateCatalogSourceTests
     }
 
     /// <summary>Malformed v2 documents exercising required, typed, closed policy shape.</summary>
-    public static TheoryData<string, string> InvalidStrictV2Documents
+    public static TheoryData<GoldenCaseId, string> InvalidStrictV2Documents
     {
         get
         {
@@ -499,16 +503,12 @@ public sealed class FileSystemUpdateCatalogSourceTests
                 """
                 {"schemaVersion":2,"product":"NVT FW Combiner","runtimeIdentifier":"win-x64","versions":[{"version":"1.0.8","publishedAt":"2026-09-01T00:00:00Z","packagePath":"packages/NvtFwCombiner-v1.0.8-win-x64.zip","packageSize":42,"packageSha256":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","releaseManifestSha256":"abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789","releaseNotes":"Release 1.0.8"
                 """;
-            TheoryData<string, string> data = [];
-            data.Add("missing-policy", prefix + "}]}");
-            data.Add("null-policy", prefix + ",\"notificationPolicy\":null}]}");
-            data.Add("numeric-policy", prefix + ",\"notificationPolicy\":2}]}");
-            data.Add(
-                "unexpected-field",
-                prefix + ",\"notificationPolicy\":\"notify\",\"unexpected\":true}]}");
-            data.Add(
-                "duplicate-policy",
-                prefix + ",\"notificationPolicy\":\"manual-only\",\"notificationPolicy\":\"notify\"}]}");
+            TheoryData<GoldenCaseId, string> data = [];
+            data.Add(new GoldenCaseId("missing-policy"), prefix + "}]}");
+            data.Add(new GoldenCaseId("null-policy"), prefix + ",\"notificationPolicy\":null}]}");
+            data.Add(new GoldenCaseId("numeric-policy"), prefix + ",\"notificationPolicy\":2}]}");
+            data.Add(new GoldenCaseId("unexpected-field"), prefix + ",\"notificationPolicy\":\"notify\",\"unexpected\":true}]}");
+            data.Add(new GoldenCaseId("duplicate-policy"), prefix + ",\"notificationPolicy\":\"manual-only\",\"notificationPolicy\":\"notify\"}]}");
             return data;
         }
     }

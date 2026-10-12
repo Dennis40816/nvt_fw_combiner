@@ -28,7 +28,7 @@ public sealed class AbCtrlRamAutoDetectionTests
         {
             // The fixture's owner-declared u8EventBufferFormatVersion is 0x0C bytes into each Backup.
             int byteAddress = checked((int)(bank.Range.Start + bank.FirmwareConfig!.FirmwareConfigBackupStart + 0x0C));
-            Assert.Equal(bytes[CompositionSlotIds.ReplaceBase][byteAddress], bank.EventBufferFormatVersion);
+            GoldenAssert.AssertValueEqualsGolden(bytes[CompositionSlotIds.ReplaceBase][byteAddress], bank.EventBufferFormatVersion, "firmware field");
         }
     }
 
@@ -79,7 +79,7 @@ public sealed class AbCtrlRamAutoDetectionTests
     public void StandardReferenceClearsAbDraft()
     {
         (_, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
-        bytes[CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", "NT51929", "expected-output"));
+        bytes[CompositionSlotIds.ReplaceBase] = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", "NT51929", "expected-output"));
         FirmwareInspectionStatusBatch batch = Inspect(bytes, sources: true, new AbCtrlRamDraftState(AbCtrlRamBankSelection.B));
         Assert.Equal(CtrlRamBaseKind.StandardFlash, batch.CtrlRamBaseInspection!.Kind);
         Assert.Null(batch.CtrlRamBaseInspection.EffectiveDraft);
@@ -139,7 +139,7 @@ public sealed class AbCtrlRamAutoDetectionTests
     public void StandardTpClearsAbDraftWithoutInventingBanks()
     {
         (_, Dictionary<string, byte[]> bytes) = AbCtrlRamAuthoringTests.Inputs();
-        bytes[CompositionSlotIds.ReplaceBase] = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", "NT51929", "tp-input"));
+        bytes[CompositionSlotIds.ReplaceBase] = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath("standard-merge", "NT51929", "tp-input"));
         FirmwareInspectionStatusBatch batch = Inspect(bytes, false, new AbCtrlRamDraftState());
         Assert.Equal(CtrlRamBaseKind.StandardTp, batch.CtrlRamBaseInspection!.Kind);
         Assert.Null(batch.CtrlRamBaseInspection.EffectiveDraft);

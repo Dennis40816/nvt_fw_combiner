@@ -1,6 +1,8 @@
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Application.Tests.Capabilities;
 
 public sealed partial class CanonicalCapabilityCatalogTests
@@ -35,7 +37,7 @@ public sealed partial class CanonicalCapabilityCatalogTests
         Assert.Empty(result.ReloadIssues);
         CanonicalSupportMatrixSnapshot matrix = Assert.IsType<CanonicalSupportMatrixSnapshot>(result.Matrix);
         Assert.Equal("2.0.0", matrix.CatalogVersion);
-        Assert.Equal(new string('b', 64), matrix.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(new string('b', 64), matrix.SourceSha256, "SHA-256");
         Assert.Equal(reload.Snapshot!.ResolutionToken, matrix.ResolutionToken);
         Assert.Equal(2, matrix.Rows.Count);
 

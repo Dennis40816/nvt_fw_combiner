@@ -276,9 +276,9 @@ public sealed class CliReportAtomicWriteTests
         byte[] reportBytes = await File.ReadAllBytesAsync(reportPath, TestContext.Current.CancellationToken);
         GoldenAssert.AssertEqualsGolden((ReadOnlySpan<byte>)[(byte)'{'], [reportBytes[0]], "firmware image");
         using JsonDocument report = JsonDocument.Parse(reportBytes);
-        Assert.Equal(
-            Convert.ToHexStringLower(SHA256.HashData(committed)),
-            report.RootElement.GetProperty("Output").GetProperty("Sha256").GetString());
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexStringLower(SHA256.HashData(committed)), report.RootElement.GetProperty("Output").GetProperty("Sha256").GetString(), "SHA-256"
+
+);
         Assert.True(GoldenDiagnostics.Contains($"Report: {reportPath}", result.Output, StringComparison.Ordinal), "Captured text did not match the expected marker check.");
         Assert.False(GoldenDiagnostics.Contains(CliCompositionRunSupport.CommittedReportFailedIssueCode, result.Error, StringComparison.Ordinal), "Captured text did not match the expected check.");
         Assert.Equal([reportPath], Directory.GetFiles(Path.GetDirectoryName(reportPath)!));

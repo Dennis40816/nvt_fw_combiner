@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.Json;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 public sealed partial class ReportProjectionConcurrencyTests
@@ -40,7 +42,7 @@ public sealed partial class ReportProjectionConcurrencyTests
         Assert.Equal(persisted.OutputFileName, live.OutputFileName);
         Assert.Equal(persisted.OutputSize, live.OutputSize);
         Assert.Equal(persisted.OutputCommitmentLabel, live.OutputCommitmentLabel);
-        Assert.Equal(persisted.OutputSha256, live.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(persisted.OutputSha256, live.OutputSha256, "SHA-256");
         Assert.Equal(persisted.Inputs.Select(ToReportLineSignature), live.Inputs.Select(ToReportLineSignature));
         Assert.Equal(persisted.Operations.Select(ToReportLineSignature), live.Operations.Select(ToReportLineSignature));
         Assert.Equal(persisted.Mutations.Select(ToReportLineSignature), live.Mutations.Select(ToReportLineSignature));

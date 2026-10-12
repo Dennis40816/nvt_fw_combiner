@@ -54,7 +54,7 @@ public sealed class FileSystemUpdateSourceRegistryTests
         Assert.Equal(12, result.Snapshot!.RegistryRevision);
         Assert.Equal("nvt-fw-combiner-production", result.Snapshot.RegistryId);
         Assert.Equal(Path.GetFullPath(catalogPath), Assert.Single(result.Snapshot.Entries).CatalogPath);
-        Assert.Equal(catalogSha256, result.Snapshot.CatalogPublication.CatalogSha256);
+        GoldenAssert.AssertHashEqualsGolden(catalogSha256, result.Snapshot.CatalogPublication.CatalogSha256, "SHA-256");
     }
 
     /// <summary>A higher revision cannot replace the one declared production Registry authority.</summary>

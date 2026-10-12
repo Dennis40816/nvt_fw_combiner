@@ -66,7 +66,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.False(result.IsDeliveryComplete);
         Assert.Equal("committed:synthetic-standard-merge.bin", result.CommittedOutputId);
         Assert.Equal(8, result.OutputSize);
-        Assert.Equal(Convert.ToHexString(SHA256.HashData(outputWriter.OutputBytes)).ToLowerInvariant(), result.OutputSha256);
+        GoldenAssert.AssertHashEqualsGolden(Convert.ToHexString(SHA256.HashData(outputWriter.OutputBytes)).ToLowerInvariant(), result.OutputSha256, "SHA-256");
         Assert.True(result.Report.Output.Committed);
         Assert.Contains(result.Report.Issues, issue => issue.Code == "delivery.test-delivery.failed");
     }

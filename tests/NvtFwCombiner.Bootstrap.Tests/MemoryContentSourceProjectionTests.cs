@@ -26,7 +26,7 @@ public sealed class MemoryContentSourceProjectionTests
             configurationPath: workspace.PathFor("missing-format.json"));
         CompiledAuthoringSessionPreparation prepared = await host.AbMergeAuthoring.PrepareSessionAsync(
             new AuthoringSessionState(ExperienceIds.AbMerge), "NT51950", "single",
-            [.. paths.Select(pair => new CompiledAuthoringSelectedInput(pair.Key, pair.Value, File.ReadAllBytes(pair.Value)))],
+            [.. paths.Select(pair => new CompiledAuthoringSelectedInput(pair.Key, pair.Value, GoldenFileIo.ReadAllBytes(pair.Value)))],
             AbMergeDpMode.Normal, TestContext.Current.CancellationToken);
         Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");
         ActiveSessionSnapshot session = prepared.Snapshot!;
@@ -50,23 +50,25 @@ public sealed class MemoryContentSourceProjectionTests
             ContentRuns(layout));
         MemoryLayoutContentSource a = layout.AfterSegments.First(segment => segment.SourceSpaceId == CompositionAddressSpaceIds.TpAInput).ContentSource!;
         MemoryLayoutContentSource b = imports[0].ContentSource!;
-        Assert.Equal(paths[CompositionAddressSpaceIds.TpAInput], paths[CompositionAddressSpaceIds.TpBInput]);
+        Assert.True(
+            StringComparer.Ordinal.Equals(paths[CompositionAddressSpaceIds.TpAInput], paths[CompositionAddressSpaceIds.TpBInput]),
+            "Expected one shared TP artifact path.");
         Assert.Equal(a.ArtifactIdentity, b.ArtifactIdentity);
         Assert.NotEqual(a.SourceSlotId, b.SourceSlotId);
     }
 
     /// <summary>Real CtrlRAM routes retain distinct replacement/reference identities and every original writer/range/group.</summary>
     [Theory]
-    [InlineData("NT51950", "nt51950-fw200-single-auto-prj-676-20260717", "postbuild-nf-ctrlram")]
-    [InlineData("NT51951", "nt51951-fw200-single-auto-prj-695-20260718", "nf-ctrlram-input")]
-    public void CtrlRamReplaceSeparatesReplacementBinFromPreservedReference(string ic, string caseId, string nfArtifact)
+    [MemberData(nameof(CtrlRamReplaceSeparatesReplacementBinFromPreservedReferenceCases))]
+
+    public void CtrlRamReplaceSeparatesReplacementBinFromPreservedReference(string ic, GoldenCaseId caseId, string nfArtifact)
     {
-        JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
+        JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId.Value);
         JsonElement[] artifacts = [.. fixture.GetProperty("artifacts").EnumerateArray()];
         string basePath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact => artifact.GetProperty("artifactId").GetString() == "expected-output"));
         string nfPath = CanonicalGoldenTestData.ArtifactPath(artifacts.Single(artifact => artifact.GetProperty("artifactId").GetString() == nfArtifact));
         var paths = new Dictionary<string, string> { [CompositionSlotIds.ReplaceBase] = basePath, ["replace-ctrlram-nf"] = nfPath };
-        Dictionary<string, byte[]> bytes = paths.ToDictionary(pair => pair.Key, pair => File.ReadAllBytes(pair.Value));
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(pair => pair.Key, pair => GoldenFileIo.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), ic, "single", paths, bytes);
         ActiveSessionSnapshot session = Assert.IsType<ActiveSessionSnapshot>(prepared.AcceptedSession);
@@ -113,4 +115,11 @@ public sealed class MemoryContentSourceProjectionTests
 
         yield return ByteRange.FromStartEndExclusive(start, end);
     }
+
+    /// <summary>Preserves the existing ordered rows with anonymous case identities.</summary>
+    public static TheoryData<string, GoldenCaseId, string> CtrlRamReplaceSeparatesReplacementBinFromPreservedReferenceCases() => new()
+    {
+        { "NT51950", new GoldenCaseId("nt51950-fw200-single-auto-prj-676-20260717"), "postbuild-nf-ctrlram" },
+        { "NT51951", new GoldenCaseId("nt51951-fw200-single-auto-prj-695-20260718"), "nf-ctrlram-input" },
+    };
 }

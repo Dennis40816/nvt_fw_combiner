@@ -30,16 +30,16 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
 
         Assert.Equal("canonical-capability-policy", policy.CatalogId);
         Assert.Equal("1.23.0", policy.CatalogVersion);
-        Assert.Equal(
-            BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
-            policy.SourceSha256);
+        GoldenAssert.AssertHashEqualsGolden(BuiltInCanonicalCapabilityPolicy.ExpectedSha256, policy.SourceSha256, "SHA-256"
+
+);
         Assert.Equal("NT51929", route.Identity.IcId);
         Assert.Equal("standard-merge", route.Identity.WorkflowId);
         Assert.Equal("selector-free", route.Identity.IcCountVariant);
         Assert.Equal("nt51929-standard-merge-256k", route.Identity.MapVariant);
-        Assert.Equal(
-            "6b52a0d6eb109e8b5b56843372a341bff7551da13609c1997d8ac4ad05ab0e65",
-            route.CapabilityFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("6b52a0d6eb109e8b5b56843372a341bff7551da13609c1997d8ac4ad05ab0e65", route.CapabilityFingerprint, "SHA-256"
+
+);
         Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
         Assert.Equal(CapabilityPublicationStatus.Supported, route.Publication.Value);
         Assert.Equal(CapabilityEvidenceStatus.DirectGolden, route.Evidence.Value);
@@ -196,10 +196,10 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 Path.DirectorySeparatorChar));
 
         Assert.True(File.Exists(deployedPath), deployedPath);
-        Assert.Equal(
-            BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
-            PinnedJsonCatalogLoader.ComputeSha256(
-                File.ReadAllBytes(deployedPath)));
+        GoldenAssert.AssertHashEqualsGolden(BuiltInCanonicalCapabilityPolicy.ExpectedSha256, PinnedJsonCatalogLoader.ComputeSha256(
+                GoldenFileIo.ReadAllBytes(deployedPath)), "SHA-256"
+
+);
         Assert.Equal(
             BuiltInCanonicalCapabilityPolicy.RelativePath,
             NormalizePath((string?)content.Attribute("Link")));
@@ -219,9 +219,9 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             RepositoryPaths.FromRepositoryRoot(".gitattributes"));
 
         Assert.Contains("*.json text eol=lf", attributes, StringComparison.Ordinal);
-        Assert.Equal(
-            BuiltInCanonicalCapabilityPolicy.ExpectedSha256,
-            PinnedJsonCatalogLoader.ComputeSha256(cleanExportBytes));
+        GoldenAssert.AssertHashEqualsGolden(BuiltInCanonicalCapabilityPolicy.ExpectedSha256, PinnedJsonCatalogLoader.ComputeSha256(cleanExportBytes), "SHA-256"
+
+);
     }
 
     /// <summary>Raw-byte identity rejects rewriting the reviewed line endings.</summary>

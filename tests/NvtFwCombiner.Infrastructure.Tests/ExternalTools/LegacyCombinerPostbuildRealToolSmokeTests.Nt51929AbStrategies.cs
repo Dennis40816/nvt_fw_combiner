@@ -26,13 +26,13 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
 
         string toolRoot = Path.Combine(RepositoryPaths.FindRepositoryRoot(), "external-tools");
         ExternalCombinerToolManifest manifest = LoadManifest(Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
-        Assert.Equal(manifest.Sha256,
-            Sha256(Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName)));
-        byte[] reference = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
+        GoldenAssert.AssertHashEqualsGolden(manifest.Sha256, Sha256(Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName)), "SHA-256"
+);
+        byte[] reference = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(
             "ab-merge", "NT51929", "expected-output", "t05-d06"));
         byte[] aInput = reference[..0x40000];
-        Assert.Equal("e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12",
-            Convert.ToHexString(SHA256.HashData(aInput)).ToLowerInvariant());
+        GoldenAssert.AssertHashEqualsGolden("e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12", Convert.ToHexString(SHA256.HashData(aInput)).ToLowerInvariant(), "SHA-256"
+);
         byte[] bInput = ShiftNt51929StoredAddresses(aInput, 0x40000);
         byte[] normalizedInput = ShiftNt51929StoredAddresses(bInput, -0x40000);
         GoldenAssert.AssertEqualsGolden(aInput, normalizedInput, "firmware image");
@@ -188,10 +188,10 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             string stem = Path.Combine(evidenceRoot,
                 $"{Path.GetFileName(startInfo.WorkingDirectory)}-command-{++_commandNumber}");
             string firmwarePath = Path.Combine(startInfo.WorkingDirectory, "output", targetFileName);
-            byte[] before = File.ReadAllBytes(firmwarePath);
+            byte[] before = GoldenFileIo.ReadAllBytes(firmwarePath);
             File.WriteAllBytes(stem + "-before.bin", before);
             ExternalProcessResult result = await _inner.RunAsync(startInfo, cancellationToken);
-            byte[]? after = File.Exists(firmwarePath) ? File.ReadAllBytes(firmwarePath) : null;
+            byte[]? after = File.Exists(firmwarePath) ? GoldenFileIo.ReadAllBytes(firmwarePath) : null;
             if (after is not null)
             {
                 File.WriteAllBytes(stem + "-after.bin", after);

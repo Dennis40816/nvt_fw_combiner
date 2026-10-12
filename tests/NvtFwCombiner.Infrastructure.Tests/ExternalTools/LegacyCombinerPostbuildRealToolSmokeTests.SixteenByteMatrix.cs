@@ -36,7 +36,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         ExternalCombinerToolManifest manifest = LoadManifest(
             Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
-        Assert.Equal(manifest.Sha256, Sha256(executableSource));
+        GoldenAssert.AssertHashEqualsGolden(manifest.Sha256, Sha256(executableSource), "SHA-256");
 
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(icId, out LegacyCombinerPostbuildProfile? profile));
         IcNumberSelection selection = new(mode, [selectionToken]);
@@ -50,7 +50,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             mappedRegions.Length >= 2,
             $"{testName} must expose multiple postbuild-mapped CtrlRAM regions.");
 
-        byte[] baseBytes = File.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
+        byte[] baseBytes = GoldenFileIo.ReadAllBytes(FindGoldenExpectedOutput(manifestIc));
         byte[] singleRegionBytes = CreateSelfReplacementBytes(baseBytes, [mappedRegions[0]]);
         byte[] multipleRegionBytes = CreateSelfReplacementBytes(baseBytes, mappedRegions);
         GoldenAssert.AssertEqualsGolden(baseBytes, singleRegionBytes, "firmware image");

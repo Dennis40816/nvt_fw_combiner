@@ -594,7 +594,7 @@ public sealed class FirmwareBrowseProcessSmokeTests
             "nt51950-fw200-single-auto-prj-676-20260717");
         JsonElement baseArtifact = fixtureCase.GetProperty("artifacts").EnumerateArray().Single(
             artifact => artifact.GetProperty("artifactId").GetString() == "tp-input");
-        byte[] validBase = File.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
+        byte[] validBase = GoldenFileIo.ReadAllBytes(CanonicalGoldenTestData.ArtifactPath(baseArtifact));
         using var workspace = TempWorkspace.Create("nvt-fw-combiner-ui-action-probe");
         string malformedBase = workspace.Write("nt51950-tp-with-trailing-byte.bin", [.. validBase, 0x00]);
         MainWindowViewModel viewModel = await Task.Run(

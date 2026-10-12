@@ -22,11 +22,11 @@ public sealed partial class CompiledCompositionTests
                 profileEvidenceRefs: ["other-evidence"])
             .BindCapabilityFingerprint(capabilityFingerprint);
 
-        Assert.Equal(
-            "29d191d3bef7e7502ab3776f84af49ef2707eaf5b2ea243cbf8a6ac96c17c163",
-            baseline.CompilationFingerprint);
-        Assert.Equal(
-            baseline.CompilationFingerprint,
-            changedDefinitionProvenance.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden("29d191d3bef7e7502ab3776f84af49ef2707eaf5b2ea243cbf8a6ac96c17c163", baseline.CompilationFingerprint, "SHA-256"
+
+);
+        GoldenAssert.AssertHashEqualsGolden(baseline.CompilationFingerprint, changedDefinitionProvenance.CompilationFingerprint, "SHA-256"
+
+);
     }
 }

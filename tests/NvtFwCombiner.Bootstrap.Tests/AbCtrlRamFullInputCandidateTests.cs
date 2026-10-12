@@ -35,7 +35,7 @@ public sealed class AbCtrlRamFullInputCandidateTests
         {
             string path = CanonicalGoldenTestData.ArtifactPath(CanonicalGoldenTestData.Artifact(canonical, artifactId));
             paths[slotId] = path;
-            bytes[slotId] = File.ReadAllBytes(path);
+            bytes[slotId] = GoldenFileIo.ReadAllBytes(path);
         }
 
         byte[] reference = bytes[CompositionSlotIds.ReplaceBase];
@@ -96,7 +96,7 @@ public sealed class AbCtrlRamFullInputCandidateTests
             assemblySha256 = Directory.EnumerateFiles(AppContext.BaseDirectory, "NvtFwCombiner*.dll")
                 .OrderBy(static path => path, StringComparer.Ordinal)
                 .ToDictionary(static path => Path.GetFileName(path),
-                    static path => Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))),
+                    static path => Convert.ToHexStringLower(SHA256.HashData(GoldenFileIo.ReadAllBytes(path))),
                     StringComparer.Ordinal),
         }, EvidenceJsonOptions);
         using var reportFile = new FileStream(Path.Combine(destination, "report.json"),

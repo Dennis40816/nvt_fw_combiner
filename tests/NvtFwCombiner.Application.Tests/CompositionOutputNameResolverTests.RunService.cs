@@ -306,7 +306,7 @@ public sealed partial class CompositionOutputNameResolverTests
         OutputNamingAdmissionSummary summaryA = Assert.IsType<OutputNamingAdmissionSummary>(
             previewA.Report.OutputNaming?.Admission);
         Assert.Equal(admissionA.RouteId, summaryA.RouteId);
-        Assert.Equal(admissionA.CompilationFingerprint, summaryA.CompilationFingerprint);
+        GoldenAssert.AssertHashEqualsGolden(admissionA.CompilationFingerprint, summaryA.CompilationFingerprint, "SHA-256");
         Assert.Equal(admissionA.ResolutionToken.Value, summaryA.ResolutionToken);
         Assert.Equal(admissionA.AuthoringRevision, summaryA.AuthoringRevision);
 

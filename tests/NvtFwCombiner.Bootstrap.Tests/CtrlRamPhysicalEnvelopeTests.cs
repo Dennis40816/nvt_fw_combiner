@@ -47,7 +47,7 @@ public sealed class CtrlRamPhysicalEnvelopeTests
             ["replace-ctrlram-vn"] = ArtifactPath("vn-ctrlram-input"),
             ["replace-ctrlram-diff"] = ArtifactPath("diffdlm-input"),
         };
-        Dictionary<string, byte[]> bytes = paths.ToDictionary(pair => pair.Key, pair => File.ReadAllBytes(pair.Value));
+        Dictionary<string, byte[]> bytes = paths.ToDictionary(pair => pair.Key, pair => GoldenFileIo.ReadAllBytes(pair.Value));
         CtrlRamAuthoringSessionPreparation prepared = BootstrapTestHost.Canonical.CtrlRamAuthoring.PrepareSession(
             new AuthoringSessionState(ExperienceIds.CtrlRamReplace), ic, "cascade", paths, bytes);
         Assert.True(prepared.Succeeded, "Golden assertion condition was not satisfied.");

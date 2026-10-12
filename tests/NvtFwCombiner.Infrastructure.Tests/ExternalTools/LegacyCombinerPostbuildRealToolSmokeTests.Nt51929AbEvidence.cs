@@ -32,12 +32,12 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             "tp-a-input",
             "t05-d06");
 
-        byte[] abBytes = File.ReadAllBytes(expectedPath);
+        byte[] abBytes = GoldenFileIo.ReadAllBytes(expectedPath);
         byte[] baseBytes = abBytes[..0x40000];
-        byte[] tpBytes = File.ReadAllBytes(tpPath);
-        Assert.Equal(
-            "e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12",
-            Convert.ToHexString(SHA256.HashData(baseBytes)).ToLowerInvariant());
+        byte[] tpBytes = GoldenFileIo.ReadAllBytes(tpPath);
+        GoldenAssert.AssertHashEqualsGolden("e257e734a63d0d8a0e471bc7b541366578b9b56c94dd914197508d5af1127c12", Convert.ToHexString(SHA256.HashData(baseBytes)).ToLowerInvariant(), "SHA-256"
+
+);
         AssertSameBytes(baseBytes, tpBytes, 0x1FC00, 0x1F90);
         AssertSameBytes(baseBytes, tpBytes, 0x21B90, 0x4A00);
         AssertSameBytes(baseBytes, tpBytes, 0x26590, 0x1960);
