@@ -80,7 +80,7 @@ public static class ConfidentialReferenceTestData
             }
         }
 
-        byte[] bytes = File.ReadAllBytes(path);
+        byte[] bytes = GoldenFileIo.ReadAllBytes(path);
         string actual = Convert.ToHexStringLower(SHA256.HashData(bytes));
         return string.Equals(actual, sha256, StringComparison.OrdinalIgnoreCase)
             ? (path, bytes)

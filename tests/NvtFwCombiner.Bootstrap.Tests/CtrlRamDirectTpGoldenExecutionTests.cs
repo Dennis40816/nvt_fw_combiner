@@ -205,9 +205,7 @@ public sealed class CtrlRamDirectTpGoldenExecutionTests
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", caseId);
         OwnerArtifact[] artifacts =
         [
-            .. goldenCase.GetProperty("artifacts").EnumerateArray()
-                .Where(artifact => !CanonicalGoldenTestData.IsPrivateReference(artifact, caseId))
-                .Select(ReadArtifact),
+            .. CanonicalGoldenTestData.ReadableArtifacts(goldenCase, caseId).Select(ReadArtifact),
         ];
         OwnerArtifact tpBase = RequireArtifact(artifacts, tpArtifactId);
         Assert.Equal("input", tpBase.Role);

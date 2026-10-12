@@ -13,7 +13,7 @@ public sealed class ConfidentialReferenceTestDataTests
     public void PrivateHeldCanonicalProvenanceRetainsPublicIntegrityIdentity()
     {
         (_, JsonElement artifact) = PrivateHeldArtifact();
-        using var manifest = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.FromRepositoryRoot(
             "docs", "references", "confidential-references.json")));
         JsonElement entry = manifest.RootElement.GetProperty("entries").EnumerateArray().Single(
             static item => item.GetProperty("id").GetString() == "golden-provenance-nt51951-ctrlram-fw2.0.0");
@@ -35,7 +35,7 @@ public sealed class ConfidentialReferenceTestDataTests
         string path = CanonicalGoldenTestData.ArtifactPath(artifact, caseId);
         Assert.Equal(artifact.GetProperty("size").GetInt64(), new FileInfo(path).Length);
         Assert.Equal(artifact.GetProperty("sha256").GetString(),
-            Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path))));
+            Convert.ToHexStringLower(SHA256.HashData(GoldenFileIo.ReadAllBytes(path))));
     }
 
     /// <summary>Private storage cannot remove an input or expected output from execution.</summary>
@@ -94,11 +94,11 @@ public sealed class ConfidentialReferenceTestDataTests
 
     private static (string CaseId, JsonElement Artifact) PrivateHeldArtifact()
     {
-        using var inventory = JsonDocument.Parse(File.ReadAllText(Path.Combine(
+        using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(
             CanonicalGoldenTestData.Root, "manifest.json")));
         foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
         {
-            using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.PathFromRelative(
+            using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.PathFromRelative(
                 CanonicalGoldenTestData.Root, entry.GetProperty("manifestPath").GetString()!)));
             if (!document.RootElement.TryGetProperty("artifacts", out JsonElement artifacts) ||
                 !artifacts.EnumerateArray().Any(artifact => CanonicalGoldenTestData.IsPrivateReference(

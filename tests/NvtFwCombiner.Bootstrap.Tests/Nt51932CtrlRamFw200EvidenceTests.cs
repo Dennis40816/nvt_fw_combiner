@@ -151,7 +151,7 @@ public sealed class Nt51932CtrlRamFw200EvidenceTests
     {
         string manifestPath = RepositoryPaths.FromRepositoryRoot(
             "docs", "references", "confidential-references.json");
-        using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        using JsonDocument manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(manifestPath));
         JsonElement entry = manifest.RootElement.GetProperty("entries")
             .EnumerateArray()
             .Single(item => item.GetProperty("id").GetString() == "postbuild-nt51932-fw2.0.0");

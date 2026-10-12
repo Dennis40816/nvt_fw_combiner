@@ -538,7 +538,7 @@ public static class CanonicalGoldenTestData
 
     // Mirrors CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS in scripts/canonical_golden_validation.py. A test checks that both
     // lists stay equal. Every other artifact must declare its private storage.
-    private static readonly Dictionary<string, string> CertifiedImplicitPrivateArtifacts =
+    private static readonly Dictionary<string, string> _certifiedImplicitPrivateArtifacts =
         new(StringComparer.Ordinal)
         {
             ["nt51951-fw200-cascade2-auto-prj-599-20260731"] = "postbuild-script-reference",
@@ -550,20 +550,27 @@ public static class CanonicalGoldenTestData
         return IsPrivateReference(artifact, null);
     }
 
+    /// <summary>Lists the artifacts of a case that a checkout can read, without its private references.</summary>
+    public static IEnumerable<JsonElement> ReadableArtifacts(JsonElement goldenCase, string caseId)
+    {
+        return goldenCase.GetProperty("artifacts").EnumerateArray()
+            .Where(artifact => !IsPrivateReference(artifact, caseId));
+    }
+
     /// <summary>Identifies private provenance from its disposition, or for a certified case from the inventory.</summary>
     public static bool IsPrivateReference(JsonElement artifact, string? caseId)
     {
         if (!artifact.TryGetProperty("storage", out JsonElement storage))
         {
             if (!artifact.TryGetProperty("role", out JsonElement role) || role.GetString() != "provenance" ||
-                caseId is null || !CertifiedImplicitPrivateArtifacts.TryGetValue(caseId, out string? certifiedId) ||
+                caseId is null || !_certifiedImplicitPrivateArtifacts.TryGetValue(caseId, out string? certifiedId) ||
                 !artifact.TryGetProperty("artifactId", out JsonElement artifactId) ||
                 !StringComparer.Ordinal.Equals(artifactId.GetString(), certifiedId))
             {
                 return false;
             }
 
-            using var inventory = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+            using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.FromRepositoryRoot(
                 "docs", "references", "confidential-references.json")));
             return inventory.RootElement.GetProperty("entries").EnumerateArray().Any(entry =>
                 StringComparer.Ordinal.Equals(
