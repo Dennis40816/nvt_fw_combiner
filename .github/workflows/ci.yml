@@ -62,10 +62,14 @@ jobs:
             $key = ($env:TESTDATA_DEPLOY_KEY -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($env:NFC_ASSETS_KEY_FILE, $key, [Text.UTF8Encoding]::new($false))
             & icacls.exe $env:NFC_ASSETS_KEY_FILE /inheritance:r /grant:r "$($env:USERNAME):R" | Out-Null
+            $probe = & ssh.exe -i $env:NFC_ASSETS_KEY_FILE -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -T git@github.com 2>&1
+            Write-Host ('ssh preflight exit code ' + $LASTEXITCODE)
+            $probe | Select-Object -First 3 | ForEach-Object { Write-Host ([string]$_) }
             & pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode Clone
             if ($LASTEXITCODE -ne 0) { throw 'Golden assembly failed.' }
           } finally {
             if (Test-Path -LiteralPath $env:NFC_ASSETS_KEY_FILE -PathType Leaf) {
+              & icacls.exe $env:NFC_ASSETS_KEY_FILE /grant:r "$($env:USERNAME):F" | Out-Null
               Remove-Item -LiteralPath $env:NFC_ASSETS_KEY_FILE -Force
             }
           }
@@ -75,7 +79,10 @@ jobs:
         run: |
           $root = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
           foreach ($item in Get-ChildItem -LiteralPath $root -Force | Where-Object { $_.Name -eq 'nfc-assets-key' -or $_.Name -match '^nfc-assets-[0-9a-f]{32}$' }) {
-            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Remove-Item -LiteralPath $item.FullName -Recurse -Force }
+            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+              if ($item.Name -eq 'nfc-assets-key') { & icacls.exe $item.FullName /grant:r "$($env:USERNAME):F" | Out-Null }
+              Remove-Item -LiteralPath $item.FullName -Recurse -Force
+            }
           }
       - name: Install repository verification dependency
         run: 'python -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3'
@@ -158,10 +165,14 @@ jobs:
             $key = ($env:TESTDATA_DEPLOY_KEY -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($env:NFC_ASSETS_KEY_FILE, $key, [Text.UTF8Encoding]::new($false))
             & icacls.exe $env:NFC_ASSETS_KEY_FILE /inheritance:r /grant:r "$($env:USERNAME):R" | Out-Null
+            $probe = & ssh.exe -i $env:NFC_ASSETS_KEY_FILE -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -T git@github.com 2>&1
+            Write-Host ('ssh preflight exit code ' + $LASTEXITCODE)
+            $probe | Select-Object -First 3 | ForEach-Object { Write-Host ([string]$_) }
             & pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode Clone
             if ($LASTEXITCODE -ne 0) { throw 'Golden assembly failed.' }
           } finally {
             if (Test-Path -LiteralPath $env:NFC_ASSETS_KEY_FILE -PathType Leaf) {
+              & icacls.exe $env:NFC_ASSETS_KEY_FILE /grant:r "$($env:USERNAME):F" | Out-Null
               Remove-Item -LiteralPath $env:NFC_ASSETS_KEY_FILE -Force
             }
           }
@@ -171,7 +182,10 @@ jobs:
         run: |
           $root = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
           foreach ($item in Get-ChildItem -LiteralPath $root -Force | Where-Object { $_.Name -eq 'nfc-assets-key' -or $_.Name -match '^nfc-assets-[0-9a-f]{32}$' }) {
-            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Remove-Item -LiteralPath $item.FullName -Recurse -Force }
+            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+              if ($item.Name -eq 'nfc-assets-key') { & icacls.exe $item.FullName /grant:r "$($env:USERNAME):F" | Out-Null }
+              Remove-Item -LiteralPath $item.FullName -Recurse -Force
+            }
           }
       - name: Install repository verification dependencies
         run: python -m pip install --disable-pip-version-check -e './tools/crc-worker[dev]'
@@ -299,10 +313,14 @@ jobs:
             $key = ($env:TESTDATA_DEPLOY_KEY -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($env:NFC_ASSETS_KEY_FILE, $key, [Text.UTF8Encoding]::new($false))
             & icacls.exe $env:NFC_ASSETS_KEY_FILE /inheritance:r /grant:r "$($env:USERNAME):R" | Out-Null
+            $probe = & ssh.exe -i $env:NFC_ASSETS_KEY_FILE -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -T git@github.com 2>&1
+            Write-Host ('ssh preflight exit code ' + $LASTEXITCODE)
+            $probe | Select-Object -First 3 | ForEach-Object { Write-Host ([string]$_) }
             & pwsh -NoProfile -File scripts/golden/assemble-golden.ps1 -Mode Clone
             if ($LASTEXITCODE -ne 0) { throw 'Golden assembly failed.' }
           } finally {
             if (Test-Path -LiteralPath $env:NFC_ASSETS_KEY_FILE -PathType Leaf) {
+              & icacls.exe $env:NFC_ASSETS_KEY_FILE /grant:r "$($env:USERNAME):F" | Out-Null
               Remove-Item -LiteralPath $env:NFC_ASSETS_KEY_FILE -Force
             }
           }
@@ -312,7 +330,10 @@ jobs:
         run: |
           $root = [IO.Path]::GetFullPath($env:RUNNER_TEMP)
           foreach ($item in Get-ChildItem -LiteralPath $root -Force | Where-Object { $_.Name -eq 'nfc-assets-key' -or $_.Name -match '^nfc-assets-[0-9a-f]{32}$' }) {
-            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { Remove-Item -LiteralPath $item.FullName -Recurse -Force }
+            if (-not ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+              if ($item.Name -eq 'nfc-assets-key') { & icacls.exe $item.FullName /grant:r "$($env:USERNAME):F" | Out-Null }
+              Remove-Item -LiteralPath $item.FullName -Recurse -Force
+            }
           }
       - name: Add resolved .NET to PATH
         shell: pwsh
