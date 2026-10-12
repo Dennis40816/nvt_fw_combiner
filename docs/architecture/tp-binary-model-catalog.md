@@ -26,10 +26,11 @@ The planned NT51925 TP Overview entry follows NT51926 and has two topologies,
 registered yet. The owner supplies the production values, and the
 [support matrix](supported-ic-matrix.md) lists the open points.
 
-Evidence sources:
+Evidence sources, identified by IDs in the
+[public confidential reference manifest](../references/confidential-references.json):
 
-- `docs/references/ic-flashmap/IC_FlashMap_20260725.xlsx` TP Overview rows;
-- `docs/references/tddi-flash-header/TDDI_Flash_Header.xlsx` named header worksheets;
+- `flashmap-2026-07-25` for flash-layout review;
+- `tddi-flash-header-sheet` for header-layout review;
 - documented owner aliases already recorded in hash-pinned
   `profiles/built-in/ctrlram-postbuild-v2/flash-map.json`.
 
