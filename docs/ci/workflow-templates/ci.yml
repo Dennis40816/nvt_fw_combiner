@@ -196,9 +196,9 @@ jobs:
             if ([string]::IsNullOrWhiteSpace($env:NFC_PR_BASE_SHA)) {
               throw 'Pull-request code-health verification requires a base SHA.'
             }
-            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot .core
+            pwsh -NoProfile -File ./.core/tools/repo-checks/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot ./.core
           } else {
-            pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -CoreRoot .core
+            pwsh -NoProfile -File ./.core/tools/repo-checks/repo-health.ps1 -Mode Verify -Repo nfc -Root . -Solution NvtFwCombiner.slnx -CoreRoot ./.core
           }
           exit $LASTEXITCODE
       - name: Upload dotnet build evidence

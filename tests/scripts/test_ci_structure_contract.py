@@ -157,7 +157,7 @@ class CiStructureContractTests(unittest.TestCase):
             "dotnet": "dotnet / build-test",
         }
         command = (
-            "pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify "
+            "pwsh -NoProfile -File ./.core/tools/repo-checks/repo-health.ps1 -Mode Verify "
             "-Repo nfc -Root . -Solution NvtFwCombiner.slnx"
         )
         paths = (ROOT / ".github/workflows/ci.yml",
@@ -174,7 +174,7 @@ class CiStructureContractTests(unittest.TestCase):
                 self.assertEqual(30, job["timeout-minutes"])
                 steps = job["steps"]
                 checks = [step for owner in jobs.values() for step in owner["steps"]
-                          if "eng/core-health/repo-health.ps1" in step.get("run", "")]
+                          if "tools/repo-checks/repo-health.ps1" in step.get("run", "")]
                 self.assertEqual(1, len(checks))
                 health = checks[0]
                 build = next(step for step in steps
@@ -199,8 +199,8 @@ class CiStructureContractTests(unittest.TestCase):
                     "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
                 }, health["env"])
                 lines = [line.strip() for line in health["run"].splitlines()]
-                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot .core", lines)
-                self.assertIn(command + " -CoreRoot .core", lines)
+                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot ./.core", lines)
+                self.assertIn(command + " -CoreRoot ./.core", lines)
                 self.assertNotIn("${{", health["run"])
                 self.assertEqual("exit $LASTEXITCODE", lines[-1])
                 uploads = [step for step in steps
@@ -221,13 +221,13 @@ class CiStructureContractTests(unittest.TestCase):
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
         health = next(step for step in workflow["jobs"]["dotnet-build"]["steps"]
                       if step.get("name") == "Verify enrolled C# code health")
-        checker = self.root / "eng/core-health/repo-health.ps1"
+        checker = self.root / ".core/tools/repo-checks/repo-health.ps1"
         checker.parent.mkdir(parents=True)
         checker.write_text(
             "param([string]$Mode, [string]$Repo, [string]$Root, "
-            "[string]$Solution, [string]$BaseRef)\n"
+            "[string]$Solution, [string]$BaseRef, [string]$CoreRoot)\n"
             "@{mode=$Mode; repo=$Repo; root=$Root; solution=$Solution; "
-            "base=$BaseRef; hasBase=$PSBoundParameters.ContainsKey('BaseRef')} "
+            "base=$BaseRef; hasBase=$PSBoundParameters.ContainsKey('BaseRef'); core=$CoreRoot} "
             "| ConvertTo-Json -Compress\nexit ([int]$env:NFC_STUB_EXIT)\n",
             encoding="utf-8",
         )
@@ -258,6 +258,7 @@ class CiStructureContractTests(unittest.TestCase):
                     "solution": "NvtFwCombiner.slnx",
                     "base": base_sha if event == "pull_request" else "",
                     "hasBase": event == "pull_request",
+                    "core": "./.core",
                 }, json.loads(completed.stdout))
 
     def test_ci_workflow_validator_rejects_every_non_windows_topology(self) -> None:
