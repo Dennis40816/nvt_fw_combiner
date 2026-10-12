@@ -22,7 +22,7 @@ The executable workflow is [`.github/workflows/ci.yml`](../../.github/workflows/
    [failure-evidence contract](#failure-evidence-and-in-job-retry) defines the
    bounded failed-FQN retry and mandatory flaky bug-record gate.
 
-Private firmware golden regression remains an approved-runner gate once private vectors exist. It must publish reports/hashes only, never firmware payloads.
+Firmware golden regression runs on the hosted runner. The `golden-assets` environment assembles the golden files from the private test-data repository (see Security rules). It must publish summaries and hashes only, never firmware payloads.
 
 ## Security rules
 
