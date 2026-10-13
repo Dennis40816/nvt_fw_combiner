@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace NvtFwCombiner.TestSupport;
 
@@ -41,6 +42,39 @@ public static class ConfidentialReferenceTestData
     public static string ResolveVerifiedPath(string sha256, string privateAssetsRoot)
     {
         return ReadVerifiedReference(sha256, privateAssetsRoot).Path;
+    }
+
+    /// <summary>Opens the public confidential-reference manifest of the repository.</summary>
+    public static JsonDocument OpenPublicManifest()
+    {
+        return JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.FromRepositoryRoot(
+            "docs", "references", "confidential-references.json")));
+    }
+
+    /// <summary>Finds the first canonical case artifact that declares private-reference storage.</summary>
+    public static (string CaseId, JsonElement Artifact) FindPrivateHeldArtifact()
+    {
+        using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(
+            CanonicalGoldenTestData.Root, "manifest.json")));
+        foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
+        {
+            using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.PathFromRelative(
+                CanonicalGoldenTestData.Root, entry.GetProperty("manifestPath").GetString()!)));
+            string caseId = document.RootElement.GetProperty("caseId").GetString()!;
+            if (!document.RootElement.TryGetProperty("artifacts", out JsonElement artifacts) ||
+                !artifacts.EnumerateArray().Any(artifact =>
+                    CanonicalGoldenTestData.IsPrivateReference(artifact, caseId)))
+            {
+                continue;
+            }
+
+            JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
+                document.RootElement.GetProperty("workflow").GetString()!, caseId);
+            return (caseId, goldenCase.GetProperty("artifacts").EnumerateArray()
+                .Single(artifact => CanonicalGoldenTestData.IsPrivateReference(artifact, caseId)).Clone());
+        }
+
+        throw new InvalidDataException("Private-held canonical provenance was not declared.");
     }
 
     /// <summary>Reads a held reference (file name = its SHA-256) from an explicit directory.</summary>

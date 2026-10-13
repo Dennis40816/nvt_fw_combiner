@@ -12,9 +12,8 @@ public sealed class ConfidentialReferenceTestDataTests
     [Fact]
     public void PrivateHeldCanonicalProvenanceRetainsPublicIntegrityIdentity()
     {
-        (_, JsonElement artifact) = PrivateHeldArtifact();
-        using var manifest = JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.FromRepositoryRoot(
-            "docs", "references", "confidential-references.json")));
+        (_, JsonElement artifact) = ConfidentialReferenceTestData.FindPrivateHeldArtifact();
+        using JsonDocument manifest = ConfidentialReferenceTestData.OpenPublicManifest();
         JsonElement entry = manifest.RootElement.GetProperty("entries").EnumerateArray().Single(
             static item => item.GetProperty("id").GetString() == "golden-provenance-nt51951-ctrlram-fw2.0.0");
 
@@ -31,7 +30,7 @@ public sealed class ConfidentialReferenceTestDataTests
             Assert.Skip("confidential golden not executed");
         }
 
-        (string caseId, JsonElement artifact) = PrivateHeldArtifact();
+        (string caseId, JsonElement artifact) = ConfidentialReferenceTestData.FindPrivateHeldArtifact();
         string path = CanonicalGoldenTestData.ArtifactPath(artifact, caseId);
         Assert.Equal(artifact.GetProperty("size").GetInt64(), new FileInfo(path).Length);
         Assert.Equal(artifact.GetProperty("sha256").GetString(),
@@ -203,31 +202,5 @@ public sealed class ConfidentialReferenceTestDataTests
 
         _ = Assert.Throws<InvalidOperationException>(() => ConfidentialReferenceTestData.ReadVerifiedBytesFromSources(
             digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), privateRoot));
-    }
-
-    private static (string CaseId, JsonElement Artifact) PrivateHeldArtifact()
-    {
-        using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(
-            CanonicalGoldenTestData.Root, "manifest.json")));
-        foreach (JsonElement entry in inventory.RootElement.GetProperty("cases").EnumerateArray())
-        {
-            using var document = JsonDocument.Parse(GoldenFileIo.ReadAllText(RepositoryPaths.PathFromRelative(
-                CanonicalGoldenTestData.Root, entry.GetProperty("manifestPath").GetString()!)));
-            if (!document.RootElement.TryGetProperty("artifacts", out JsonElement artifacts) ||
-                !artifacts.EnumerateArray().Any(artifact => CanonicalGoldenTestData.IsPrivateReference(
-                    artifact, document.RootElement.GetProperty("caseId").GetString())))
-            {
-                continue;
-            }
-
-            JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase(
-                document.RootElement.GetProperty("workflow").GetString()!,
-                document.RootElement.GetProperty("caseId").GetString()!);
-            string caseId = document.RootElement.GetProperty("caseId").GetString()!;
-            return (caseId, goldenCase.GetProperty("artifacts").EnumerateArray()
-                .Single(artifact => CanonicalGoldenTestData.IsPrivateReference(artifact, caseId)).Clone());
-        }
-
-        throw new InvalidDataException("Private-held canonical provenance was not declared.");
     }
 }
