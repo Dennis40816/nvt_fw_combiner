@@ -154,7 +154,7 @@ public sealed class ConfidentialReferenceTestDataTests
         _ = workspace.Write("nfc/references/SHA256SUMS",
             Encoding.UTF8.GetBytes($"{digest}  synthetic/reference.dat\n"));
 
-        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedBytes(
+        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedBytesFromSources(
             digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), workspace.Root));
     }
 
@@ -170,7 +170,7 @@ public sealed class ConfidentialReferenceTestDataTests
         _ = workspace.Write("nfc/references/SHA256SUMS",
             Encoding.UTF8.GetBytes($"{digest}  synthetic/reference.dat\n"));
 
-        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedBytes(
+        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedBytesFromSources(
             digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), workspace.Root));
     }
 
@@ -186,7 +186,7 @@ public sealed class ConfidentialReferenceTestDataTests
         _ = workspace.Write("nfc/references/SHA256SUMS",
             Encoding.UTF8.GetBytes($"{digest}  synthetic/reference.dat\n"));
 
-        _ = Assert.Throws<InvalidDataException>(() => ConfidentialReferenceTestData.ReadVerifiedBytes(
+        _ = Assert.Throws<InvalidDataException>(() => ConfidentialReferenceTestData.ReadVerifiedBytesFromSources(
             digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), workspace.Root));
     }
 
@@ -201,7 +201,7 @@ public sealed class ConfidentialReferenceTestDataTests
         string digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("absent")));
         _ = workspace.Write("docs/references/ci-held/placeholder", Encoding.UTF8.GetBytes("other"));
 
-        _ = Assert.Throws<InvalidOperationException>(() => ConfidentialReferenceTestData.ReadVerifiedBytes(
+        _ = Assert.Throws<InvalidOperationException>(() => ConfidentialReferenceTestData.ReadVerifiedBytesFromSources(
             digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), privateRoot));
     }
 

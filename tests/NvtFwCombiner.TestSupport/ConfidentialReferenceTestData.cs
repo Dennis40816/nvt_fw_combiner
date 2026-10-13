@@ -50,7 +50,8 @@ public static class ConfidentialReferenceTestData
     }
 
     /// <summary>Resolves from explicit sources: the held directory first, the private inventory second.</summary>
-    public static byte[] ReadVerifiedBytes(string sha256, string heldDirectory, string? privateAssetsRoot)
+    public static byte[] ReadVerifiedBytesFromSources(
+        string sha256, string heldDirectory, string? privateAssetsRoot)
     {
         return ResolveFromSources(sha256, heldDirectory, privateAssetsRoot).Bytes;
     }

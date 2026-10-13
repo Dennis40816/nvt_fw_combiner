@@ -31,6 +31,8 @@ class ConfidentialReferenceStructureTests(unittest.TestCase):
             "provenance/ExamplePostbuildSetup.bat",
             "refcode/flashmap/README.md",
             "docs/references/ci-held/" + "a" * 64,
+            "docs/references/ci-held/notes.md",
+            "docs/references/ci-held/index.json",
         ):
             with self.subTest(path=path):
                 self.assertTrue(verify.is_confidential_reference_path(path))

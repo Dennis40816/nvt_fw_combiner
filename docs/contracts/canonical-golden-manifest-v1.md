@@ -116,7 +116,9 @@ private test-data repository under the Golden tree hash. The second is
 names. The Python validator and `scripts/package.ps1` read only the second place
 and check identity alone when it is unset. When neither place exists, public
 identity checks remain executable and tests requiring private bytes skip with
-`confidential golden not executed`. Public output Golden comparisons continue
+`confidential golden not executed`. A held directory that lacks the digest while
+`NVT_PRIVATE_ASSETS` is unset is a configuration error, not a skip. Public output
+Golden comparisons continue
 to use their unchanged input and expected artifacts.
 
 The release allowlist records the optional `storage` disposition separately
