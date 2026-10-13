@@ -79,14 +79,31 @@ class CiStructureContractTests(unittest.TestCase):
             with self.subTest(workflow=relative):
                 workflow = yaml.safe_load((ROOT / relative).read_text(encoding="utf-8"))
                 jobs = workflow["jobs"]
-                checkout_steps = [
+                all_checkouts = [
                     step
                     for job in jobs.values()
                     for step in job["steps"]
                     if str(step.get("uses", "")).startswith("actions/checkout@")
                 ]
+                core_checkouts = [
+                    step for step in all_checkouts if "repository" in step["with"]
+                ]
+                checkout_steps = [
+                    step for step in all_checkouts if "repository" not in step["with"]
+                ]
 
+                # The one other-repository checkout is the pinned Core commit for -CoreRoot.
+                self.assertEqual(1, len(core_checkouts))
+                core = core_checkouts[0]["with"]
+                self.assertEqual("Dennis40816/nvt_fw_core", core["repository"])
+                self.assertEqual("${{ steps.core-pin.outputs.commit }}", core["ref"])
+                self.assertEqual(".core", core["path"])
+                self.assertIs(False, core["persist-credentials"])
+                self.assertEqual(0, core["fetch-depth"])
+                self.assertRegex(core_checkouts[0]["uses"], r"\Aactions/checkout@[0-9a-f]{40}\Z")
                 self.assertEqual(6, len(checkout_steps))
+                for step in checkout_steps:
+                    self.assertEqual(core_checkouts[0]["uses"], step["uses"])
                 for step in checkout_steps:
                     checkout_with = step["with"]
                     self.assertEqual(expected_ref, checkout_with["ref"])
@@ -143,7 +160,7 @@ class CiStructureContractTests(unittest.TestCase):
             "dotnet": "dotnet / build-test",
         }
         command = (
-            "pwsh -NoProfile -File eng/core-health/repo-health.ps1 -Mode Verify "
+            "pwsh -NoProfile -File ./.core/tools/repo-checks/repo-health.ps1 -Mode Verify "
             "-Repo nfc -Root . -Solution NvtFwCombiner.slnx"
         )
         paths = (ROOT / ".github/workflows/ci.yml",
@@ -160,12 +177,20 @@ class CiStructureContractTests(unittest.TestCase):
                 self.assertEqual(30, job["timeout-minutes"])
                 steps = job["steps"]
                 checks = [step for owner in jobs.values() for step in owner["steps"]
-                          if "eng/core-health/repo-health.ps1" in step.get("run", "")]
+                          if "repo-health.ps1" in step.get("run", "")]
                 self.assertEqual(1, len(checks))
                 health = checks[0]
                 build = next(step for step in steps
                              if step.get("run") == "python scripts/verify.py --ci-dotnet-build")
-                self.assertEqual(health, steps[steps.index(build) + 1])
+                pin_step, core_step = steps[steps.index(build) + 1 : steps.index(build) + 3]
+                self.assertEqual("core-pin", pin_step["id"])
+                self.assertEqual("pwsh", pin_step["shell"])
+                self.assertIn("eng/core-health.lock.json", pin_step["run"])
+                self.assertEqual("Dennis40816/nvt_fw_core", core_step["with"]["repository"])
+                for guarded in (pin_step, core_step):
+                    self.assertNotIn("if", guarded)
+                    self.assertNotIn("continue-on-error", guarded)
+                self.assertEqual(health, steps[steps.index(build) + 3])
                 self.assertEqual("pwsh", health["shell"])
                 self.assertNotIn("if", health)
                 self.assertNotIn("continue-on-error", health)
@@ -180,10 +205,13 @@ class CiStructureContractTests(unittest.TestCase):
                     "DOTNET_CLI_USE_MSBUILD_SERVER": "0",
                 }, health["env"])
                 lines = [line.strip() for line in health["run"].splitlines()]
-                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA", lines)
-                self.assertIn(command, lines)
+                self.assertIn(command + " -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot ./.core", lines)
+                self.assertIn(command + " -CoreRoot ./.core", lines)
                 self.assertNotIn("${{", health["run"])
                 self.assertEqual("exit $LASTEXITCODE", lines[-1])
+                self.assertEqual(
+                    [command + " -BaseRef $env:NFC_PR_BASE_SHA -CoreRoot ./.core", command + " -CoreRoot ./.core"],
+                    [line for line in lines if "repo-health.ps1" in line])
                 uploads = [step for step in steps
                            if step.get("with", {}).get("path") == "artifacts/code-health/"]
                 self.assertEqual(1, len(uploads))
@@ -202,13 +230,13 @@ class CiStructureContractTests(unittest.TestCase):
         workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
         health = next(step for step in workflow["jobs"]["dotnet-build"]["steps"]
                       if step.get("name") == "Verify enrolled C# code health")
-        checker = self.root / "eng/core-health/repo-health.ps1"
+        checker = self.root / ".core/tools/repo-checks/repo-health.ps1"
         checker.parent.mkdir(parents=True)
         checker.write_text(
             "param([string]$Mode, [string]$Repo, [string]$Root, "
-            "[string]$Solution, [string]$BaseRef)\n"
+            "[string]$Solution, [string]$BaseRef, [string]$CoreRoot)\n"
             "@{mode=$Mode; repo=$Repo; root=$Root; solution=$Solution; "
-            "base=$BaseRef; hasBase=$PSBoundParameters.ContainsKey('BaseRef')} "
+            "base=$BaseRef; hasBase=$PSBoundParameters.ContainsKey('BaseRef'); core=$CoreRoot} "
             "| ConvertTo-Json -Compress\nexit ([int]$env:NFC_STUB_EXIT)\n",
             encoding="utf-8",
         )
@@ -239,6 +267,7 @@ class CiStructureContractTests(unittest.TestCase):
                     "solution": "NvtFwCombiner.slnx",
                     "base": base_sha if event == "pull_request" else "",
                     "hasBase": event == "pull_request",
+                    "core": "./.core",
                 }, json.loads(completed.stdout))
 
     def test_ci_workflow_validator_rejects_every_non_windows_topology(self) -> None:
