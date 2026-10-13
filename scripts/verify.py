@@ -1283,6 +1283,8 @@ CONFIDENTIAL_REFERENCE_PATTERNS = (
     "**/Combiner.c",
     "**/ap_fwconfig.c",
     "refcode/flashmap/**",
+    # CI assembles held references here; they are never tracked in the public tree.
+    "docs/references/ci-held/**",
 )
 
 

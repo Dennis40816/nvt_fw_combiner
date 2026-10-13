@@ -109,12 +109,14 @@ only to the provenance artifacts that `CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS` in
 case-manifest bytes, size and SHA-256 remain pinned by historical certification.
 The physical private file is excluded from the public inventory and release
 package projection.
-Consumers resolve and verify the digest in two places. The first is the held
-directory `docs/references/ci-held/<sha256>`, which CI assembles from the
+.NET test support resolves and verifies the digest in two places. The first is the
+held directory `docs/references/ci-held/<sha256>`, which CI assembles from the
 private test-data repository under the Golden tree hash. The second is
 `nfc/references/SHA256SUMS` in the private inventory that `NVT_PRIVATE_ASSETS`
-names. When neither exists, public identity checks remain executable and tests
-requiring private bytes skip with `confidential golden not executed`. Public output Golden comparisons continue
+names. The Python validator and `scripts/package.ps1` read only the second place
+and check identity alone when it is unset. When neither place exists, public
+identity checks remain executable and tests requiring private bytes skip with
+`confidential golden not executed`. Public output Golden comparisons continue
 to use their unchanged input and expected artifacts.
 
 The release allowlist records the optional `storage` disposition separately

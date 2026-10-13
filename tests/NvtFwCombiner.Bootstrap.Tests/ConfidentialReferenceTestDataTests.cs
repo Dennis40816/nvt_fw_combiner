@@ -142,6 +142,69 @@ public sealed class ConfidentialReferenceTestDataTests
             digest, Path.Combine(workspace.Root, "docs", "references", "ci-held")));
     }
 
+    /// <summary>The held directory is read first, so a drifted private inventory is never reached.</summary>
+    [Fact]
+    public void HeldReferenceWinsOverPrivateInventory()
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-first");
+        byte[] expected = Encoding.UTF8.GetBytes("synthetic reference");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(expected));
+        _ = workspace.Write($"docs/references/ci-held/{digest}", expected);
+        _ = workspace.Write("nfc/references/synthetic/reference.dat", Encoding.UTF8.GetBytes("drifted"));
+        _ = workspace.Write("nfc/references/SHA256SUMS",
+            Encoding.UTF8.GetBytes($"{digest}  synthetic/reference.dat\n"));
+
+        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedBytes(
+            digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), workspace.Root));
+    }
+
+    /// <summary>A reference absent from the held directory is read from the private inventory.</summary>
+    [Fact]
+    public void HeldMissFallsBackToPrivateInventory()
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-miss");
+        byte[] expected = Encoding.UTF8.GetBytes("synthetic reference");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(expected));
+        _ = workspace.Write("docs/references/ci-held/placeholder", Encoding.UTF8.GetBytes("other"));
+        _ = workspace.Write("nfc/references/synthetic/reference.dat", expected);
+        _ = workspace.Write("nfc/references/SHA256SUMS",
+            Encoding.UTF8.GetBytes($"{digest}  synthetic/reference.dat\n"));
+
+        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedBytes(
+            digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), workspace.Root));
+    }
+
+    /// <summary>A drifted held file fails closed and does not fall back to the private inventory.</summary>
+    [Fact]
+    public void DriftedHeldReferenceDoesNotFallBackToPrivateInventory()
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-drift-no-fallback");
+        byte[] expected = Encoding.UTF8.GetBytes("synthetic reference");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(expected));
+        _ = workspace.Write($"docs/references/ci-held/{digest}", Encoding.UTF8.GetBytes("drifted"));
+        _ = workspace.Write("nfc/references/synthetic/reference.dat", expected);
+        _ = workspace.Write("nfc/references/SHA256SUMS",
+            Encoding.UTF8.GetBytes($"{digest}  synthetic/reference.dat\n"));
+
+        _ = Assert.Throws<InvalidDataException>(() => ConfidentialReferenceTestData.ReadVerifiedBytes(
+            digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), workspace.Root));
+    }
+
+    /// <summary>A held miss with no private root, or a blank one, is a configuration error.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void HeldMissWithoutPrivateRootThrows(string? privateRoot)
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-miss-no-root");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("absent")));
+        _ = workspace.Write("docs/references/ci-held/placeholder", Encoding.UTF8.GetBytes("other"));
+
+        _ = Assert.Throws<InvalidOperationException>(() => ConfidentialReferenceTestData.ReadVerifiedBytes(
+            digest, Path.Combine(workspace.Root, "docs", "references", "ci-held"), privateRoot));
+    }
+
     private static (string CaseId, JsonElement Artifact) PrivateHeldArtifact()
     {
         using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(

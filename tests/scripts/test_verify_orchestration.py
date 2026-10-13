@@ -6380,24 +6380,7 @@ class VerifyOrchestrationTests(unittest.TestCase):
             for identity in PRIVATE_REFERENCE_BOOTSTRAP_SKIPS
         )
         restored = patch.object(MODULE, "PRIVATE_REFERENCE_BOOTSTRAP_SKIPS", PRIVATE_REFERENCE_BOOTSTRAP_SKIPS)
-        with restored, patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: ""}):
-            self.assertEqual(private, MODULE.approved_platform_skip_identities(bootstrap, "windows"))
-            self.assertEqual(
-                private + Counter(
-                    MODULE.canonical_vstest_identity(identity)
-                    for identity in MODULE.WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
-                ),
-                MODULE.approved_platform_skip_identities(bootstrap, "non-windows"),
-            )
-            self.assertEqual(
-                Counter(),
-                MODULE.approved_platform_skip_identities(infrastructure, "windows"),
-            )
-        with restored, patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: "configured"}):
-            self.assertEqual(
-                Counter(),
-                MODULE.approved_platform_skip_identities(bootstrap, "windows"),
-            )
+        # A temporary root keeps the held directory of this checkout out of every case.
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             with (
@@ -6405,11 +6388,33 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: ""}),
                 patch.object(MODULE, "ROOT", root),
             ):
-                # Without the held directory the skips stay approved.
+                self.assertEqual(private, MODULE.approved_platform_skip_identities(bootstrap, "windows"))
                 self.assertEqual(
-                    private, MODULE.approved_platform_skip_identities(bootstrap, "windows")
+                    private + Counter(
+                        MODULE.canonical_vstest_identity(identity)
+                        for identity in MODULE.WINDOWS_PROCESSOR_BOOTSTRAP_SKIPS
+                    ),
+                    MODULE.approved_platform_skip_identities(bootstrap, "non-windows"),
                 )
-                # With it, the tests run and no skip is approved.
+                self.assertEqual(
+                    Counter(),
+                    MODULE.approved_platform_skip_identities(infrastructure, "windows"),
+                )
+            with (
+                restored,
+                patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: "configured"}),
+                patch.object(MODULE, "ROOT", root),
+            ):
+                self.assertEqual(
+                    Counter(),
+                    MODULE.approved_platform_skip_identities(bootstrap, "windows"),
+                )
+            with (
+                restored,
+                patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: ""}),
+                patch.object(MODULE, "ROOT", root),
+            ):
+                # With the held directory, the tests run and no skip is approved.
                 (root / MODULE.HELD_REFERENCE_DIRECTORY).mkdir(parents=True)
                 self.assertEqual(
                     Counter(),

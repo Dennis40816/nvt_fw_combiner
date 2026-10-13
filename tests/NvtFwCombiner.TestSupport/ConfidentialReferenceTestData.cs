@@ -49,18 +49,33 @@ public static class ConfidentialReferenceTestData
         return ReadVerifiedHeld(sha256, heldDirectory).Bytes;
     }
 
+    /// <summary>Resolves from explicit sources: the held directory first, the private inventory second.</summary>
+    public static byte[] ReadVerifiedBytes(string sha256, string heldDirectory, string? privateAssetsRoot)
+    {
+        return ResolveFromSources(sha256, heldDirectory, privateAssetsRoot).Bytes;
+    }
+
     private static (string Path, byte[] Bytes) ResolveConfigured(string sha256)
     {
-        string heldDirectory = RepositoryPaths.FromRepositoryRoot("docs", "references", "ci-held");
-        if (Directory.Exists(heldDirectory) && File.Exists(HeldPath(sha256, heldDirectory)))
+        return ResolveFromSources(
+            sha256, RepositoryPaths.FromRepositoryRoot("docs", "references", "ci-held"), PrivateAssetsRoot);
+    }
+
+    private static (string Path, byte[] Bytes) ResolveFromSources(
+        string sha256, string heldDirectory, string? privateAssetsRoot)
+    {
+        if (File.Exists(HeldPath(sha256, heldDirectory)))
         {
             return ReadVerifiedHeld(sha256, heldDirectory);
         }
 
-        string root = PrivateAssetsRoot
-            ?? throw new InvalidOperationException(
+        if (string.IsNullOrWhiteSpace(privateAssetsRoot))
+        {
+            throw new InvalidOperationException(
                 $"The reference is not in the held directory and {PrivateAssetsEnvironmentVariable} is not set.");
-        return ReadVerifiedReference(sha256, root);
+        }
+
+        return ReadVerifiedReference(sha256, privateAssetsRoot);
     }
 
     private static string HeldPath(string sha256, string heldDirectory)
@@ -72,6 +87,11 @@ public static class ConfidentialReferenceTestData
     private static (string Path, byte[] Bytes) ReadVerifiedHeld(string sha256, string heldDirectory)
     {
         string path = HeldPath(sha256, heldDirectory);
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException("The held reference file does not exist.");
+        }
+
         if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
         {
             throw new InvalidDataException("Held reference path is a reparse point.");
