@@ -1,10 +1,29 @@
 using NvtFwCombiner.Application.Composition;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests;
 
 public sealed partial class CompositionRunServiceTests
 {
+    private static CompositionRunRequest WithPolicyDisclosure(
+        CompositionRunRequest request, CapabilityEvidenceStatus evidence)
+    {
+        var identity = new CapabilityRouteIdentity("NT-SYNTHETIC", ExperienceIds.StandardMerge,
+            "selector-free", request.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+        var token = new ResolutionToken("synthetic-disclosure-publication");
+        string fingerprint = new('a', 64);
+        var capability = new ResolvedCapability(identity, fingerprint, request.CompiledComposition,
+            Decision("authoring", CapabilityAuthoringAvailability.Available),
+            Decision("publication", CapabilityPublicationStatus.Candidate),
+            Decision("evidence", evidence), MetadataPlanDefinition.Empty.Resolve(token), token);
+        return new CompositionRunRequest(request.RunId, capability.CompiledComposition,
+            request.ArtifactBindings.Values, request.OutputFileName, resolvedCapability: capability);
+
+        PinnedCapabilityDecision<TValue> Decision<TValue>(string id, TValue value)
+            where TValue : struct, Enum => new(id, identity.RouteId, fingerprint, value, "synthetic-policy");
+    }
+
     private static CompositionRunRequest CreateRequest(
         IReadOnlyList<InputArtifactBinding>? bindings = null,
         string? outputFileName = null)

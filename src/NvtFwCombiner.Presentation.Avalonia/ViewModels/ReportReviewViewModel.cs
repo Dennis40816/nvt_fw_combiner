@@ -5,6 +5,11 @@ internal sealed partial class ReportReviewViewModel
 {
     private readonly bool? outputCommitted;
     private readonly OutputDifferenceProjection _outputDifferenceProjection;
+    private readonly ShellTextResources _text;
+
+    public CapabilityRunSummary? Capability { get; }
+    public string VerificationStatusLabel => _text.GetReportVerificationLabel(Capability);
+    public string VerificationSummary => $"{_text.VerificationStatusFieldLabel}: {VerificationStatusLabel}";
 
     internal ReportReviewViewModel(
         bool isEmpty,
@@ -33,8 +38,11 @@ internal sealed partial class ReportReviewViewModel
         OutputDifferenceProjection outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language = ShellLanguage.English,
-        bool isOutcomeUnknown = false)
+        bool isOutcomeUnknown = false,
+        CapabilityRunSummary? capability = null)
     {
+        _text = ShellTextResources.For(language);
+        Capability = capability;
         IsEmpty = isEmpty;
         IsOutcomeUnknown = isOutcomeUnknown;
         SourceName = sourceName;

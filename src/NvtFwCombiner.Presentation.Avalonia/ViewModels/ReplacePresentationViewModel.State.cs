@@ -205,8 +205,19 @@ internal sealed partial class ReplacePresentationViewModel
         HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedReplaceMode)
             ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
                 ? AbCtrlRamReadiness
-                : _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
+                : _compositionServices.Capabilities.GetWorkflowReadiness(
+                    SelectedIc, SelectedReplaceMode, SelectedReplaceMode switch
+                    {
+                        CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot?.SelectedRouteId,
+                        GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot?.SelectedRouteId,
+                        _ => null,
+                    })
             : null;
+
+    public bool IsSelectedReplaceUnverified => SelectedReplaceWorkflowReadiness is
+        { HasExactRoute: true, IsUnverified: true };
+
+    public string OutputVerificationNotice => Text.GetOutputVerificationNotice(SelectedReplaceWorkflowReadiness);
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>
@@ -411,6 +422,8 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
+        OnPropertyChanged(nameof(IsSelectedReplaceUnverified));
+        OnPropertyChanged(nameof(OutputVerificationNotice));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
         OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));
