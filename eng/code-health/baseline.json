@@ -7735,6 +7735,41 @@
       ],
       "issue": "health-refactor/2026-10-31",
       "contentHash": "cd8220bcc5d6fcd3cddc8895fd845e751063d5052236c9c7dbf71bbe0cede8ea"
+    },
+    {
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "kind": "type",
+      "symbol": "NvtFwCombiner.Presentation.Avalonia.Views.HexViewportControl",
+      "locations": [
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.HistoryFeedback.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.Interaction.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.RenderingSupport.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.StructuralBlocks.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/HexViewportControl.Theme.cs"
+      ],
+      "contentHash": "ac3a3a0d9419847396af03aa951691d9aa27fd53e314166f37599e5a48079739",
+      "ceilings": {
+        "viewTypeLines": 1266
+      },
+      "owner": "NFC",
+      "issue": "health-refactor/adopted"
+    },
+    {
+      "project": "NvtFwCombiner.Presentation.Avalonia",
+      "kind": "type",
+      "symbol": "NvtFwCombiner.Presentation.Avalonia.Views.MemoryCoverageBar",
+      "locations": [
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Legend.cs",
+        "src/NvtFwCombiner.Presentation.Avalonia/Views/MemoryCoverageBar.Markers.cs"
+      ],
+      "contentHash": "c1e57799c5d0800424de599c7abbfdb4556273dcbf63ca39e2c430830e346237",
+      "ceilings": {
+        "viewTypeLines": 1105
+      },
+      "owner": "NFC",
+      "issue": "health-refactor/adopted"
     }
   ],
   "findings": [
@@ -11256,28 +11291,6 @@
       "symbol": "Result",
       "syntaxHash": "14c47db0c298b40f8d9e50fddd4b400bf488aae351634d76107bdc9f872188bb",
       "path": "tests/NvtFwCombiner.ProfileContract.Tests/FirmwareFamilyResolutionNormalizerTests.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.TestSupport.FakeClock",
-      "project": "NvtFwCombiner.TestSupport",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "fakeClockDuplicates",
-      "symbol": "NvtFwCombiner.TestSupport.FakeClock",
-      "syntaxHash": "a6696e5147e7f3073cc997f6ffa925adb14d91b0e9f17a8ee4f593b2aab8dcd9",
-      "path": "tests/NvtFwCombiner.TestSupport/FakeClock.cs",
-      "count": 1
-    },
-    {
-      "member": "NvtFwCombiner.TestSupport.TempWorkspace",
-      "project": "NvtFwCombiner.TestSupport",
-      "owner": "NFC",
-      "removeBy": "2026-10-31",
-      "rule": "workspaceDuplicates",
-      "symbol": "NvtFwCombiner.TestSupport.TempWorkspace",
-      "syntaxHash": "eb201f20071c808aa0252d94948ccf4a4e9d40c328a6279cfcf0a71e93abd3d9",
-      "path": "tests/NvtFwCombiner.TestSupport/TempWorkspace.cs",
       "count": 1
     },
     {
