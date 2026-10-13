@@ -30,7 +30,7 @@
     ],
     "evidenceRefs": [
       "owner-confirmed NT51950/NT51951 shared TP geometry for issue #188",
-      "docs/references/ic-flashmap/mmap/51950_2.0.0_mmap.h"
+      "mmap-nt51950-fw2.0.0"
     ]
   },
   "promotion": "fact-scoped profile geometry evidence only; not a direct NT51950 product golden"

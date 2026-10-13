@@ -720,7 +720,7 @@ public sealed class Nt51950Nt51951DiffDlmMaskCascade2GoldenTests
         JsonElement goldenCase = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", CaseId);
         OwnerArtifact[] artifacts =
         [
-            .. goldenCase.GetProperty("artifacts").EnumerateArray().Select(ReadArtifact),
+            .. CanonicalGoldenTestData.ReadableArtifacts(goldenCase, CaseId).Select(ReadArtifact),
         ];
         OwnerArtifact Require(string artifactId)
         {

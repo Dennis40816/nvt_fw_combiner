@@ -1,4 +1,14 @@
 {
   "schemaVersion": 1,
-  "entries": []
+  "entries": [
+    {
+      "path": "tests/NvtFwCombiner.TestSupport/ConfidentialReferenceTestData.cs",
+      "member": "*",
+      "symbol": "M:System.Environment.GetEnvironmentVariable(System.String)",
+      "owner": "NFC firmware-owner",
+      "reason": "NVT_PRIVATE_ASSETS names the root of the private reference inventory. This file is the only .NET reader of it, through one private property. It is the second source after the held directory that CI assembles from the private test-data repository. When neither exists, the private-reference tests skip (the skip approved with the confidential reference move).",
+      "kind": "permanent-seam",
+      "review": "Owner review of Dennis40816/nvt_fw_combiner#635 (confidential reference move on the 1.3.x trunk)."
+    }
+  ]
 }

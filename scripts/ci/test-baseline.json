@@ -24,12 +24,12 @@
   "pin": {
     "assetsRepo": "Dennis40816/nvt-testdata",
     "assetsPath": "nfc",
-    "assetsCommit": "5c1e0eb687e9dd0fb63578378c1f7625d5dc5c22",
+    "assetsCommit": "9f15c7caa4eb3e4b465fbfd4c6ca9a4d4c26d408",
     "paths": [
       "testdata/golden",
       "docs/references"
     ],
-    "fileCount": 359,
-    "treeSha256": "f754e838a2200442a67bae2f2eb204d11c60b5f453071ed908fdd59eaef70fa5"
+    "fileCount": 335,
+    "treeSha256": "cc9cced7557f76c020454d9ae9ba68aa65550b4cd89f0bb15cab1980271a7e7d"
   }
 }
