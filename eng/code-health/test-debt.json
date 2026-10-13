@@ -1309,16 +1309,6 @@
       "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs",
       "count": 1,
       "owner": "NFC",
-      "syntaxHash": "a135d619f40adbc0e59eed3be5df64e0b5c510df4807dd6ab9ae007f89e226b6",
-      "member": "NvtFwCombiner.Bootstrap.Tests.Nt51932CtrlRamFw200EvidenceTests.DiffNfAndDirectCompositeRemainSeparateUnprovenEvidence()",
-      "rule": "sourceTextReadsInTests"
-    },
-    {
-      "symbol": "ReadAllText",
-      "project": "NvtFwCombiner.Bootstrap.Tests",
-      "path": "tests/NvtFwCombiner.Bootstrap.Tests/Nt51932CtrlRamFw200EvidenceTests.cs",
-      "count": 1,
-      "owner": "NFC",
       "syntaxHash": "ac506391e1e4c34668e27e447ee55fac9411f2ea7bec2a0dc4fa6522972e851f",
       "member": "NvtFwCombiner.Bootstrap.Tests.Nt51932CtrlRamFw200EvidenceTests.DiffNfAndDirectCompositeRemainSeparateUnprovenEvidence()",
       "rule": "sourceTextReadsInTests"
