@@ -263,3 +263,103 @@ protected checks and final owner R3 approval of the exact source are required
 before support promotion, integration or release. NT51923 and NT51926
 regression evidence must remain valid without re-pinning their definition
 identities. Missing owner evidence is unexecuted, never a passing Golden case.
+
+## Amendment (2026-10-14): unverified candidate execution
+
+Status: Proposed, together with the rest of this ADR. No decision here is in
+effect until the owner accepts it. This amendment changes no firmware byte, no
+region and no existing IC.
+
+Owner direction (relayed 2026-10-14 01:20): build NT51925 as far as the declared
+layout facts allow, and do not wait for independent Golden output. Correct it
+later if a fact turns out wrong. Tests and the remaining documents follow the
+construction.
+
+Facts that exist today:
+
+- Four layouts are declared (Common FW 1.x and 2.0.0, Single and Cascade). The
+  owner TP overview, the postbuild flow and the declared regions agree on all four.
+- 1.x Cascade and 2.0.0 Cascade agree with real images (owner-reported). The two
+  Single layouts have no real image.
+- No layout has an independent expected output (Golden).
+
+This amendment replaces the sentence of the "Proposed restoration boundary"
+that says no candidate execution exception is added, if the owner accepts it.
+
+### Decision proposed here
+
+1. **Unverified candidate state.** The nine NT51925 routes may become authorable
+   and executable with authoring `available`, publication `candidate` and
+   evidence `contract-only`. The last two values do not change. The three values
+   together mean: built from declared facts, with no independent Golden result.
+2. **Promotion stage.** The five NT51925 profiles move from `compilable` to
+   `executable-candidate`. The three blockers (official map and postbuild,
+   independent Golden, owner R3 approval) stay in the profiles. A profile with
+   blockers cannot reach `supported`.
+3. **Admission.** The eight CtrlRAM Replace routes use the existing
+   runtime-reference candidate exception. They need no new path. The Standard
+   Merge route needs one bounded admission in the existing admission owner. The
+   admission keys on typed profile facts (workflow, promotion stage, compiler
+   context), not on an IC name. No other resolved-map profile becomes admitted.
+4. **Label.** Every result from these routes says that it is unverified. The UI
+   shows the word. The run report records route, capability fingerprint,
+   publication, evidence and the verification status. The output name carries a
+   marker that the profile declares. The existing disclosure, report and naming
+   owners carry the label. No second label path is added.
+5. **Build.** Build does not read publication or evidence. A build of the
+   application that includes these routes therefore opens Build for them, with
+   the label. A release may close Build for candidate routes with one explicit
+   gate in the shared readiness owner. Adding that gate is a later owner decision.
+6. **What does not change.**
+   - The support matrix shows NT51925 as candidate. No support, approval or
+     Golden claim is made.
+   - The gates in "Required owner evidence and gates" apply unchanged to any
+     promotion to `supported`, to integration and to release.
+   - NT51920, NT51930 and NT51931 stay retired.
+   - No other IC changes a byte, a fingerprint or a name.
+
+### Values that stay unverified
+
+Each value below rests on the owner workbook or the postbuild flow alone, or has
+no source. The pull request that opens the routes lists the same items.
+
+- The 1.x Single `.data` position. The layout leaves it unmapped and
+  write-forbidden, and Replace carries it over from the reference.
+- The omission of DIFF in 2.0.0 Single. Only the postbuild flow says it.
+- Whether a two-chip 2.0.0 Cascade uses all declared DIFF bytes.
+- The 11-byte range `[0x2EA80, 0x2EA8B)` of the 2.0.0 output, which an owner
+  script writes. Standard Merge copies it as is.
+- The 2.0.0 gaps `[0x2E660, 0x2E980)` and `[0x2EA8B, 0x2F000)`. They hold no
+  declared item and are blank in the real images.
+- The Customer Info range, which is blank in the real images.
+- Every Single layout, which has no real image.
+- Independent expected output for every layout.
+
+### Open decisions for the owner
+
+Each item has a default. Work continues on the default until the owner decides.
+
+1. **Version-conditioned image map for Standard Merge.** The 2026-10-09 decision
+   says to add it before the Standard Merge candidate can run. The declared copy
+   plan is the same for both Common FW lines: TP `[0, 0x30000)` and DP
+   `[0x3E000, 0x40000)`. One map expresses it. Default: follow the 2026-10-09
+   decision and add the version condition. The owner may instead amend that
+   decision and require the version condition at the first Standard Merge
+   difference between the two lines.
+2. **192K TP-work routes.** Default: their output is the TP-work image only.
+   Extending it to a full 256K image adds an undeclared behavior.
+3. **File name override.** Default: an override cannot remove the unverified
+   marker, and the run report carries the label.
+4. **Build for release builds.** Default: Build is open and labelled unverified.
+   The owner may require the explicit gate in item 5 above.
+5. **Wording.** The owner approves the label text and the marker text when the
+   user interface and naming pull requests are reviewed.
+
+### Verification for this amendment
+
+- Tests that pin the blocked state change in the same pull requests as the
+  matching code. They then pin the unverified candidate state.
+- The identity of every other IC (profile, bundle, fingerprint, policy row, and
+  output name) is unchanged and tested as unchanged.
+- A write-range audit of the processor staging copy is required before any
+  promotion, as in "Required owner evidence and gates".
