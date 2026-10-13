@@ -16,8 +16,8 @@ General Merge, General Replace or DP Replace registration.
 
 | NT51925 prepared workflow | Declared geometry / applicability | Execution and evidence gate |
 | --- | --- | --- |
-| Standard Merge | Isolated provisional TP `[0,0x3C000)`, forbidden zero gap `[0x3C000,0x3E000)`, DP `[0x3E000,0x40000)` in `flash`; no topology selector | Blocked before authoring snapshot, execution and Build. At least one independent single-chip direct Golden is required. |
-| CtrlRAM Replace | Isolated provisional `[1.0.0,2.0.0)` / `[2.0.0,+infinity)`, Single / generic Cascade, `0x3C000` TP-work / `0x40000` full Flash | Blocked before authoring snapshot, execution and Build. Complete independent Golden for each FW/topology, exact write-range audit and owner R3 approval remain pending. |
+| Standard Merge | TP `[0,0x30000)`, forbidden gap `[0x30000,0x3D000)`, Customer Info `[0x3D000,0x3E000)`, DP `[0x3E000,0x40000)` in `flash` (owner TP overview, 2026-10-10); no topology selector | Blocked before authoring snapshot, execution and Build. At least one independent single-chip direct Golden is required. |
+| CtrlRAM Replace | Isolated provisional `[1.0.0,2.0.0)` / `[2.0.0,+infinity)`, Single / generic Cascade, `0x30000` TP-work / `0x40000` full Flash | Blocked before authoring snapshot, execution and Build. Complete independent Golden for each FW/topology, exact write-range audit and owner R3 approval remain pending. |
 
 Official NT51925 map/mmap, postbuild BATs, actual FW/topologies and any
 differences from NT51923/NT51926 must be supplied before support promotion.
@@ -48,7 +48,8 @@ Owner scope decisions (relayed 2026-10-08):
 - First scope is Standard Merge only. The eight CtrlRAM Replace routes above
   are deferred until the owner supplies Golden cases, expected in the week of
   2026-10-12. The declarations stay in place, and every other gate in ADR 0084
-  still applies.
+  still applies. The 2026-10-14 amendment of ADR 0084 proposes to supersede
+  this deferral. It is not accepted.
 - The owner plans to support different layouts by Common FW version, with a
   first boundary at `2.0.0`. No support is claimed. The owner has not yet given
   production values for these layouts. No code selects a TP map by Common FW
