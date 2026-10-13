@@ -92,6 +92,56 @@ public sealed class ConfidentialReferenceTestDataTests
             ConfidentialReferenceTestData.ReadVerifiedBytes(digest, workspace.Root));
     }
 
+    /// <summary>A held reference is selected by its SHA-256 file name and returns verified bytes.</summary>
+    [Fact]
+    public void HeldDirectoryReturnsVerifiedBytes()
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-match");
+        byte[] expected = Encoding.UTF8.GetBytes("synthetic held reference");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(expected));
+        _ = workspace.Write($"docs/references/ci-held/{digest}", expected);
+
+        Assert.Equal(expected, ConfidentialReferenceTestData.ReadVerifiedHeldBytes(
+            digest.ToUpperInvariant(), Path.Combine(workspace.Root, "docs", "references", "ci-held")));
+    }
+
+    /// <summary>Changed held bytes fail the digest check, even when the file name matches.</summary>
+    [Fact]
+    public void HeldDirectoryRejectsDriftedBytes()
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-drift");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("synthetic held reference")));
+        _ = workspace.Write($"docs/references/ci-held/{digest}", Encoding.UTF8.GetBytes("drifted"));
+
+        _ = Assert.Throws<InvalidDataException>(() => ConfidentialReferenceTestData.ReadVerifiedHeldBytes(
+            digest, Path.Combine(workspace.Root, "docs", "references", "ci-held")));
+    }
+
+    /// <summary>A held file name that is not a SHA-256 cannot select a path.</summary>
+    [Theory]
+    [InlineData("../outside")]
+    [InlineData("not-a-digest")]
+    [InlineData("")]
+    public void HeldDirectoryRejectsNonDigestNames(string name)
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-name");
+
+        _ = Assert.ThrowsAny<ArgumentException>(() => ConfidentialReferenceTestData.ReadVerifiedHeldBytes(
+            name, Path.Combine(workspace.Root, "docs", "references", "ci-held")));
+    }
+
+    /// <summary>A missing held file is an error, not an empty result.</summary>
+    [Fact]
+    public void HeldDirectoryMissingFileThrows()
+    {
+        using var workspace = TempWorkspace.Create("confidential-reference-held-missing");
+        string digest = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes("absent")));
+        _ = workspace.Write("docs/references/ci-held/placeholder", Encoding.UTF8.GetBytes("other"));
+
+        _ = Assert.ThrowsAny<IOException>(() => ConfidentialReferenceTestData.ReadVerifiedHeldBytes(
+            digest, Path.Combine(workspace.Root, "docs", "references", "ci-held")));
+    }
+
     private static (string CaseId, JsonElement Artifact) PrivateHeldArtifact()
     {
         using var inventory = JsonDocument.Parse(GoldenFileIo.ReadAllText(Path.Combine(

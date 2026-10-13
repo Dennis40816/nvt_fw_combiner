@@ -6398,6 +6398,23 @@ class VerifyOrchestrationTests(unittest.TestCase):
                 Counter(),
                 MODULE.approved_platform_skip_identities(bootstrap, "windows"),
             )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with (
+                restored,
+                patch.dict(os.environ, {MODULE.PRIVATE_ASSETS_ENVIRONMENT_VARIABLE: ""}),
+                patch.object(MODULE, "ROOT", root),
+            ):
+                # Without the held directory the skips stay approved.
+                self.assertEqual(
+                    private, MODULE.approved_platform_skip_identities(bootstrap, "windows")
+                )
+                # With it, the tests run and no skip is approved.
+                (root / MODULE.HELD_REFERENCE_DIRECTORY).mkdir(parents=True)
+                self.assertEqual(
+                    Counter(),
+                    MODULE.approved_platform_skip_identities(bootstrap, "windows"),
+                )
 
     def test_compiled_inventory_admits_only_exact_producer_platform_skips(self) -> None:
         project = MODULE.CiDotnetProject(

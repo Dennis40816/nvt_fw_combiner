@@ -66,3 +66,5 @@ outputs/
 
 # Pinned Core checkout that CI passes to repo-health.ps1 as -CoreRoot
 /.core/
+# Held references that CI assembles from the private test-data repository (never commit)
+/docs/references/ci-held/
