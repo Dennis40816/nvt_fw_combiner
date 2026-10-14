@@ -201,19 +201,7 @@ public sealed class CompositionRunRequest
 
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
-        if (compiledComposition.IsV2BankReplaceCandidate)
-        {
-            return;
-        }
-        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable)
-        {
-            return;
-        }
-
-        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
-            compiledComposition.V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
-            (compiledComposition.V2Details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext ||
-             compiledComposition.IsV2AbFunctionOpenCandidate))
+        if (CapabilityPublicationCoherence.IsExecutionAdmitted(compiledComposition))
         {
             return;
         }
