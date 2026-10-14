@@ -39,7 +39,8 @@ internal static class CompiledOutputNameResolver
                         inputSummaries,
                         startedAtUtc,
                         request.OutputNamingAdmission,
-                        ctrlRamVersionEdit),
+                        ctrlRamVersionEdit,
+                        UnverifiedCandidateOutputName.Applies(request.CompiledComposition)),
             CompiledOutputNameRendererKind.DeferredTokenTemplate =>
                 throw new InvalidOperationException(
                     "A deferred output-name template cannot execute."),
@@ -59,7 +60,8 @@ internal static class CompiledOutputNameResolver
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         DateTimeOffset startedAtUtc,
         OutputNamingAdmissionIdentity? admission = null,
-        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null)
+        CtrlRamFirmwareVersionDraftState? ctrlRamVersionEdit = null,
+        bool markUnverified = false)
     {
         ArgumentNullException.ThrowIfNull(output);
         ArgumentException.ThrowIfNullOrWhiteSpace(requestedFileName);
@@ -83,6 +85,19 @@ internal static class CompiledOutputNameResolver
                     new CompositionIssue(
                         "output-naming.inspection-stale",
                         "The accepted metadata inspection does not match the immutable execution input; no inspected value was used for output naming.",
+                        severity: CompositionIssueSeverity.Error),
+                ]);
+        }
+
+        if (markUnverified && isExplicitOverride)
+        {
+            return new OutputNameResolution(
+                requestedFileName,
+                Summary: null,
+                [
+                    new CompositionIssue(
+                        "output-naming.unverified-override-rejected",
+                        "An unverified candidate output cannot use a custom file name; the unverified marker is part of the output name.",
                         severity: CompositionIssueSeverity.Error),
                 ]);
         }
@@ -140,6 +155,18 @@ internal static class CompiledOutputNameResolver
                 output.RendererKind,
                 "Unknown compiled output-name renderer."),
         };
+        if (markUnverified)
+        {
+            automaticFileName = UnverifiedCandidateOutputName.Apply(automaticFileName);
+            tokens.Add(new OutputNamingTokenSummary(
+                "verification",
+                "unverified",
+                IsKnown: true,
+                null,
+                null,
+                "compiled-promotion-stage"));
+        }
+
         CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(
             automaticFileName,
             nameof(automaticFileName));

@@ -99,6 +99,25 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
     }
 
     /// <inheritdoc />
+    public CapabilityWorkflowReadiness GetWorkflowReadiness(
+        string icId,
+        string workflowId,
+        string? routeId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        return CapabilityWorkflowReadinessProjector.Project(
+            _supportMatrix.Query().Matrix,
+            normalizedIcId,
+            workflowId,
+            _catalog.HasAuthorableCapability(normalizedIcId, workflowId),
+            "No owner-approved executable and safety contract is registered for this IC and workflow.",
+            "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.",
+            routeId);
+    }
+
+    /// <inheritdoc />
     public bool IsReplaceWorkflowAvailable(string icId, string replaceMode)
     {
         return GetReplaceWorkflowReadiness(icId, replaceMode).IsAvailable;

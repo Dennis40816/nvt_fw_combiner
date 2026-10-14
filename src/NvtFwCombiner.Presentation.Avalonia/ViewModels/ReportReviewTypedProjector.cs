@@ -74,6 +74,7 @@ internal static class ReportReviewTypedProjector
             mutations,
             outputDifferences,
             issues,
-            language);
+            language,
+            capability: report.Capability);
     }
 }

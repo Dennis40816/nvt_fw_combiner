@@ -59,6 +59,12 @@ public interface ICompositionCapabilityExperience
         string icId,
         string replaceMode);
 
+    /// <summary>Gets workflow evidence, scoped to the selected exact route when known.</summary>
+    CapabilityWorkflowReadiness GetWorkflowReadiness(
+        string icId,
+        string workflowId,
+        string? routeId = null);
+
     /// <summary>Returns whether the selected Replace workflow is authorable.</summary>
     bool IsReplaceWorkflowAvailable(string icId, string replaceMode);
 
