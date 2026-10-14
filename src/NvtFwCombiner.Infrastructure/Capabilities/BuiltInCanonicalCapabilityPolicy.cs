@@ -10,7 +10,7 @@ internal static class BuiltInCanonicalCapabilityPolicy
     internal const string RelativePath =
         "docs/contracts/canonical-capability-policy-v1.json";
     internal const string ExpectedSha256 =
-        "08821c0cc9fc5bcb89944af64d6b1a95dbb4d6434943daca0d5b45aa86a109aa";
+        "e575db20ccdc6a79e371e0d7082f568aa31c1cba8c126ef29ed6b5b371136786";
 
     internal static CanonicalCapabilityPolicySnapshot Load()
     {

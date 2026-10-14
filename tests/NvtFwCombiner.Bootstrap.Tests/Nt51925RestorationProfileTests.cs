@@ -154,10 +154,10 @@ public sealed class Nt51925RestorationProfileTests
         var admitted = new CompositionRunRequest("prepared-runtime", prepared,
             [new InputArtifactBinding("reference-base", "reference-base", "reference", "reference.bin", CompiledInputArtifactClass.ReferenceImage),
              new InputArtifactBinding("vn-source", "vn-source", "replacement", "replacement.bin", CompiledInputArtifactClass.CtrlRamReplacement)],
-            "nt51925-ctrlram-replace-unverified.bin", new IcNumberSelection(chipCount == 1 ? IcNumberInputMode.SingleSelector : IcNumberInputMode.CascadeSelector,
+            "nt51925-ctrlram-replace_UNVERIFIED.bin", new IcNumberSelection(chipCount == 1 ? IcNumberInputMode.SingleSelector : IcNumberInputMode.CascadeSelector,
                 [chipCount == 1 ? IcNumberSelectionTokens.SingleChip : IcNumberSelectionTokens.Cascade]), outputFileNameIsOverride: false);
         Assert.Same(prepared, admitted.CompiledComposition);
-        Assert.Equal("nt51925-ctrlram-replace-unverified.bin", prepared.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.Equal("nt51925-ctrlram-replace_UNVERIFIED.bin", prepared.V2Details.OutputNamingRequirement.FileNameTemplate);
         Assert.False(prepared.V2Details.OutputNamingRequirement.AllowOverride);
 
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);

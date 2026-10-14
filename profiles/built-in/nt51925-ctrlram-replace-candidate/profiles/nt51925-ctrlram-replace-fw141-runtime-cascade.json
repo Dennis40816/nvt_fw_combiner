@@ -364,7 +364,7 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51925-ctrlram-replace-unverified.bin",
+    "fileNameTemplate": "nt51925-ctrlram-replace_UNVERIFIED.bin",
     "allowOverride": false,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
