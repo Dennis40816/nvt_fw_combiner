@@ -27,11 +27,62 @@ the build-selected strict successor
 It retains the common firmware-family schema id and TP Header constraints,
 uses schema version `1.2`, and is selected by its exact trusted content hash.
 
+Bundles that require Common FW version-conditioned image maps select
+[`firmware-family-v1.3-common-fw-version.schema.json`](firmware-family-v1.3-common-fw-version.schema.json).
+This successor derives from the 1.2 TP Header subjects file, keeps schema version
+`1.1` and the same schema id, and adds only the optional map applicability field
+`commonFirmwareVersionFrom`. Existing schema files and bundles do not opt in
+implicitly.
+
 Migration status: the strict relations schema and TP Header successors implement
 ADR 0041 with exactly two serialized relationship forms:
 `perfect-like-family` and `shared-fact-relationship`. The former dedicated
 `initial-code-shared-family` and `tp-shared-family` discriminators are no longer
 admitted. ADR 0042/#221 excludes retired ICs from this migration.
+
+## Common FW image-map intervals
+
+`commonFirmwareVersionFrom` is a canonical `MAJOR.MINOR.PATCH` string with three
+unsigned byte components. Within each `(member, mode, topology requirement,
+capacity)` group, version slots start at `1.0.0`, are unique and occur in strictly
+increasing declaration order. An omitted field contributes the first `1.0.0`
+slot when another map in the group declares a version. Unconditioned groups keep
+their existing resolution behavior.
+
+The Domain family resolver reads the three Common FW fields of its canonical
+`firmware-config-general-parameters` binding through the declared locator. It
+uses the shared `CommonFwVersionIntervalSelector`: select the greatest slot not
+above the decoded version. A multi-slot group requires readable FWConfig; a
+readable version below `1.0.0` is rejected. A sole slot retains the existing
+single-entry interval rule. Missing or unreadable versions in multi-slot groups
+return `CommonFirmwareVersionRequired`; below-minimum versions return
+`CommonFirmwareVersionBelowMinimum`. The compiler preserves these as typed
+`profile.v2.compile.common-fw-version-required` and
+`profile.v2.compile.common-fw-version-below-minimum` issues.
+
+Selection uses the complete family group before checking the profile's map
+subset or resolving other required metadata. Omitting an upper slot from a
+profile cannot extend a lower slot. A selected map whose remaining metadata
+fails cannot fall back to a lower interval.
+
+The optional lower-bound field is fingerprinted only when present. A version
+used solely for selection contributes a typed decoded value to the resolved-map
+fingerprint, without the TP SHA. Artifacts actually required by other resolution
+metadata retain their existing identity semantics. Input inspection still owns
+complete artifact stamps separately from map selection.
+
+This successor does not admit fact aliases in version-conditioned families or
+version-conditioned source-envelope execution; both combinations fail closed
+until their contracts are explicitly defined. Report-only exact-map metadata
+may use the existing fixed-layout declaration seam. It does not select an
+execution interval or create a prepared compilation.
+
+For NT51925 Standard Merge, the TP input's existing FWConfig locator is the
+version source. `nt51925-standard-merge-256k` starts at `1.0.0` and
+`nt51925-standard-merge-fw2-256k` starts at `2.0.0`. Both reference the same
+region and metadata sets. They retain TP `[0, 0x30000)` and DP
+`[0x3E000, 0x40000)` copy operations, initialization, validation and naming.
+Authoring stays unavailable. See [ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 
 ## Ownership
 

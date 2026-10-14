@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Firmware;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
@@ -82,8 +83,8 @@ internal static class BuiltInPostbuildProfileCatalog
     {
         IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = GetProfiles(icId);
         CommonFwVersionIntervalSelector.SelectionResult result = CommonFwVersionIntervalSelector.Select(
-            profiles, static profile => profile.EffectiveCommonFwVersion, commonFwVersion,
-            out int index, out LegacyCombinerCommonFwVersion version);
+            profiles, static profile => profile.EffectiveCommonFwVersion.CanonicalVersion, commonFwVersion,
+            out int index, out CommonFirmwareVersion version);
         postbuildProfile = index >= 0 ? profiles[index] : null;
         issue = result switch
         {

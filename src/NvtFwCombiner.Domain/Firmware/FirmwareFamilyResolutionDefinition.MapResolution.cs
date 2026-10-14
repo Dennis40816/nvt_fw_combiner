@@ -65,21 +65,29 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         return ResolveMapCore(
             templateInputs,
             new HashSet<string>(StringComparer.Ordinal) { layoutTemplateMapId },
-            requiredMetadataStructureIds);
+            requiredMetadataStructureIds,
+            selectCommonFirmwareVersion: false);
     }
 
     private FirmwareMapResolutionResult ResolveMapCore(
         FirmwareMapResolutionInputs inputs,
         IReadOnlySet<string>? candidateMapIds,
-        IReadOnlySet<string>? requiredMetadataStructureIds)
+        IReadOnlySet<string>? requiredMetadataStructureIds,
+        bool selectCommonFirmwareVersion = true)
     {
         ArgumentNullException.ThrowIfNull(inputs);
+        IReadOnlySet<string> excludedVersionMaps = new HashSet<string>(StringComparer.Ordinal);
+        CommonFirmwareVersion? commonVersion = null;
+        FirmwareMapResolutionRejectionKind? versionFailure = selectCommonFirmwareVersion
+            ? SelectVersionMaps(inputs, out excludedVersionMaps, out commonVersion) : null;
+        if (versionFailure is { } failure) { return FirmwareMapResolutionResult.Rejected(failure); }
         var uniqueCandidates = new List<ResolvedFirmwareImageMap>();
         bool hasPendingCandidate = false;
 
         foreach (FirmwareImageMap map in _imageMaps)
         {
-            if (candidateMapIds is not null && !candidateMapIds.Contains(map.MapId))
+            if (excludedVersionMaps.Contains(map.MapId) ||
+                (candidateMapIds is not null && !candidateMapIds.Contains(map.MapId)))
             {
                 continue;
             }
@@ -88,6 +96,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
                 map,
                 inputs,
                 requiredMetadataStructureIds,
+                commonVersion,
                 out ResolvedFirmwareImageMap? resolvedMap);
             switch (result)
             {
@@ -117,6 +126,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
         FirmwareImageMap map,
         FirmwareMapResolutionInputs inputs,
         IReadOnlySet<string>? requiredMetadataStructureIds,
+        CommonFirmwareVersion? commonVersion,
         out ResolvedFirmwareImageMap? resolvedMap)
     {
         resolvedMap = null;
@@ -203,7 +213,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             inputs,
             map,
             resolvedStructures,
-            predicateOutcomes);
+            predicateOutcomes,
+            commonVersion);
         return FirmwareApplicabilityResult.Match;
     }
 

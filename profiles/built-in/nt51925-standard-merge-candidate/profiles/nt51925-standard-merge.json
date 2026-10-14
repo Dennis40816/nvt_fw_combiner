@@ -46,9 +46,10 @@
   "mapBinding": {
     "familyId": "nt51925-standard-merge",
     "familyVersion": "0.1.0",
-    "familyContentHash": "8ea45c0eb951defaa4d4b4ee211a9d97cc814eeba7d39021cb622201d9d74440",
+    "familyContentHash": "38d251fe817607a421b97e5644c5dbb82a2394988a507d02a2d61463e8fb1067",
     "mapIds": [
-      "nt51925-standard-merge-256k"
+      "nt51925-standard-merge-256k",
+      "nt51925-standard-merge-fw2-256k"
     ],
     "requiredRegionIds": [
       "tp-code",

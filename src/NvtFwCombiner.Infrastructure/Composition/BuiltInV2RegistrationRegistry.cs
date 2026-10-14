@@ -196,11 +196,24 @@ internal sealed class BuiltInV2Registration
     internal IReadOnlyList<string> InputSelectionGroupMemberSlotIds =>
         _bundle.GetInputSelectionGroupMemberSlotIds(ProfileId, ProfileVersion);
 
+    internal CanonicalMapSelectionPrerequisite? MapSelectionPrerequisite
+    {
+        get
+        {
+            string? artifact = GetFirmwareFamily().CommonFirmwareVersionArtifactBindingId;
+            if (artifact is null) { return null; }
+            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
+            return issues.Count == 0 && capacities.Count == 1
+                ? new CanonicalMapSelectionPrerequisite(artifact, capacities[0])
+                : throw new InvalidDataException("Version map selection requires one declared capacity.");
+        }
+    }
+
     internal string? SelectionGroupMapVariantSetId
     {
         get
         {
-            bool hasSelectionGroup = InputSelectionGroupMemberSlotIds.Count != 0;
+            bool hasSelectionGroup = InputSelectionGroupMemberSlotIds.Count != 0 || MapSelectionPrerequisite is not null;
             return hasSelectionGroup == (MapVariantSetId is not null)
                 ? MapVariantSetId
                 : throw new InvalidDataException(
@@ -230,7 +243,7 @@ internal sealed class BuiltInV2Registration
     internal MetadataPlanDefinition CreateExactMapMetadataPlan(string mapId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
-        if (SourceEnvelopeBinding is not null)
+        if (SourceEnvelopeBinding is not null || MapSelectionPrerequisite is not null)
         {
             return _bundle.CreateDeclaredMetadataPlan(
                 ProfileId, ProfileVersion, IcId, WorkflowId, mapId);
@@ -530,10 +543,19 @@ internal sealed class BuiltInV2Registration
 
     internal CapabilityProfileSummary CreateProfileSummary()
     {
-        if (SourceEnvelopeBinding is { } envelope)
+        string? declarationMap = SourceEnvelopeBinding?.LayoutTemplateMapId;
+        if (declarationMap is null && MapSelectionPrerequisite is not null)
         {
-            TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(
-                envelope.LayoutTemplateMapId);
+            IReadOnlyList<FirmwareImageMap> declaredMaps = GetMapVariants(
+                out _, out IReadOnlyList<CompositionIssue> declaredMapIssues);
+            declarationMap = declaredMapIssues.Count == 0 && declaredMaps.Count != 0
+                ? declaredMaps[0].MapId
+                : throw new InvalidDataException("Version map selection requires declared maps.");
+        }
+
+        if (declarationMap is not null)
+        {
+            TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(declarationMap);
             CompositionProfileDefinition profile = declaration.ProfileEntry.Profile;
             string[] requiredSpaces =
             [

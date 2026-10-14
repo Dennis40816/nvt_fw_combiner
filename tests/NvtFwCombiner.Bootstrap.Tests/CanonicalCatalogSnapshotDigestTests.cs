@@ -33,20 +33,22 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // The 2026-10-14 amendment moves the five NT51925 profiles to the
     // executable-candidate stage; authoring, publication and evidence values
     // stay unchanged and the Standard route publishes execution-admitted=true.
+    // Task 925-F moves only NT51925 Standard to one version-conditioned map set;
+    // all other IC definition identities remain pinned to d554add5e.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "6fdcb127d1d1cdcf113f5f6eec3e82182213f9d2c7640a9914ae9b78b3f26b70";
-    private const int PinnedLength = 538_059;
+        "95eaae249f627d3096e0d0f008e7016ded484bf92ac0f195f495e6c07b644880";
+    private const int PinnedLength = 523_861;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "2fcdd6649b9d63a36815334d93cc217826d1d89e7dd97bc549c4a3faef1ccc77"),
-        ("static-routes", 125_192, "aa8d104feb3419c89a3730235ffcba6119b5141f03af673a776017c6701ed468"),
-        ("dynamic-routes", 275_179, "be11bed16577a47b1c64465f4f5022ff7415c2a7210300765535be9eda7c99e8"),
+        ("catalog", 341, "33777c35815edc81039dd44498d28372955714979e47d6f221879f97949a2802"),
+        ("static-routes", 108_496, "bd79eb2c64579f10aa1c7cbccd519d66151cbcdf0e5ab6f25f72e8727e4daf01"),
+        ("dynamic-routes", 277_676, "7d210c62cb19c158d8e40428b84df3fbbcbb2c5443dbde041bf05ec73a2dddf1"),
         ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
-        ("disclosure", 20_002, "dcd5a7655b7ea02a8ee601093ac02f449a3b7509828ef5dd8f94ae76f7bba8de"),
+        ("disclosure", 20_003, "d950b9463bd0fe11e96a8b2ca4a650448ff9aad0bdaa16beb1a5502c978d35be"),
         ("selector", 10_957, "260184aa3b48b10e6e3bf7883ddab6d7a25a5659930b27fe00a6c77f0a28aafe"),
         ("certification", 24, "eb0edc192f3394a161de752c7d53cef86dd32bf94e352929b9f715db1efd5353"),
     ];

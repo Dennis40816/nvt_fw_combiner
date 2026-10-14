@@ -67,41 +67,30 @@ public sealed class Nt51925RestorationProfileTests
             "NT51926", ExperienceIds.StandardMerge, "selector-free");
 
         Assert.False(prepared.Succeeded);
-        Assert.Equal(CapabilityCatalogIssueCodes.AuthoringUnavailable, prepared.Issue!.Code);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, prepared.Issue!.Code);
         Assert.True(existing.Succeeded);
-        ResolvedCapability declaration = Assert.Single(BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().Capabilities,
+        ResolvedCapabilityRoute declaration = Assert.Single(BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().DynamicRoutes,
             static row => row.Identity.IcId == "NT51925" && row.Identity.WorkflowId == ExperienceIds.StandardMerge);
-        Assert.True(declaration.ExecutionAdmitted);
-        Assert.True(declaration.CompiledComposition.IsV2StandardMergeOpenCandidate);
-        MetadataPlanResolutionResult metadata = BootstrapTestHost.Canonical.Catalog.ResolveUniqueMetadataPlan(
-            "NT51925", ExperienceIds.StandardMerge, "selector-free");
-        Assert.True(metadata.Succeeded);
-        Assert.NotNull(metadata.MetadataPlan);
+        Assert.Equal(CapabilityAuthoringAvailability.Unavailable, declaration.Authoring.Value);
+        CompiledComposition composition = Nt51925VersionSelectionTests.CompileStandard(Nt51925VersionSelectionTests.CreateTp(1, 4, 1));
+        Assert.True(composition.IsV2StandardMergeOpenCandidate);
+        Assert.Equal(2, declaration.CompilationContract.AllowedMapVariantIds.Count);
         Assert.True(existing.Capability!.ExecutionAdmitted);
         Assert.False(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.StandardMerge));
-        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, declaration.CompiledComposition.Eligibility);
-        Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Capability.CompiledComposition.Eligibility);
-        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate,
-            declaration.CompiledComposition.V2Details.Provenance.Promotion.Stage);
-        AssertUnchangedOperationContract(existing.Capability.CompiledComposition.Plan, declaration.CompiledComposition.Plan);
-        Assert.Equal(new ByteRange(0, 0x30000), declaration.CompiledComposition.Plan.OrderedOperations[0].SourceRange);
-        Assert.Equal(new ByteRange(0, 0x30000), declaration.CompiledComposition.Plan.OrderedOperations[0].TargetRange);
-        Assert.Equal(new ByteRange(0x3E000, 0x2000), declaration.CompiledComposition.Plan.OrderedOperations[1].SourceRange);
-        Assert.Equal(new ByteRange(0x3E000, 0x2000), declaration.CompiledComposition.Plan.OrderedOperations[1].TargetRange);
-        Assert.Equal(0x40000, declaration.CompiledComposition.Plan.Initializations.Single().Capacity);
-        Assert.True(CapabilityPublicationCoherence.IsExecutionAdmitted(declaration.CompiledComposition));
+        Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
+        AssertUnchangedOperationContract(existing.Capability.CompiledComposition.Plan, composition.Plan);
+        Assert.True(CapabilityPublicationCoherence.IsExecutionAdmitted(composition));
     }
 
-    /// <summary>The Standard Merge candidate rule admits exactly the NT51925 route and no other published route.</summary>
+    /// <summary>Only the explicitly declared Standard candidate satisfies the unchanged execution rule.</summary>
     [Fact]
     public void StandardMergeOpenCandidateRuleAdmitsOnlyTheNt51925Route()
     {
-        IReadOnlyList<ResolvedCapability> admitted = [.. BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().Capabilities
-            .Where(static row => row.CompiledComposition.IsV2StandardMergeOpenCandidate)];
-
-        ResolvedCapability only = Assert.Single(admitted);
-        Assert.Equal("NT51925", only.Identity.IcId);
-        Assert.Equal(ExperienceIds.StandardMerge, only.Identity.WorkflowId);
+        Assert.DoesNotContain(BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().Capabilities,
+            static row => row.CompiledComposition.IsV2StandardMergeOpenCandidate);
+        Assert.True(Nt51925VersionSelectionTests.CompileStandard(Nt51925VersionSelectionTests.CreateTp(2, 0, 0))
+            .IsV2StandardMergeOpenCandidate);
     }
 
     /// <summary>Each Replace combination admits its candidate plan while authoring stays unavailable and all blockers remain.</summary>

@@ -29,9 +29,9 @@ internal static class FirmwareConfigGeneralParametersContract
     public const string ObservedIcCount = "observed-ic-count";
     public const string OutermostIcMasterEnable = "outermost-ic-master-enable";
     public const string CascadeEnable = "cascade-enable";
-    public const string CommonFirmwareMajorVersion = "common-firmware-major-version";
-    public const string CommonFirmwareMinorVersion = "common-firmware-minor-version";
-    public const string CommonFirmwareAdditionalVersion = "common-firmware-additional-version";
+    public const string CommonFirmwareMajorVersion = CommonFirmwareVersionMetadata.MajorFieldId;
+    public const string CommonFirmwareMinorVersion = CommonFirmwareVersionMetadata.MinorFieldId;
+    public const string CommonFirmwareAdditionalVersion = CommonFirmwareVersionMetadata.AdditionalFieldId;
     public const string Pid = "pid";
 }
 
@@ -98,8 +98,8 @@ public sealed record FirmwareConfigGeneralParametersFacts(
 
     /// <summary>Three-byte common firmware version.</summary>
     public string CommonFirmwareVersion =>
-        FormattableString.Invariant(
-            $"{CommonFirmwareMajorVersion}.{CommonFirmwareMinorVersion}.{CommonFirmwareAdditionalVersion}");
+        new Domain.Firmware.CommonFirmwareVersion(CommonFirmwareMajorVersion,
+            CommonFirmwareMinorVersion, CommonFirmwareAdditionalVersion).ToString();
 }
 
 /// <summary>One report-safe canonical FirmwareConfig inspection diagnostic.</summary>

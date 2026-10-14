@@ -112,6 +112,19 @@ internal sealed partial class StandardMergeAuthoringExperience :
 
         public CompiledAuthoringWorkflowDiscovery Discover(string icId)
         {
+            if (owner._compiler.TryGetPublishedStandardVersionRoute(icId,
+                out ResolvedCapabilityRoute? versionRoute, out CanonicalMapSelectionPrerequisite? prerequisite,
+                out IReadOnlyList<CompositionIssue> versionIssues))
+            {
+                ResolvedCapabilityRoute route = versionRoute ?? throw new InvalidOperationException(
+                    string.Join(" | ", versionIssues.Select(static issue => issue.Message)));
+                CanonicalCapabilityCatalogSnapshot publication = owner._catalog.TryGetCurrentSnapshot() ??
+                    throw new InvalidOperationException("Canonical capability publication is unavailable.");
+                string[] slots = [.. owner.GetInputAddressSpaces(icId)];
+                return new CompiledAuthoringWorkflowDiscovery(null, slots, prerequisite!.SlotId,
+                    publication.ResolveReviewedDiscoveryTransition(route, prerequisite.SlotId),
+                    [.. slots.Select(static slot => new CompiledAuthoringInputBinding(slot, slot))], route);
+            }
             bool sourceEnvelope = owner._compiler.TryGetPublishedStandardSourceEnvelopeRoute(
                 icId, out ResolvedCapabilityRoute? declarationRoute,
                 out IReadOnlyList<CompositionIssue> declarationIssues);

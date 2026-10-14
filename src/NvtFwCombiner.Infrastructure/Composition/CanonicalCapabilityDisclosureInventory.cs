@@ -116,7 +116,9 @@ internal static class CanonicalCapabilityDisclosureInventory
                 StringComparer.Ordinal.Equals(
                     definition.Identity.WorkflowId,
                     ExperienceIds.StandardMerge));
-        if (hasStandardRoute && registration.SourceEnvelopeBinding is null)
+        bool needsCapturedSelection = registration.SourceEnvelopeBinding is not null ||
+            registration.MapSelectionPrerequisite is not null;
+        if (hasStandardRoute && !needsCapturedSelection)
         {
             IReadOnlyList<long> capacities = registration.GetMapCapacities(
                 out IReadOnlyList<CompositionIssue> issues);
@@ -162,7 +164,7 @@ internal static class CanonicalCapabilityDisclosureInventory
                     context.ResolvedMap.FamilyContentHash,
                     relationship)));
         }
-        if (hasStandardRoute && registration.SourceEnvelopeBinding is not null)
+        if (hasStandardRoute && needsCapturedSelection)
         {
             FirmwareFamilyResolutionDefinition family = registration.GetFirmwareFamily();
             discovered.AddRange(family.FamilyRelationships

@@ -12,6 +12,12 @@ namespace NvtFwCombiner.Application.Capabilities;
 /// </summary>
 public interface ICanonicalDynamicCompilationAdapter
 {
+    /// <summary>Returns a canonical fixed-capacity map-selection prerequisite, when declared.</summary>
+    CanonicalMapSelectionPrerequisite? GetMapSelectionPrerequisite(string icId, string workflowId)
+    {
+        return null;
+    }
+
     /// <summary>Reads the profile-declared route key for a captured source extent without compiling it.</summary>
     bool TryGetSourceEnvelopeMapVariant(
         string icId,

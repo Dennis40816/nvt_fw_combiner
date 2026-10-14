@@ -260,7 +260,10 @@ internal sealed partial class TrustedProfileBundleCatalog
             ];
         }
 
-        if (mapCandidates.Length != 1)
+        bool versionGroup = mapCandidates.Length > 1 &&
+            mapCandidates.Select(static map => map.CapacityBytes).Distinct().Count() == 1 &&
+            mapCandidates.Any(static map => map.Applicability.CommonFirmwareVersionFrom is not null);
+        if (mapCandidates.Length != 1 && !versionGroup)
         {
             return Failed(
                 [],

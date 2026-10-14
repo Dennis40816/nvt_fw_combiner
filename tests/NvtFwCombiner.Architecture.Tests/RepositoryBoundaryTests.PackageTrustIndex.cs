@@ -268,7 +268,7 @@ public sealed partial class RepositoryBoundaryTests
                     "general-replace");
         Assert.Equal("NT51926", generalReplace.GetProperty("icId").GetString());
         Assert.Equal(
-            7,
+            8,
             bundles.SelectMany(static bundle =>
                     bundle.GetProperty("runtimeRegistrations").EnumerateArray())
                 .Count(static registration =>

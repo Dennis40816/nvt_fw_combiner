@@ -205,6 +205,7 @@ public sealed record FirmwareTopologyRequirementDocument(
 /// <param name="CapacityBytes">Exact candidate-map capacity.</param>
 /// <param name="CommonFirmwareCategoryIds">Optional accepted Common FW categories.</param>
 /// <param name="MetadataPredicates">Optional typed metadata predicates pending field-context conversion.</param>
+/// <param name="CommonFirmwareVersionFrom">Optional inclusive Common FW interval start.</param>
 public sealed record FirmwareMapApplicabilityDocument(
     IReadOnlyList<string> MemberIds,
     IReadOnlyList<string> ModeIds,
@@ -213,7 +214,9 @@ public sealed record FirmwareMapApplicabilityDocument(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<string>? CommonFirmwareCategoryIds = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<FirmwareMetadataPredicateDocument>? MetadataPredicates = null);
+    IReadOnlyList<FirmwareMetadataPredicateDocument>? MetadataPredicates = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    string? CommonFirmwareVersionFrom = null);
 
 /// <summary>DTO for one canonical candidate image map.</summary>
 /// <param name="MapId">Stable image-map identifier.</param>
