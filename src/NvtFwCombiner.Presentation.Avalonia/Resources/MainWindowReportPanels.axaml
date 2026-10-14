@@ -31,11 +31,12 @@
         </Button>
         <TextBlock Classes="modalTitle" Text="{Binding LoadedReport.Title}" TextWrapping="Wrap" />
         <TextBlock Classes="mutedText" Text="{Binding LoadedReport.Subtitle}" TextWrapping="Wrap" />
-        <TextBlock x:Name="ReportVerificationSummary" Classes="captionText"
-                   Text="{Binding LoadedReport.VerificationSummary}" TextWrapping="Wrap"
-                   AutomationProperties.Name="{Binding LoadedReport.VerificationSummary}" />
       </StackPanel>
       <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}">
+        <TextBlock x:Name="ReportVerificationSummary" Classes="captionText" MaxWidth="260"
+                   VerticalAlignment="Center" TextAlignment="Right"
+                   Text="{Binding LoadedReport.VerificationSummary}" TextWrapping="Wrap"
+                   AutomationProperties.Name="{Binding LoadedReport.VerificationSummary}" />
         <Button
             Classes="semanticAction closeButton"
             AutomationProperties.Name="{Binding Text.CloseReportTooltip}"

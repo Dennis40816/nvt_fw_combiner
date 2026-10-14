@@ -34,8 +34,10 @@ public static class CapabilityWorkflowReadinessProjector
     }
 
     /// <summary>Stable report token; verified retains its exact evidence class separately.</summary>
-    public static string GetVerificationStatus(CapabilityEvidenceStatus evidenceStatus) =>
-        IsUnverified(evidenceStatus) ? "unverified" : "verified";
+    public static string GetVerificationStatus(CapabilityEvidenceStatus evidenceStatus)
+    {
+        return IsUnverified(evidenceStatus) ? "unverified" : "verified";
+    }
 
     /// <summary>Discloses only one exact route, without inheriting evidence from sibling routes.</summary>
     public static CapabilityWorkflowReadiness Project(CapabilityRouteResolutionResult resolution)

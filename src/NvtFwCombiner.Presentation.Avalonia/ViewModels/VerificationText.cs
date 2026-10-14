@@ -9,22 +9,34 @@ namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 internal static class VerificationText
 {
     /// <summary>Label of the verification-status field in the report header.</summary>
-    public static string FieldLabel(ShellTextResources text) => text.SupportMatrixLegendTitle;
+    public static string FieldLabel(ShellTextResources text)
+    {
+        return text.SupportMatrixLegendTitle;
+    }
 
     /// <summary>Short badge text for a route whose output has no independent Golden evidence.</summary>
-    public static string Unverified(ShellTextResources text) => Pick(text, "Unverified", "未驗證");
+    public static string Unverified(ShellTextResources text)
+    {
+        return Pick(text, "Unverified", "未驗證");
+    }
 
     /// <summary>Plain-language sentence shown next to the output of an unverified route.</summary>
-    public static string OutputSentence(ShellTextResources text) => Pick(
-        text, "This output has no independent Golden result.", "這個輸出沒有獨立的 Golden 結果。");
+    public static string OutputSentence(ShellTextResources text)
+    {
+        return Pick(text, "This output has no independent Golden result.", "這個輸出沒有獨立的 Golden 結果。");
+    }
 
     /// <summary>Whether the exact selected route is unverified.</summary>
-    public static bool IsUnverified(CapabilityWorkflowReadiness? readiness) =>
-        readiness is { HasExactRoute: true, IsUnverified: true };
+    public static bool IsUnverified(CapabilityWorkflowReadiness? readiness)
+    {
+        return readiness is { HasExactRoute: true, IsUnverified: true };
+    }
 
     /// <summary>Output notice for the selected route; empty when the route is verified or not exact.</summary>
-    public static string OutputNotice(ShellTextResources text, CapabilityWorkflowReadiness? readiness) =>
-        IsUnverified(readiness) ? OutputSentence(text) : string.Empty;
+    public static string OutputNotice(ShellTextResources text, CapabilityWorkflowReadiness? readiness)
+    {
+        return IsUnverified(readiness) ? OutputSentence(text) : string.Empty;
+    }
 
     /// <summary>Verification label and header summary for a loaded run report.</summary>
     public static (string StatusLabel, string Summary) ForReport(ShellLanguage language, CapabilityRunSummary? capability)
@@ -37,6 +49,8 @@ internal static class VerificationText
         return (label, $"{FieldLabel(text)}: {label}");
     }
 
-    private static string Pick(ShellTextResources text, string english, string traditionalChinese) =>
-        text.Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
+    private static string Pick(ShellTextResources text, string english, string traditionalChinese)
+    {
+        return text.Language == ShellLanguage.ChineseTraditional ? traditionalChinese : english;
+    }
 }

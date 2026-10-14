@@ -50,7 +50,7 @@ public sealed partial class ShellNavigationSystemTests
             SupportMatrixCellStatus.ReviewRequired,
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
         Assert.Equal(
-            "Unverified (needs review)",
+            "Some unverified",
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").StatusLabel);
         Assert.All(
             viewModel.Settings.SupportMatrix.Rows,
@@ -282,7 +282,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal("已阻擋", settings.SupportMatrix.IcRows[0].Cells[0].StatusLabel);
         Assert.Equal("執行", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixExecutionLabel);
         Assert.Equal("證據", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixEvidenceLabel);
-        Assert.Equal("未驗證（待審查）", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
+        Assert.Equal("部分未驗證", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
         Assert.Equal(
             "滑鼠停留或聚焦儲存格可查看明細。",
             ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixHoverHint);

@@ -48,12 +48,14 @@ public sealed class CapabilityRunSummary
     /// <summary>Derived unverified/verified token from the shared disclosure owner.</summary>
     public string VerificationStatus => CapabilityWorkflowReadinessProjector.GetVerificationStatus(Evidence);
 
-    internal static CapabilityRunSummary? FromResolvedCapability(ResolvedCapability? capability) =>
-        capability is null ? null : new(
+    internal static CapabilityRunSummary? FromResolvedCapability(ResolvedCapability? capability)
+    {
+        return capability is null ? null : new(
             capability.Identity.RouteId,
             capability.CapabilityFingerprint,
             capability.Publication.Value,
             capability.Evidence.Value);
+    }
 }
 
 [JsonSerializable(typeof(CapabilityRunSummary))]

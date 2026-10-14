@@ -465,7 +465,7 @@ public sealed partial class CompositionRunServiceTests
         Assert.Equal(unverified, disclosure.IsUnverified);
         Assert.Equal(!unverified, disclosure.HasReviewedEvidence);
         Assert.Equal(status, CapabilityWorkflowReadinessProjector.GetVerificationStatus(evidence));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
             CapabilityWorkflowReadinessProjector.IsUnverified((CapabilityEvidenceStatus)(-1)));
     }
 

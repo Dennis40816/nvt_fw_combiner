@@ -29,9 +29,8 @@ public sealed class CapabilityDisclosureTests
             text.SupportMatrixEvidenceValue(CapabilityEvidenceStatus.ContractOnly));
         Assert.Equal(chinese ? "未驗證（缺少證據）" : "Unverified (missing evidence)",
             text.SupportMatrixEvidenceValue(CapabilityEvidenceStatus.Missing));
-        Assert.Equal(text.SupportMatrixEvidenceValue(CapabilityEvidenceStatus.ContractOnly),
-            text.SupportMatrixContractOnlyLabel);
-        Assert.Equal(chinese ? "未驗證（待審查）" : "Unverified (needs review)", text.SupportMatrixReviewRequiredLabel);
+        Assert.Equal(chinese ? "未驗證" : "Unverified", text.SupportMatrixContractOnlyLabel);
+        Assert.Equal(chinese ? "部分未驗證" : "Some unverified", text.SupportMatrixReviewRequiredLabel);
         foreach (CapabilityEvidenceStatus evidence in new[]
                  { CapabilityEvidenceStatus.ContractOnly, CapabilityEvidenceStatus.Missing })
         {
@@ -101,7 +100,8 @@ public sealed class CapabilityDisclosureTests
         Assert.False(document.RootElement.TryGetProperty("Capability", out _));
         Assert.Null(CompositionRunReportJson.ReadCapabilitySummary(document.RootElement));
         Assert.Equal(CompositionRunReportJson.ReadCompleteness.Recognized,
-            CompositionRunReportJson.AssessReadCompleteness(document.RootElement));
+            CompositionRunReportJson.AssessReadCompleteness(
+                document.RootElement, TestContext.Current.CancellationToken));
         ReportReviewViewModel loaded = ReportReviewViewModel.FromJson(json, "legacy-report.json", language: language);
         Assert.False(loaded.IsOutcomeUnknown);
         Assert.Null(loaded.Capability);

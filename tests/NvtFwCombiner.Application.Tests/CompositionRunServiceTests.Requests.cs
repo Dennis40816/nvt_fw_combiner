@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Tests;
@@ -21,7 +22,10 @@ public sealed partial class CompositionRunServiceTests
             request.ArtifactBindings.Values, request.OutputFileName, resolvedCapability: capability);
 
         PinnedCapabilityDecision<TValue> Decision<TValue>(string id, TValue value)
-            where TValue : struct, Enum => new(id, identity.RouteId, fingerprint, value, "synthetic-policy");
+            where TValue : struct, Enum
+        {
+            return new(id, identity.RouteId, fingerprint, value, "synthetic-policy");
+        }
     }
 
     private static CompositionRunRequest CreateRequest(
