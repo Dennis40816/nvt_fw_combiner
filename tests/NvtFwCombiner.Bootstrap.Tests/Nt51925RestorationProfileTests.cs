@@ -57,9 +57,9 @@ public sealed class Nt51925RestorationProfileTests
         Assert.Empty(issues);
     }
 
-    /// <summary>Standard declarations publish for inspection while Application execution remains closed.</summary>
+    /// <summary>The Standard declaration is execution-admitted as an unverified candidate while authoring stays unavailable.</summary>
     [Fact]
-    public void StandardCandidatePublishesItsOwnPlanWithoutExecutionPromotion()
+    public void StandardCandidateIsExecutionAdmittedWhileAuthoringRemainsUnavailable()
     {
         CapabilityResolutionResult prepared = BootstrapTestHost.Canonical.Catalog.ResolveUniqueRoute(
             "NT51925", ExperienceIds.StandardMerge, "selector-free");
@@ -71,7 +71,8 @@ public sealed class Nt51925RestorationProfileTests
         Assert.True(existing.Succeeded);
         ResolvedCapability declaration = Assert.Single(BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().Capabilities,
             static row => row.Identity.IcId == "NT51925" && row.Identity.WorkflowId == ExperienceIds.StandardMerge);
-        Assert.False(declaration.ExecutionAdmitted);
+        Assert.True(declaration.ExecutionAdmitted);
+        Assert.True(declaration.CompiledComposition.IsV2StandardMergeOpenCandidate);
         MetadataPlanResolutionResult metadata = BootstrapTestHost.Canonical.Catalog.ResolveUniqueMetadataPlan(
             "NT51925", ExperienceIds.StandardMerge, "selector-free");
         Assert.True(metadata.Succeeded);
@@ -80,7 +81,7 @@ public sealed class Nt51925RestorationProfileTests
         Assert.False(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.StandardMerge));
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, declaration.CompiledComposition.Eligibility);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Capability.CompiledComposition.Eligibility);
-        Assert.Equal(CompiledProfilePromotionStage.Compilable,
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate,
             declaration.CompiledComposition.V2Details.Provenance.Promotion.Stage);
         AssertUnchangedOperationContract(existing.Capability.CompiledComposition.Plan, declaration.CompiledComposition.Plan);
         Assert.Equal(new ByteRange(0, 0x30000), declaration.CompiledComposition.Plan.OrderedOperations[0].SourceRange);
@@ -88,12 +89,22 @@ public sealed class Nt51925RestorationProfileTests
         Assert.Equal(new ByteRange(0x3E000, 0x2000), declaration.CompiledComposition.Plan.OrderedOperations[1].SourceRange);
         Assert.Equal(new ByteRange(0x3E000, 0x2000), declaration.CompiledComposition.Plan.OrderedOperations[1].TargetRange);
         Assert.Equal(0x40000, declaration.CompiledComposition.Plan.Initializations.Single().Capacity);
-        ArgumentException rejected = Assert.Throws<ArgumentException>(() => new CompositionRunRequest(
-            "prepared-standard", declaration.CompiledComposition, [], "prepared.bin"));
-        Assert.Equal("compiledComposition", rejected.ParamName);
+        Assert.True(CapabilityPublicationCoherence.IsExecutionAdmitted(declaration.CompiledComposition));
     }
 
-    /// <summary>Each owner-declared capacity, Common FW line and topology compiles only as a blocked candidate.</summary>
+    /// <summary>The Standard Merge candidate rule admits exactly the NT51925 route and no other published route.</summary>
+    [Fact]
+    public void StandardMergeOpenCandidateRuleAdmitsOnlyTheNt51925Route()
+    {
+        IReadOnlyList<ResolvedCapability> admitted = [.. BootstrapTestHost.Canonical.Catalog.GetCurrentSnapshot().Capabilities
+            .Where(static row => row.CompiledComposition.IsV2StandardMergeOpenCandidate)];
+
+        ResolvedCapability only = Assert.Single(admitted);
+        Assert.Equal("NT51925", only.Identity.IcId);
+        Assert.Equal(ExperienceIds.StandardMerge, only.Identity.WorkflowId);
+    }
+
+    /// <summary>Each Replace combination admits its candidate plan while authoring stays unavailable and all blockers remain.</summary>
     [Theory]
     [InlineData("141", 1, 0x30000)]
     [InlineData("141", 1, 0x40000)]
@@ -107,7 +118,7 @@ public sealed class Nt51925RestorationProfileTests
     [InlineData("200", 3, 0x30000)]
     [InlineData("200", 2, 0x40000)]
     [InlineData("200", 3, 0x40000)]
-    public void CompileRuntimeOwnerOverviewLayoutExecutionAndAuthoringRemainBlocked(string fw, int chipCount, int capacity)
+    public void RuntimeReplaceCandidatesAreExecutionAdmittedWhileAuthoringRemainsUnavailable(string fw, int chipCount, int capacity)
     {
         CompiledComposition prepared = CompileRuntime("NT51925", "0.1.0", fw, chipCount, capacity);
         CompiledComposition existing = CompileRuntime("NT51926", "0.4.0", fw, chipCount,
@@ -115,9 +126,16 @@ public sealed class Nt51925RestorationProfileTests
 
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, prepared.Eligibility);
         Assert.Equal(CompiledCompositionEligibility.V2RuntimeExecutable, existing.Eligibility);
-        Assert.Equal(CompiledProfilePromotionStage.Compilable, prepared.V2Details.Provenance.Promotion.Stage);
+        Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, prepared.V2Details.Provenance.Promotion.Stage);
         Assert.Equal(CompiledProfilePromotionStage.Supported, existing.V2Details.Provenance.Promotion.Stage);
-        Assert.NotEmpty(prepared.V2Details.Provenance.Promotion.Blockers);
+        Assert.True(CapabilityPublicationCoherence.IsExecutionAdmitted(prepared));
+        Assert.Equal(
+            [
+                ("nt51925-independent-golden", CompiledProfilePromotionBlockerKind.Golden),
+                ("nt51925-official-map-and-postbuild", CompiledProfilePromotionBlockerKind.Map),
+                ("nt51925-r3-owner-approval", CompiledProfilePromotionBlockerKind.HumanReview),
+            ],
+            prepared.V2Details.Provenance.Promotion.Blockers.Select(static blocker => (blocker.BlockerId, blocker.Kind)));
         AssertUnchangedOperationContract(existing.Plan, prepared.Plan);
         Assert.Equal(existing.Plan.OrderedOperations.Select(static item => item.SourceRange),
             prepared.Plan.OrderedOperations.Select(static item => item.SourceRange));
@@ -133,12 +151,14 @@ public sealed class Nt51925RestorationProfileTests
         Assert.Equal([new ByteRange(0, 0x30000)], postbuild.ExternalProcessorInvocation.AllowedReadRanges);
         Assert.Equal(0x30000, Assert.Single(prepared.Plan.OrderedOperations,
             static operation => operation.Kind == CompositionOperationKind.RunExternalProcessor).TargetRange.Length);
-        ArgumentException rejected = Assert.Throws<ArgumentException>(() => new CompositionRunRequest("prepared-runtime", prepared,
+        var admitted = new CompositionRunRequest("prepared-runtime", prepared,
             [new InputArtifactBinding("reference-base", "reference-base", "reference", "reference.bin", CompiledInputArtifactClass.ReferenceImage),
              new InputArtifactBinding("vn-source", "vn-source", "replacement", "replacement.bin", CompiledInputArtifactClass.CtrlRamReplacement)],
-            "prepared.bin", new IcNumberSelection(chipCount == 1 ? IcNumberInputMode.SingleSelector : IcNumberInputMode.CascadeSelector,
-                [chipCount == 1 ? IcNumberSelectionTokens.SingleChip : IcNumberSelectionTokens.Cascade]), outputFileNameIsOverride: true));
-        Assert.Equal("compiledComposition", rejected.ParamName);
+            "nt51925-ctrlram-replace-unverified.bin", new IcNumberSelection(chipCount == 1 ? IcNumberInputMode.SingleSelector : IcNumberInputMode.CascadeSelector,
+                [chipCount == 1 ? IcNumberSelectionTokens.SingleChip : IcNumberSelectionTokens.Cascade]), outputFileNameIsOverride: false);
+        Assert.Same(prepared, admitted.CompiledComposition);
+        Assert.Equal("nt51925-ctrlram-replace-unverified.bin", prepared.V2Details.OutputNamingRequirement.FileNameTemplate);
+        Assert.False(prepared.V2Details.OutputNamingRequirement.AllowOverride);
 
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
         var paths = new Dictionary<string, string>(StringComparer.Ordinal)

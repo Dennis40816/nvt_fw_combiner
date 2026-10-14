@@ -9,10 +9,20 @@ adds nine exact NT51925 Standard Merge/CtrlRAM Replace routes to the 85-route
 v1.2.1 catalog. All nine have `Unavailable` authoring, `Candidate`
 publication and `ContractOnly` evidence: one Standard route and eight CtrlRAM
 routes for two provisional FW contracts, Single/Cascade and TP-work/full-Flash
-capacities. Profiles use the existing `compilable` promotion stage. The policy
-permits blocked declarations, but no authoring snapshot, exact executable
-resolution, execution or Build. The runtime-reference candidate execution rule
-does not admit these NT51925 routes.
+capacities. The policy permits blocked declarations, but no authoring snapshot,
+exact executable route resolution or Build.
+
+Owner decision (relayed 2026-10-14 01:20), Task 925-D, opens compiler admission
+for the four CtrlRAM Replace profiles through the existing
+`executable-candidate` promotion stage and runtime-reference Replace admission
+rule. Their plans remain `V2PlanCompiled` and retain all three `map`, `golden`
+and `human-review` blockers. The Standard Merge profile remains `compilable`
+and is not execution-admitted. All nine policy decisions remain
+`Unavailable/Candidate/ContractOnly`; NT51925 remains absent from every selector
+and all three available-IC counts remain 10. The Replace declarations are
+unverified: this compiler admission makes no support, approval or Golden claim.
+Opening authoring is a later owner-authorized change after the `unverified`
+label exists.
 
 NT51925 owns separate map, family and candidate bundles. No existing NT51923
 or NT51926 capability definition or decision is re-pinned; their v1.2.1

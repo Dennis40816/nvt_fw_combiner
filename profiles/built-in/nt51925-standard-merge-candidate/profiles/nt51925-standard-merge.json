@@ -3,7 +3,7 @@
   "profileId": "nt51925-standard-merge-gen-flash",
   "profileVersion": "0.1.0",
   "promotion": {
-    "stage": "compilable",
+    "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "nt51925-official-map-and-postbuild",

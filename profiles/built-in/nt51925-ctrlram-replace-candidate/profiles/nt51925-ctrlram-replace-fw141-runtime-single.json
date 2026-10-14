@@ -3,7 +3,7 @@
   "profileId": "nt51925-ctrlram-replace-fw141-runtime-single",
   "profileVersion": "0.1.0",
   "promotion": {
-    "stage": "compilable",
+    "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "nt51925-official-map-and-postbuild",
@@ -346,8 +346,8 @@
     }
   ],
   "output": {
-    "fileNameTemplate": "nt51925-ctrlram-replace.bin",
-    "allowOverride": true,
+    "fileNameTemplate": "nt51925-ctrlram-replace-unverified.bin",
+    "allowOverride": false,
     "invalidCharacterPolicy": "reject",
     "requiredTokenIds": []
   },
