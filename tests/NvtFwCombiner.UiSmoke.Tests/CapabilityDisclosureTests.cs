@@ -82,7 +82,8 @@ public sealed class CapabilityDisclosureTests
             report, false, "synthetic-report", null, null, language, TestContext.Current.CancellationToken);
         Assert.Equal(text.SupportMatrixEvidenceValue(evidence), loaded.VerificationStatusLabel);
         Assert.Equal(typed.VerificationSummary, loaded.VerificationSummary);
-        Assert.Equal($"{VerificationText.FieldLabel(text)}: {text.SupportMatrixEvidenceValue(evidence)}",
+        string separator = text.Language == ShellLanguage.ChineseTraditional ? "：" : ": ";
+        Assert.Equal($"{VerificationText.FieldLabel(text)}{separator}{text.SupportMatrixEvidenceValue(evidence)}",
             loaded.VerificationSummary);
         Assert.Equal(report.Output.FileName, loaded.OutputFileName);
         Assert.Equal(report.Output.Sha256, loaded.OutputSha256);
@@ -106,7 +107,7 @@ public sealed class CapabilityDisclosureTests
         Assert.False(loaded.IsOutcomeUnknown);
         Assert.Null(loaded.Capability);
         Assert.Equal(chinese ? "未記錄" : "Not recorded", loaded.VerificationStatusLabel);
-        Assert.Equal(chinese ? "驗證狀態: 未記錄" : "Verification status: Not recorded", loaded.VerificationSummary);
+        Assert.Equal(chinese ? "驗證狀態：未記錄" : "Verification status: Not recorded", loaded.VerificationSummary);
         (string Route, string Fingerprint, string Evidence)[] invalidMetadata =
         [
             ("synthetic-route", "invalid", "ContractOnly"),

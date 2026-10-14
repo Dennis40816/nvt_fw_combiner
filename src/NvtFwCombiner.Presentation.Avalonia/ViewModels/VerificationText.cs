@@ -45,8 +45,11 @@ internal static class VerificationText
         string label = capability is null ? Pick(text, "Not recorded", "未記錄")
             : CapabilityWorkflowReadinessProjector.IsUnverified(capability.Evidence)
                 ? text.SupportMatrixEvidenceValue(capability.Evidence)
-                : $"{text.SupportMatrixReviewedEvidenceLabel} ({text.SupportMatrixEvidenceValue(capability.Evidence)})";
-        return (label, $"{FieldLabel(text)}: {label}");
+                : Pick(
+                    text,
+                    $"{text.SupportMatrixReviewedEvidenceLabel} ({text.SupportMatrixEvidenceValue(capability.Evidence)})",
+                    $"{text.SupportMatrixReviewedEvidenceLabel}（{text.SupportMatrixEvidenceValue(capability.Evidence)}）");
+        return (label, $"{FieldLabel(text)}{Pick(text, ": ", "：")}{label}");
     }
 
     private static string Pick(ShellTextResources text, string english, string traditionalChinese)

@@ -316,11 +316,17 @@ release.
    needs open decision 1 below before it can run.
 4. **Label.** Every result from these routes says that it is unverified. The UI
    shows the word. The run report records route, capability fingerprint,
-   publication, evidence and the verification status. The output name carries a
-   marker that the profile declares. This changes two contracts: the additive
+   publication, evidence and the verification status. The output name carries
+   the marker `_UNVERIFIED` before `.bin`. For a typed naming renderer
+   (`normal-flashcode-v1`, `tp-firmware-v1`), Application adds it and rejects a
+   custom file name. For a static name, the profile declares the marked name
+   and sets `allowOverride` to false. This changes two contracts: the additive
    fields of `composition-report-v1`, and the output naming rule. The existing
    disclosure, report and naming code carries the label. No second label path
-   is added.
+   is added. The label follows the evidence value. A supported route whose
+   evidence is `contract-only` today therefore also shows "Unverified", because
+   it also has no independent Golden result. Open decision 5 covers the
+   wording.
 5. **Build.** Build does not read publication or evidence. A route that is
    `available` therefore has no publication or evidence blocker. Build still
    needs a valid execution admission, valid inputs and ready runtime
