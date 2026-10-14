@@ -445,6 +445,7 @@ internal sealed partial class ShellTextResources
             SupportMatrixNoBlockerLabel = Pick("Clear", "無阻擋"),
             SupportMatrixLegendTitle = Pick("Verification status", "驗證狀態"),
             SupportMatrixReviewedEvidenceLabel = Pick("Verified", "已驗證"),
+            SupportMatrixContractOnlyLabel = Pick("Unverified (contract only)", "未驗證（僅有定義）"),
             SupportMatrixReviewRequiredLabel = Pick("Unverified (needs review)", "未驗證（待審查）"),
             SupportMatrixBlockedLabel = Pick("Blocked", "已阻擋"),
             SupportMatrixNotDeclaredLabel = Pick("Not declared", "未宣告"),

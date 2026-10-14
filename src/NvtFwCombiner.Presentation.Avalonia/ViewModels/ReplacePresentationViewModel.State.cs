@@ -205,19 +205,14 @@ internal sealed partial class ReplacePresentationViewModel
         HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedReplaceMode)
             ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
                 ? AbCtrlRamReadiness
-                : _compositionServices.Capabilities.GetWorkflowReadiness(
-                    SelectedIc, SelectedReplaceMode, SelectedReplaceMode switch
-                    {
-                        CtrlRamReplaceMode => _ctrlRamReplaceSession.CurrentSnapshot?.SelectedRouteId,
-                        GeneralReplaceMode => _generalReplaceSession.CurrentSnapshot?.SelectedRouteId,
-                        _ => null,
-                    })
+                : _compositionServices.Capabilities.GetWorkflowReadiness(SelectedIc, SelectedReplaceMode,
+                    (SelectedReplaceMode switch { CtrlRamReplaceMode => _ctrlRamReplaceSession,
+                        GeneralReplaceMode => _generalReplaceSession, _ => null })?.CurrentSnapshot?.SelectedRouteId)
             : null;
 
-    public bool IsSelectedReplaceUnverified => SelectedReplaceWorkflowReadiness is
-        { HasExactRoute: true, IsUnverified: true };
+    public bool IsSelectedReplaceUnverified => VerificationText.IsUnverified(SelectedReplaceWorkflowReadiness);
 
-    public string OutputVerificationNotice => Text.GetOutputVerificationNotice(SelectedReplaceWorkflowReadiness);
+    public string OutputVerificationNotice => VerificationText.OutputNotice(Text, SelectedReplaceWorkflowReadiness);
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>

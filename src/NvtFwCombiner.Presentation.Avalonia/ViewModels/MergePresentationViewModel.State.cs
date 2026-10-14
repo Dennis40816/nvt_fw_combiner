@@ -79,22 +79,18 @@ internal sealed partial class MergePresentationViewModel
         return state;
     }
 
-    public CapabilityWorkflowReadiness? SelectedMergeWorkflowReadiness =>
+    private CapabilityWorkflowReadiness? SelectedMergeWorkflowReadiness =>
         HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedMergeMode)
-            ? _compositionServices.Capabilities.GetWorkflowReadiness(
-                SelectedIc, SelectedMergeMode, SelectedMergeMode switch
-                {
-                    NormalMergeMode => _standardMergeSession.CurrentSnapshot?.SelectedRouteId,
-                    AbCodeMergeMode => _abMergeSession.CurrentSnapshot?.SelectedRouteId,
-                    GeneralMergeMode => _generalMergeSession.CurrentSnapshot?.SelectedRouteId,
-                    _ => null,
-                })
+            ? _compositionServices.Capabilities.GetWorkflowReadiness(SelectedIc, SelectedMergeMode,
+                (SelectedMergeMode switch { NormalMergeMode => _standardMergeSession, AbCodeMergeMode => _abMergeSession,
+                    GeneralMergeMode => _generalMergeSession, _ => null })?.CurrentSnapshot?.SelectedRouteId)
             : null;
 
-    public bool IsSelectedMergeUnverified => SelectedMergeWorkflowReadiness is
-        { HasExactRoute: true, IsUnverified: true };
+    /// <summary>Whether the selected Merge route has no independent Golden evidence.</summary>
+    public bool IsSelectedMergeUnverified => VerificationText.IsUnverified(SelectedMergeWorkflowReadiness);
 
-    public string OutputVerificationNotice => Text.GetOutputVerificationNotice(SelectedMergeWorkflowReadiness);
+    /// <summary>Plain-language output notice for the selected Merge route; empty when verified.</summary>
+    public string OutputVerificationNotice => VerificationText.OutputNotice(Text, SelectedMergeWorkflowReadiness);
 
     internal CompositionRunContext CaptureRunContext(string mode, bool build = false)
     {
@@ -431,7 +427,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(IsNormalMergeModeSelected));
         OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
         OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
-        OnPropertyChanged(nameof(SelectedMergeWorkflowReadiness));
         OnPropertyChanged(nameof(IsSelectedMergeUnverified));
         OnPropertyChanged(nameof(OutputVerificationNotice));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));

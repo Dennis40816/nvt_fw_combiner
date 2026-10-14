@@ -171,21 +171,6 @@ internal sealed partial class ShellTextResources
         };
     }
 
-    public string VerificationStatusFieldLabel => SupportMatrixLegendTitle;
-    public string UnverifiedLabel => SelectLanguage("Unverified", "未驗證");
-    public string VerificationNotRecordedLabel => SelectLanguage("Not recorded", "未記錄");
-    public string UnverifiedOutputSentence => SelectLanguage(
-        "This output has no independent Golden result.", "這個輸出沒有獨立的 Golden 結果。");
-
-    public string GetOutputVerificationNotice(CapabilityWorkflowReadiness? readiness) =>
-        readiness is { HasExactRoute: true, IsUnverified: true } ? UnverifiedOutputSentence : string.Empty;
-
-    public string GetReportVerificationLabel(CapabilityRunSummary? capability) =>
-        capability is null ? VerificationNotRecordedLabel
-            : CapabilityWorkflowReadinessProjector.IsUnverified(capability.Evidence)
-                ? SupportMatrixEvidenceValue(capability.Evidence)
-                : SupportMatrixReviewedEvidenceLabel + $" ({SupportMatrixEvidenceValue(capability.Evidence)})";
-
     public string GetWorkflowEvidenceLabel(CapabilityWorkflowReadiness readiness)
     {
         ArgumentNullException.ThrowIfNull(readiness);
@@ -193,7 +178,7 @@ internal sealed partial class ShellTextResources
             ? SelectLanguage("Not available", "尚未開放")
             : readiness.HasReviewedEvidence
             ? SelectLanguage("Golden verified", "Golden 已驗證")
-            : UnverifiedLabel;
+            : VerificationText.Unverified(this);
     }
 
     public string GetWorkflowEvidenceTooltip(CapabilityWorkflowReadiness readiness)
@@ -419,8 +404,8 @@ internal sealed partial class ShellTextResources
         if (open.Count > 0)
         {
             summaries.Add(SelectLanguage(
-                $"! {UnverifiedLabel}: {string.Join(", ", open)}",
-                $"! {UnverifiedLabel}：{string.Join("、", open)}"));
+                $"! {VerificationText.Unverified(this)}: {string.Join(", ", open)}",
+                $"! {VerificationText.Unverified(this)}：{string.Join("、", open)}"));
         }
 
         if (unavailable.Count > 0)

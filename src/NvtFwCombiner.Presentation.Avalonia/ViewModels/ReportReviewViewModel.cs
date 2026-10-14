@@ -5,11 +5,10 @@ internal sealed partial class ReportReviewViewModel
 {
     private readonly bool? outputCommitted;
     private readonly OutputDifferenceProjection _outputDifferenceProjection;
-    private readonly ShellTextResources _text;
 
     public CapabilityRunSummary? Capability { get; }
-    public string VerificationStatusLabel => _text.GetReportVerificationLabel(Capability);
-    public string VerificationSummary => $"{_text.VerificationStatusFieldLabel}: {VerificationStatusLabel}";
+    public string VerificationStatusLabel { get; }
+    public string VerificationSummary { get; }
 
     internal ReportReviewViewModel(
         bool isEmpty,
@@ -38,11 +37,10 @@ internal sealed partial class ReportReviewViewModel
         OutputDifferenceProjection outputDifferences,
         IReadOnlyList<ReportLineViewModel> issues,
         ShellLanguage language = ShellLanguage.English,
-        bool isOutcomeUnknown = false,
-        CapabilityRunSummary? capability = null)
+        bool isOutcomeUnknown = false, CapabilityRunSummary? capability = null)
     {
-        _text = ShellTextResources.For(language);
         Capability = capability;
+        (VerificationStatusLabel, VerificationSummary) = VerificationText.ForReport(language, capability);
         IsEmpty = isEmpty;
         IsOutcomeUnknown = isOutcomeUnknown;
         SourceName = sourceName;
@@ -61,8 +59,7 @@ internal sealed partial class ReportReviewViewModel
         OutputFileName = outputFileName;
         OutputSize = outputSize;
         this.outputCommitted = isOutcomeUnknown ? null : outputCommitted;
-        IsOutputNotGenerated = !isOutcomeUnknown && outputCommitted == false &&
-            outputSize <= 0 &&
+        IsOutputNotGenerated = !isOutcomeUnknown && outputCommitted == false && outputSize <= 0 &&
             issues.Any(IsBlocking);
         OutputSizeLabel = CreateOutputSizeLabel(outputSize, IsOutputNotGenerated, language);
         OutputCommitmentLabel = CreateOutputCommitmentLabel(this.outputCommitted, IsOutputNotGenerated, language);
@@ -79,12 +76,8 @@ internal sealed partial class ReportReviewViewModel
         Mutations = mutations;
         _outputDifferenceProjection = outputDifferences;
         HexDiff = ReportHexDiffViewModel.Create(
-            inspectionSnapshot,
-            outputDifferences.HexDiffSource,
-            runId,
-            outputSize,
-            outputSha256,
-            language);
+            inspectionSnapshot, outputDifferences.HexDiffSource, runId,
+            outputSize, outputSha256, language);
         OutputDifferences = outputDifferences.Rows;
         OutputDifferenceGroups = outputDifferences.Groups;
         Issues = issues;

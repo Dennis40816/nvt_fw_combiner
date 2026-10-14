@@ -172,7 +172,7 @@ internal sealed partial class ShellTextResources
 
     public string SupportMatrixReviewedEvidenceLabel { get; private init; } = string.Empty;
 
-    public string SupportMatrixContractOnlyLabel => SupportMatrixEvidenceValue(CapabilityEvidenceStatus.ContractOnly);
+    public string SupportMatrixContractOnlyLabel { get; private init; } = string.Empty;
 
     public string SupportMatrixReviewRequiredLabel { get; private init; } = string.Empty;
 

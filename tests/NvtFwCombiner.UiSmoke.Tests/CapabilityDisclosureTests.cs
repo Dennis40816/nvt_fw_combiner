@@ -24,7 +24,7 @@ public sealed class CapabilityDisclosureTests
     {
         ShellTextResources text = ShellTextResources.For(
             chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
-        Assert.Equal(chinese ? "驗證狀態" : "Verification status", text.VerificationStatusFieldLabel);
+        Assert.Equal(chinese ? "驗證狀態" : "Verification status", VerificationText.FieldLabel(text));
         Assert.Equal(chinese ? "未驗證（僅有定義）" : "Unverified (contract only)",
             text.SupportMatrixEvidenceValue(CapabilityEvidenceStatus.ContractOnly));
         Assert.Equal(chinese ? "未驗證（缺少證據）" : "Unverified (missing evidence)",
@@ -38,13 +38,13 @@ public sealed class CapabilityDisclosureTests
             var disclosure = new CapabilityWorkflowReadiness(true, true, evidence, "policy", "review");
             Assert.Equal(chinese ? "未驗證" : "Unverified", text.GetWorkflowEvidenceLabel(disclosure));
             Assert.Equal(chinese ? "這個輸出沒有獨立的 Golden 結果。" : "This output has no independent Golden result.",
-                text.GetOutputVerificationNotice(disclosure));
-            Assert.Empty(text.GetOutputVerificationNotice(disclosure with { HasExactRoute = false }));
+                VerificationText.OutputNotice(text, disclosure));
+            Assert.Empty(VerificationText.OutputNotice(text, disclosure with { HasExactRoute = false }));
         }
         var verified = new CapabilityWorkflowReadiness(true, true,
             CapabilityEvidenceStatus.DirectGolden, "policy", "review");
-        Assert.Empty(text.GetOutputVerificationNotice(verified));
-        Assert.Empty(text.GetOutputVerificationNotice(null));
+        Assert.Empty(VerificationText.OutputNotice(text, verified));
+        Assert.Empty(VerificationText.OutputNotice(text, null));
     }
 
     /// <summary>Save/load preserves all policy facts and renders the same verification as the typed report.</summary>
@@ -83,7 +83,7 @@ public sealed class CapabilityDisclosureTests
             report, false, "synthetic-report", null, null, language, TestContext.Current.CancellationToken);
         Assert.Equal(text.SupportMatrixEvidenceValue(evidence), loaded.VerificationStatusLabel);
         Assert.Equal(typed.VerificationSummary, loaded.VerificationSummary);
-        Assert.Equal($"{text.VerificationStatusFieldLabel}: {text.SupportMatrixEvidenceValue(evidence)}",
+        Assert.Equal($"{VerificationText.FieldLabel(text)}: {text.SupportMatrixEvidenceValue(evidence)}",
             loaded.VerificationSummary);
         Assert.Equal(report.Output.FileName, loaded.OutputFileName);
         Assert.Equal(report.Output.Sha256, loaded.OutputSha256);
@@ -154,12 +154,12 @@ public sealed class CapabilityDisclosureTests
             if (chinese) { shell.SelectedLanguage = "Traditional Chinese"; }
             TextBlock merge = Assert.IsType<TextBlock>(window.FindControl<Control>("MergeOutputVerificationNotice"));
             Assert.True(merge.IsVisible);
-            Assert.Equal(shell.Text.UnverifiedOutputSentence, merge.Text);
+            Assert.Equal(VerificationText.OutputSentence(shell.Text), merge.Text);
             shell.ShowReplaceCommand.Execute(null);
             shell.WorkflowSession.SelectedIc = "NT51928";
             TextBlock replace = Assert.IsType<TextBlock>(window.FindControl<Control>("ReplaceOutputVerificationNotice"));
             Assert.True(replace.IsVisible);
-            Assert.Equal(shell.Text.UnverifiedOutputSentence, replace.Text);
+            Assert.Equal(VerificationText.OutputSentence(shell.Text), replace.Text);
             shell.ShowMergeCommand.Execute(null);
             shell.WorkflowSession.SelectedIc = "NT51927";
             Assert.False(merge.IsVisible);

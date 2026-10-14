@@ -146,8 +146,7 @@ internal sealed partial class ReportReviewViewModel
                 outputDifferences,
                 issues,
                 language,
-                isOutcomeUnknown: unknown,
-                capability: CompositionRunReportJson.ReadCapabilitySummary(root));
+                isOutcomeUnknown: unknown, capability: CompositionRunReportJson.ReadCapabilitySummary(root));
         }
         catch (Exception exception) when (unknown && exception is JsonException or InvalidOperationException or FormatException or OverflowException)
         {
