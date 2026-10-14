@@ -1,30 +1,34 @@
-using NvtFwCombiner.Application.ExternalTools;
-
-namespace NvtFwCombiner.Infrastructure;
+// Copyright (c) 2026 Dennis Liu. All rights reserved.
+namespace NvtFwCombiner.Domain.Firmware;
 
 /// <summary>Shared Common FW interval rule for catalogs with entries ordered by effective version.</summary>
-internal static class CommonFwVersionIntervalSelector
+public static class CommonFwVersionIntervalSelector
 {
     /// <summary>Selects the sole entry or the greatest effective version no higher than the input.</summary>
-    internal static SelectionResult Select<TProfile>(
+    public static SelectionResult Select<TProfile>(
         IReadOnlyList<TProfile> profiles,
-        Func<TProfile, LegacyCombinerCommonFwVersion> effectiveVersion,
+        Func<TProfile, CommonFirmwareVersion> effectiveVersion,
         string? commonFwVersion,
         out int selectedIndex,
-        out LegacyCombinerCommonFwVersion version)
+        out CommonFirmwareVersion version)
     {
-        selectedIndex = -1;
-        version = default;
-        if (profiles.Count == 0)
-        {
-            return SelectionResult.NoEntries;
-        }
+        bool parsed = CommonFirmwareVersion.TryParse(commonFwVersion, out version);
+        return Select(profiles, effectiveVersion, parsed ? version : null, out selectedIndex);
+    }
 
-        bool hasVersion = LegacyCombinerCommonFwVersion.TryParse(commonFwVersion, out version);
-        if (hasVersion && version < LegacyCombinerCommonFwVersion.MinimumSupported)
-        {
-            return SelectionResult.BelowMinimum;
-        }
+    /// <summary>Selects an interval from an already decoded canonical Common FW value.</summary>
+    public static SelectionResult Select<TProfile>(
+        IReadOnlyList<TProfile> profiles,
+        Func<TProfile, CommonFirmwareVersion> effectiveVersion,
+        CommonFirmwareVersion? version,
+        out int selectedIndex)
+    {
+        ArgumentNullException.ThrowIfNull(profiles);
+        ArgumentNullException.ThrowIfNull(effectiveVersion);
+        selectedIndex = -1;
+        if (profiles.Count == 0) { return SelectionResult.NoEntries; }
+        if (version is { } known && known < CommonFirmwareVersion.MinimumSupported)
+        { return SelectionResult.BelowMinimum; }
 
         if (profiles.Count == 1)
         {
@@ -32,14 +36,14 @@ internal static class CommonFwVersionIntervalSelector
             return SelectionResult.Selected;
         }
 
-        if (!hasVersion)
+        if (version is null)
         {
             return SelectionResult.VersionRequired;
         }
 
         for (int index = profiles.Count - 1; index >= 0; index--)
         {
-            if (effectiveVersion(profiles[index]) <= version)
+            if (effectiveVersion(profiles[index]) <= version.Value)
             {
                 selectedIndex = index;
                 return SelectionResult.Selected;
@@ -50,7 +54,7 @@ internal static class CommonFwVersionIntervalSelector
     }
 
     /// <summary>Selection outcome rendered by each catalog's existing diagnostic adapter.</summary>
-    internal enum SelectionResult
+    public enum SelectionResult
     {
         /// <summary>An entry was selected.</summary>
         Selected,

@@ -1,3 +1,4 @@
+using NvtFwCombiner.Domain.Firmware;
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
@@ -77,8 +78,8 @@ internal static partial class BuiltInTpFlashMapCatalog
             // A "not provided" marker is a slot like a map: the greatest slot at or below the version decides.
             Slot[] slots = _slotsByIc.GetValueOrDefault(icId) ?? [];
             CommonFwVersionIntervalSelector.SelectionResult result = CommonFwVersionIntervalSelector.Select(
-                slots, static slot => slot.Version, commonFwVersion,
-                out int index, out LegacyCombinerCommonFwVersion version);
+                slots, static slot => slot.Version.CanonicalVersion, commonFwVersion,
+                out int index, out CommonFirmwareVersion version);
             profile = index >= 0 ? slots[index].Profile : null;
             issue = result switch
             {

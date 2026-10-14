@@ -39,6 +39,26 @@ version-specific postbuild, declared versions/topologies, independent Golden
 and firmware-owner R3 approval remain pending. A later family join requires
 official proof of identical facts and separate owner approval. The dated
 catalog 1.17.0 admission below is historical.
+### Version-conditioned Standard map set (Task 925-F, 2026-10-14)
+
+The one NT51925 Standard route uses map variant `nt51925-common-fw-256k` and
+route id `route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k`.
+Its compilation contract allows `nt51925-standard-merge-256k` and
+`nt51925-standard-merge-fw2-256k`; the TP FWConfig version selects the exact map
+at compilation, with the interval contract in
+[firmware-family-v1](firmware-family-v1.md#common-fw-image-map-intervals).
+The original policy decision ids remain unchanged and are rebound to this one
+route. No second route or execution admission rule is introduced.
+
+The Standard declaration is dynamic because exact map selection needs captured
+TP bytes. Swapping TP content invalidates retained exact selection and resolves
+the interval again. Both maps have identical operation lists. CtrlRAM report
+metadata keeps the original `nt51925-standard-merge-256k` layout anchor. Only
+NT51925 capability fingerprints that reference this isolated bundle are
+re-pinned; every other IC's bundle, route and policy row remains at the task
+base. All nine NT51925 policy values and the 94-route totals above are unchanged.
+Opening authoring remains a separate change.
+
 ## Historical active admission (catalog 1.17.0)
 
 Schema `1.1` and catalog `1.17.0` retire all 14 DP Replace policy routes.

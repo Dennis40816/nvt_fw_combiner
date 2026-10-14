@@ -43,6 +43,11 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         }
     }
 
+    public CanonicalMapSelectionPrerequisite? GetMapSelectionPrerequisite(string icId, string workflowId)
+    {
+        return ResolveRegistration(icId, workflowId).MapSelectionPrerequisite;
+    }
+
     public IReadOnlyList<long> GetMapCapacities(
         string icId,
         string workflowId,

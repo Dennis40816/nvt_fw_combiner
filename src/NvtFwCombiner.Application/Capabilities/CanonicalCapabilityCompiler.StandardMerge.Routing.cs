@@ -354,6 +354,11 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        if (GetStandardMapSelectionPrerequisite(icId) is { } prerequisite)
+        {
+            return TryCompileStandardVersionSelection(icId, capturedDp, prerequisite, selectedInputSlotIds,
+                out composition, out resolvedCapability, out issues);
+        }
         bool declared = TryGetStandardSourceEnvelopeRoutes(
             icId, out StandardSourceEnvelopeRoutes? routes, out issues);
         if (!declared)

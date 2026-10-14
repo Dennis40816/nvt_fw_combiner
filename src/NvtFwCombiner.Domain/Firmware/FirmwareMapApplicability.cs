@@ -25,7 +25,8 @@ public sealed class FirmwareMapApplicability
         TopologyRequirement topologyRequirement,
         long capacityBytes,
         IEnumerable<string>? commonFirmwareCategoryIds = null,
-        IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null)
+        IEnumerable<FirmwareMetadataPredicate>? metadataPredicates = null,
+        CommonFirmwareVersion? commonFirmwareVersionFrom = null)
     {
         MemberIds = Array.AsReadOnly(ImmutableStringSnapshot.Create(
             memberIds,
@@ -40,6 +41,10 @@ public sealed class FirmwareMapApplicability
             commonFirmwareCategoryIds,
             metadataPredicates,
             "Identifiers cannot contain null or whitespace values.");
+        DomainInvariant.Reject(commonFirmwareVersionFrom is { } version &&
+            version < CommonFirmwareVersion.MinimumSupported,
+            "A Common FW slot cannot precede 1.0.0.", nameof(commonFirmwareVersionFrom));
+        CommonFirmwareVersionFrom = commonFirmwareVersionFrom;
     }
 
     /// <summary>Accepted IC member ids in ordinal order.</summary>
@@ -59,5 +64,8 @@ public sealed class FirmwareMapApplicability
 
     /// <summary>Required decoded metadata predicates.</summary>
     public IReadOnlyList<FirmwareMetadataPredicate> MetadataPredicates => _scope.MetadataPredicates;
+
+    /// <summary>Inclusive interval start; absent starts at 1.0.0 when this group has version slots.</summary>
+    public CommonFirmwareVersion? CommonFirmwareVersionFrom { get; }
 
 }

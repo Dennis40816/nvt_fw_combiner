@@ -91,7 +91,7 @@ public sealed class StartupCompilationReuseTests
     [Fact]
     public void DisclosureCompilationEqualsFreshCompilationForEveryCandidate()
     {
-        BuiltInV2Registration[] registrations = DisclosureRegistrations();
+        BuiltInV2Registration[] registrations = CompilableWithoutTpRegistrations();
         Assert.NotEmpty(registrations);
         foreach (BuiltInV2Registration registration in registrations)
         {
@@ -144,7 +144,7 @@ public sealed class StartupCompilationReuseTests
     {
         BuiltInV2Registration[] singleCapacity =
         [
-            .. DisclosureRegistrations().Where(static registration => Candidates(registration).Length == 1),
+            .. CompilableWithoutTpRegistrations().Where(static registration => Candidates(registration).Length == 1),
         ];
         Assert.NotEmpty(singleCapacity);
         foreach (BuiltInV2Registration registration in singleCapacity)
@@ -230,6 +230,12 @@ public sealed class StartupCompilationReuseTests
                 .Where(static registration => registration.SourceEnvelopeBinding is null)
                 .OrderBy(static registration => registration.IcId, StringComparer.Ordinal),
         ];
+    }
+
+    /// <summary>Registrations whose map is chosen from a TP FWConfig version need that TP to compile.</summary>
+    private static BuiltInV2Registration[] CompilableWithoutTpRegistrations()
+    {
+        return [.. DisclosureRegistrations().Where(static registration => registration.MapSelectionPrerequisite is null)];
     }
 
     private static long?[] Candidates(BuiltInV2Registration registration)

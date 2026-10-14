@@ -714,11 +714,13 @@ internal sealed class BuiltInV2Bundle
         var requiredResolutionIds = profile.MapBinding.RequiredMetadataStructureIds
             .Where(id => !deferredInspectionIds.Contains(id))
             .ToHashSet(StringComparer.Ordinal);
-        FirmwareMapResolutionResult resolution = family.ResolveMapWithinForProfile(
-            new FirmwareMapResolutionInputs(memberId, experienceId,
-                declaration.Map.CapacityBytes, requestedTopology: null, artifacts: []),
-            new HashSet<string>(StringComparer.Ordinal) { mapId },
-            requiredResolutionIds);
+        var inputs = new FirmwareMapResolutionInputs(memberId, experienceId,
+            declaration.Map.CapacityBytes, requestedTopology: null, artifacts: []);
+        var mapIds = new HashSet<string>(StringComparer.Ordinal) { mapId };
+        FirmwareMapResolutionResult resolution = family.CommonFirmwareVersionArtifactBindingId is null
+            ? family.ResolveMapWithinForProfile(inputs, mapIds, requiredResolutionIds)
+            // This report-only declaration selects fixed layout facts, not an execution interval.
+            : family.ResolveLayoutTemplateWithinForProfile(inputs, mapId, mapIds, requiredResolutionIds);
         if (resolution.Status != FirmwareMapResolutionStatus.Unique)
         {
             throw new InvalidDataException(

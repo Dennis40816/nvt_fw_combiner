@@ -575,10 +575,10 @@
       "bundleDirectory": "nt51925-standard-merge-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.2.2-nt51925.1",
-      "contentHash": "b2d8211d2f4b1d9eca4b2d3c4cde3d3d898567771f8274eca9430daa22f580af",
+      "contentHash": "a838e6e3ae97e17eab81dafdb308a3caeb628cc71a82f41d9d0cdb62d00017ad",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
-        "firmwareFamilySchemaFile": "firmware-family-v1.2-tp-header-subjects.schema.json"
+        "firmwareFamilySchemaFile": "firmware-family-v1.3-common-fw-version.schema.json"
       },
       "metadataProviderFamilies": [
         {
@@ -591,7 +591,8 @@
           "workflowId": "standard-merge",
           "icId": "NT51925",
           "profileId": "nt51925-standard-merge-gen-flash",
-          "profileVersion": "0.1.0"
+          "profileVersion": "0.1.0",
+          "mapVariantSetId": "nt51925-common-fw-256k"
         }
       ]
     },

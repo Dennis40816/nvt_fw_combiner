@@ -41,7 +41,17 @@ internal static partial class FirmwareFamilyResolutionNormalizer
                 NormalizeTopology(document.TopologyRequirement, $"{path}.topologyRequirement"),
                 ReadInt64(document.CapacityBytes, $"{path}.capacityBytes"),
                 document.CommonFirmwareCategoryIds,
-                predicates));
+                predicates,
+                NormalizeCommonFirmwareVersion(document.CommonFirmwareVersionFrom, path)));
+    }
+
+    private static CommonFirmwareVersion? NormalizeCommonFirmwareVersion(string? text, string path)
+    {
+        return text is null
+            ? null
+            : CommonFirmwareVersion.TryParse(text, out CommonFirmwareVersion version) && text == version.ToString()
+                ? version
+                : throw Error($"{path}.commonFirmwareVersionFrom", "Expected canonical MAJOR.MINOR.PATCH byte components.");
     }
 
     private static FirmwareFactApplicability NormalizeFactApplicability(

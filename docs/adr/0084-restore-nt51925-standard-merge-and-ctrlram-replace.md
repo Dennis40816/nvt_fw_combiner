@@ -394,3 +394,24 @@ owner's R3 approval before it merges.
   output name) is unchanged and tested as unchanged.
 - A write-range audit of the processor staging copy is required before any
   promotion, as in "Required owner evidence and gates".
+
+## Implementation boundary (2026-10-14): Standard image-map version condition
+
+Task 925-F implements the version condition required by the 2026-10-09 decision.
+This records the bounded construction; it does not accept the proposed candidate
+execution amendment or open authoring. The policy stays
+`unavailable/candidate/contract-only`.
+
+One dynamic Standard map-set route selects the existing first map for Common FW
+1.x and `nt51925-standard-merge-fw2-256k` from 2.0.0, using the TP input's declared
+FWConfig locator. The shared interval rule and value live in Domain; postbuild
+and TP flash-map adapters continue to consume that same rule. The new exact-hash
+family schema successor is selected by the NT51925 Standard bundle alone.
+
+The two maps share all physical and metadata sets and compile identical copy
+operations. Selection retains a typed version rather than TP SHA. Retained exact
+authoring capabilities are reselected when TP content changes. Fact aliases in
+version-conditioned families and source-envelope execution with version slots
+are rejected pending explicit contracts; report-only metadata retains the first
+map as a fixed layout declaration. The family and capability-policy contracts
+own the detailed rules. Other IC identities and output semantics stay unchanged.

@@ -55,6 +55,14 @@ internal static class V2CompositionPreparationService
                 return false;
             }
 
+            if (selectedProfile.Profile.Header.SourceEnvelopeBinding is not null &&
+                selectedProfile.Family.Family.CommonFirmwareVersionArtifactBindingId is not null)
+            {
+                issues = [new CompositionIssue("profile.v2.compile.version-source-envelope-not-admitted",
+                    "Version-conditioned map selection cannot be combined with source-envelope execution.")];
+                return false;
+            }
+
             var profileMapIds = selectedProfile.Profile.MapBinding.MapIds.ToHashSet(StringComparer.Ordinal);
             var deferredInspectionStructureIds = selectedProfile.Profile.MetadataBindings
                 .Select(static binding => binding.StructureId)
@@ -127,6 +135,18 @@ internal static class V2CompositionPreparationService
             }
             if (mapResolution.Status != FirmwareMapResolutionStatus.Unique)
             {
+                issues = mapResolution.RejectionKind switch
+                {
+                    FirmwareMapResolutionRejectionKind.CommonFirmwareVersionRequired =>
+                        [new CompositionIssue("profile.v2.compile.common-fw-version-required",
+                            "A readable TP FWConfig Common FW version is required for map selection.")],
+                    FirmwareMapResolutionRejectionKind.CommonFirmwareVersionBelowMinimum =>
+                        [new CompositionIssue("profile.v2.compile.common-fw-version-below-minimum",
+                            "TP FWConfig Common FW version must be at least 1.0.0.")],
+                    null or FirmwareMapResolutionRejectionKind.NoMatchingMap or
+                        FirmwareMapResolutionRejectionKind.AmbiguousMaps => [],
+                    _ => [],
+                };
                 return false;
             }
 
