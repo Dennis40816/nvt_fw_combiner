@@ -206,8 +206,9 @@ internal sealed partial class ReplacePresentationViewModel
             ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
                 ? AbCtrlRamReadiness
                 : _compositionServices.Capabilities.GetWorkflowReadiness(SelectedIc, SelectedReplaceMode,
-                    (SelectedReplaceMode switch { CtrlRamReplaceMode => _ctrlRamReplaceSession,
-                        GeneralReplaceMode => _generalReplaceSession, _ => null })?.CurrentSnapshot?.SelectedRouteId)
+                    (SelectedReplaceMode == CtrlRamReplaceMode ? _ctrlRamReplaceSession
+                        : SelectedReplaceMode == GeneralReplaceMode ? _generalReplaceSession : null)
+                        ?.CurrentSnapshot?.SelectedRouteId)
             : null;
 
     public bool IsSelectedReplaceUnverified => VerificationText.IsUnverified(SelectedReplaceWorkflowReadiness);

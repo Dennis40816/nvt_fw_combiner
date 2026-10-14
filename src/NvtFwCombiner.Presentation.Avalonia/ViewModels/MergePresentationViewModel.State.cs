@@ -82,14 +82,14 @@ internal sealed partial class MergePresentationViewModel
     private CapabilityWorkflowReadiness? SelectedMergeWorkflowReadiness =>
         HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedMergeMode)
             ? _compositionServices.Capabilities.GetWorkflowReadiness(SelectedIc, SelectedMergeMode,
-                (SelectedMergeMode switch { NormalMergeMode => _standardMergeSession, AbCodeMergeMode => _abMergeSession,
-                    GeneralMergeMode => _generalMergeSession, _ => null })?.CurrentSnapshot?.SelectedRouteId)
+                (SelectedMergeMode == AbCodeMergeMode ? _abMergeSession
+                    : SelectedMergeMode == GeneralMergeMode ? _generalMergeSession : _standardMergeSession)
+                    .CurrentSnapshot?.SelectedRouteId)
             : null;
 
     /// <summary>Whether the selected Merge route has no independent Golden evidence.</summary>
     public bool IsSelectedMergeUnverified => VerificationText.IsUnverified(SelectedMergeWorkflowReadiness);
 
-    /// <summary>Plain-language output notice for the selected Merge route; empty when verified.</summary>
     public string OutputVerificationNotice => VerificationText.OutputNotice(Text, SelectedMergeWorkflowReadiness);
 
     internal CompositionRunContext CaptureRunContext(string mode, bool build = false)
