@@ -264,6 +264,13 @@ public sealed class CompositionRunRequest
                 nameof(outputFileName));
         }
 
+        if (outputFileNameIsOverride && UnverifiedCandidateOutputName.Applies(compiledComposition))
+        {
+            throw new ArgumentException(
+                "An unverified candidate output name carries the unverified marker and cannot be overridden.",
+                nameof(outputFileName));
+        }
+
         if (!outputFileNameIsOverride && output.RendererKind == CompiledOutputNameRendererKind.Static &&
             !string.Equals(outputFileName, output.FileNameTemplate, StringComparison.Ordinal))
         {
