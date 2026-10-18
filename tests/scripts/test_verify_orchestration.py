@@ -7232,22 +7232,82 @@ class VerifyOrchestrationTests(unittest.TestCase):
                     MODULE.finalize_ci_dotnet_evidence(downloads)
                 coverage.assert_not_called()
 
-    def test_ci_dotnet_finalizer_verifies_each_producers_newest_attempt(self) -> None:
+    def test_ci_dotnet_finalizer_accepts_producers_a_failed_job_rerun_skipped(self) -> None:
         with self.public_finalizer_fixture() as (root, downloads, coverage):
             self.stage_complete_ci_dotnet_evidence(
                 downloads, "a" * 40, attempt=3, owners=("core",)
             )
             with patch.dict(os.environ, self.ci_finalizer_environment("a" * 40, attempt=3)):
-                with self.assertRaisesRegex(
-                    RuntimeError, r"^Public evidence provenance is not current\.$"
+                MODULE.finalize_ci_dotnet_evidence(downloads)
+            coverage.assert_called_once_with("dotnet", root / "coverage/dotnet")
+
+    def test_ci_dotnet_finalizer_verifies_each_producers_newest_attempt(self) -> None:
+        with self.public_finalizer_fixture() as (root, downloads, coverage):
+            self.stage_complete_ci_dotnet_evidence(
+                downloads, "a" * 40, attempt=3, owners=("core", "bootstrap", "ui")
+            )
+            old_core = self.ci_artifact_root(downloads, "core", 1)
+            manifest_path = old_core / "shards/core/manifest.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["success"] = False
+            self.write_ci_manifest(manifest_path, manifest)
+            with patch.dict(os.environ, self.ci_finalizer_environment("a" * 40, attempt=3)):
+                MODULE.finalize_ci_dotnet_evidence(downloads)
+            coverage.assert_called_once_with("dotnet", root / "coverage/dotnet")
+
+    def test_ci_dotnet_finalizer_still_fails_a_failed_producer_that_did_not_rerun(
+        self,
+    ) -> None:
+        with self.public_finalizer_fixture() as (_root, downloads, coverage):
+            artifact = self.ci_artifact_root(downloads, "core", 1)
+            summary_path = artifact / "shards/core/shard-summary.json"
+            summary = json.loads(summary_path.read_text())
+            summary["outcome"] = "failed"
+            self.write_ci_manifest(summary_path, summary)
+            manifest_path = artifact / "shards/core/manifest.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest["success"] = False
+            manifest["files"]["shards/core/shard-summary.json"] = MODULE.sha256_file(
+                summary_path
+            )
+            self.write_ci_manifest(manifest_path, manifest)
+            with (
+                patch.dict(os.environ, self.ci_finalizer_environment("a" * 40, attempt=2)),
+                self.assertRaisesRegex(
+                    RuntimeError, r"^Public evidence reports an unsuccessful shard\.$"
+                ),
+            ):
+                MODULE.finalize_ci_dotnet_evidence(downloads)
+            coverage.assert_not_called()
+
+    def test_ci_dotnet_finalizer_holds_a_skipped_producer_to_its_own_artifact_attempt(
+        self,
+    ) -> None:
+        for claimed in (2, True):
+            with (
+                self.subTest(claimed=claimed),
+                self.public_finalizer_fixture() as (_root, downloads, coverage),
+            ):
+                self.stage_complete_ci_dotnet_evidence(
+                    downloads, "a" * 40, attempt=2, owners=("core",)
+                )
+                manifest_path = (
+                    self.ci_artifact_root(downloads, "bootstrap", 1)
+                    / "shards/bootstrap/manifest.json"
+                )
+                manifest = json.loads(manifest_path.read_text())
+                manifest["runAttempt"] = claimed
+                self.write_ci_manifest(manifest_path, manifest)
+                with (
+                    patch.dict(
+                        os.environ, self.ci_finalizer_environment("a" * 40, attempt=2)
+                    ),
+                    self.assertRaisesRegex(
+                        RuntimeError, r"^Public evidence provenance is not current\.$"
+                    ),
                 ):
                     MODULE.finalize_ci_dotnet_evidence(downloads)
                 coverage.assert_not_called()
-                self.stage_complete_ci_dotnet_evidence(
-                    downloads, "a" * 40, attempt=3, owners=("bootstrap", "ui")
-                )
-                MODULE.finalize_ci_dotnet_evidence(downloads)
-            coverage.assert_called_once_with("dotnet", root / "coverage/dotnet")
 
     def test_ci_dotnet_finalizer_rejects_unverifiable_attempt_provenance(self) -> None:
         cases = (

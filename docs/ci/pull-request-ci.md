@@ -49,9 +49,13 @@ contain the project identity, assembly hash, final counters, a boolean retry
 receipt with recovered-case count, and parameter-free failed/flaky methods.
 The closed file inventory carries SHA-256 hashes. Old schemas, extra files,
 invalid hashes, inconsistent counters, failed/skipped outcomes and below-floor
-shards are refused. All three shard summaries must identify the same source,
-run and current workflow attempt. Re-run all shard producers or start a new
-complete workflow run; earlier shard attempts cannot supply current evidence.
+shards are refused. All three shard summaries must identify the same source
+and run. Each summary manifest must also name the attempt that its artifact
+name declares. After "Re-run failed jobs", a shard that did not re-run keeps
+the evidence of its earlier attempt, and the finalizer accepts that evidence
+when it passed. An artifact of a later attempt than the current run, and a
+summary manifest that names another attempt than its artifact, are refused. A
+shard that failed and did not re-run still fails the finalizer.
 
 Raw results, discovery, logs, retry filters, assertion messages, captured output
 and hang/crash attachments stay on the producer runner within its existing
