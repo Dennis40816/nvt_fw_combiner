@@ -350,6 +350,40 @@ or conflicting immutable Release requires a new version; tags and assets are
 never moved or clobbered. A failed promotion can be rerun only in the same
 run with the same candidate digest while `main` still equals the workflow SHA.
 
+### Encrypted debug archive
+
+Every stable release from `1.2.2` is to carry one more asset,
+`NvtFwCombiner-vX.Y.Z-debug.7z`. It is a 7z with AES-256 content and header
+encryption. It holds the pinned test data (`nvt-testdata`, the commit and tree
+hash in `scripts/ci/test-baseline.json`), the files removed from the public
+tree and a `SOURCE.json` inventory. Only the release owner holds the password.
+
+The asset is outside the closed candidate set. The candidate manifest, its
+asset allowlist and `verify-manifest` do not change. `debug-archive.yml` builds
+the archive in its own run:
+
+- `workflow_run` after `ci` on `main` builds it for a release pull request
+  merge only. The `gate` job reuses `collect-release-request`, the same policy
+  function the candidate uses. The `pack` job then waits for the protected
+  `debug-archive` environment, which requires the owner's approval and allows
+  only `main`.
+- `workflow_dispatch` is a rehearsal on current `main`. It runs at any version.
+  Its artifact name starts with `debug-archive-rehearsal-` and no release reads it.
+- The packing step clones the two private repositories with read-only deploy
+  keys. Every secret exists only in the `debug-archive` environment. The log
+  holds counts and one archive SHA-256. It holds no file name or path, and all
+  errors from commands are withheld.
+- The step then tests the archive, extracts it and compares every file hash,
+  and checks that a wrong password cannot list the header.
+
+`release.yml` does not build the archive and does not use it yet. A later change
+adds a `fetch-debug-archive` command to the promotion job. It will accept only
+the newest successful automatic `debug-archive.yml` run for the exact release
+source on `main`, and `gh release create` will upload the file together with the
+closed assets, because an immutable Release cannot gain assets later. Until
+then, this workflow attaches nothing to a release and a rehearsal checks the
+packing alone.
+
 GitHub may return an annotated-tag message with CRLF transport line endings while the candidate artifact uses LF. Release validation canonicalizes only `CRLF` to `LF` on both messages before comparison; every logical line, field, ordering, and non-newline byte remains exact.
 
 Both package paths run `smoke-release.ps1 -SkipUiLaunch` before upload or publication. For v1.1.4, the owner's 2026-09-10 authorization admits the exact 40-case/177-declaration/174-unique-artifact/215-projected-path reference selection, including 164 BINs. All 25 Direct Golden output contracts are unchanged. Three input-only cases and their source-closed aliases remain explicitly non-parity evidence. Smoke verifies the pinned allowlist/README/case/artifact hashes, roles, source closure and physical package content. It rejects automatic tree selection, fabricated expected outputs, missing or cross-workflow alias sources, alias chains, ambiguous Direct/input classification, nested archives, transfer wrappers and unselected material. CONFIG provenance remains inert `reference` content. The confidential provenance declaration is retained with `storage: "private-reference"`; smoke verifies that its payload is absent from the package projection. The preparation leaves 173 public artifact paths and one private identity within the unchanged 177 logical declarations. Materialized profiles, external tools, sidecars and worker self-test remain required. This does not satisfy visible startup or clean-machine acceptance; historical package evidence is not rewritten.
