@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -30,6 +31,12 @@ CANONICAL_RELEASE_SELECTION_SUMMARY = {
     "uniqueArtifactPathCount": 174,
 }
 CERTIFIED_NT51929_DPCMI_CASE_ID = "nt51929-certified-metadata-inputs-20260904"
+# Cases certified before `storage: "private-reference"` existed keep their unchanged manifests. For exactly these
+# provenance artifacts the public confidential-reference inventory holds the private disposition by size and SHA-256.
+# Every other artifact must declare `storage: "private-reference"` itself, so a new case cannot pass without its file.
+CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS: dict[str, frozenset[str]] = {
+    "nt51951-fw200-cascade2-auto-prj-599-20260731": frozenset({"postbuild-script-reference"}),
+}
 CERTIFIED_NT51929_DPCMI_RANGE = (0x401A, 0x401D)
 CERTIFIED_NT51929_DPCMI_BYTES = bytes.fromhex("5F0912")
 CAPABILITY_POLICY = PurePosixPath("docs/contracts/canonical-capability-policy-v1.json")
@@ -1020,6 +1027,34 @@ def _case_directory(
     return PurePosixPath(ic, workflow, variant, topology, case_id)
 
 
+def _read_private_reference(sha256: str, errors: list[str]) -> bytes | None:
+    """Resolve private provenance by digest without exposing its source bytes."""
+    configured_root = os.environ.get("NVT_PRIVATE_ASSETS", "").strip()
+    if not configured_root:
+        return None
+    root = Path(configured_root) / "nfc/references"
+    inventory = _read_confined_file(root / "SHA256SUMS", root, "private reference inventory", errors)
+    if inventory is None:
+        return None
+    try:
+        lines = inventory.decode("utf-8").splitlines()
+    except UnicodeDecodeError:
+        errors.append("private reference inventory must be UTF-8")
+        return None
+    for line in lines:
+        if line[:66] != sha256 + "  ":
+            continue
+        relative_path = _relative_path(line[66:], "private reference path", errors)
+        if relative_path is None:
+            return None
+        payload = _read_confined_file(root / Path(relative_path), root, "private reference", errors)
+        if payload is not None and hashlib.sha256(payload).hexdigest() != sha256:
+            errors.append("private reference SHA-256 mismatch")
+        return payload
+    errors.append("SHA-256 was not found in the private reference inventory")
+    return None
+
+
 def _validate_artifact(
     canonical_root: Path,
     case_directory: PurePosixPath,
@@ -1032,6 +1067,8 @@ def _validate_artifact(
     *,
     requires_legacy_paths: bool = True,
     approved_intake_source: bool = False,
+    private_reference_identities: frozenset[tuple[str, int]] = frozenset(),
+    implicit_private_artifact_ids: frozenset[str] = frozenset(),
 ) -> None:
     if not isinstance(artifact, dict):
         errors.append(f"{label} must be an object")
@@ -1068,35 +1105,45 @@ def _validate_artifact(
     # A single direct case may bind one immutable physical payload to multiple
     # logical argv roles (for example AB TPA and TPB). The case-directory check
     # above still prevents a different case from reaching across case roots.
-    declared_files.add(relative_path)
-    payload = _read_confined_file(
-        canonical_root / Path(relative_path),
-        canonical_root,
-        f"canonical artifact {relative_path}",
-        errors,
-    )
-    if payload is None:
+    private_reference = "storage" in artifact
+    if private_reference and (
+        artifact["storage"] != "private-reference" or role != "provenance"
+    ):
+        errors.append(f"{label} private storage is permitted only for provenance artifacts")
         return
     expected_size = artifact.get("size")
     if type(expected_size) is not int or expected_size < 0:
         errors.append(f"{label} size must be a non-negative integer: {expected_size}")
-    elif expected_size != len(payload):
-        errors.append(
-            f"canonical artifact size mismatch for {relative_path}: "
-            f"expected {expected_size}, actual {len(payload)}"
-        )
     expected_sha = artifact.get("sha256")
-    actual_sha = hashlib.sha256(payload).hexdigest()
     if (
         not isinstance(expected_sha, str)
         or SHA256_PATTERN.fullmatch(expected_sha) is None
     ):
         errors.append(f"{label} has invalid sha256: {expected_sha}")
-    elif expected_sha != actual_sha:
-        errors.append(
-            f"canonical artifact SHA-256 mismatch for {relative_path}: "
-            f"expected {expected_sha}, actual {actual_sha}"
+    if isinstance(expected_sha, str) and type(expected_size) is int:
+        in_inventory = (expected_sha, expected_size) in private_reference_identities
+        if "storage" in artifact and not in_inventory:
+            # An explicit private artifact still needs a public identity, or a missing file could pass unnoticed.
+            errors.append(
+                f"{label} private reference has no matching identity in the public confidential-reference manifest"
+            )
+        if role == "provenance" and artifact_id in implicit_private_artifact_ids:
+            private_reference |= in_inventory
+    payload = None
+    if private_reference:
+        if isinstance(expected_sha, str) and SHA256_PATTERN.fullmatch(expected_sha):
+            payload = _read_private_reference(expected_sha, errors)
+    else:
+        declared_files.add(relative_path)
+        payload = _read_confined_file(
+            canonical_root / Path(relative_path), canonical_root,
+            f"canonical artifact {relative_path}", errors,
         )
+    if payload is not None:
+        if type(expected_size) is int and expected_size != len(payload):
+            errors.append(f"canonical artifact size mismatch for {relative_path}")
+        if expected_sha != hashlib.sha256(payload).hexdigest():
+            errors.append(f"canonical artifact SHA-256 mismatch for {relative_path}")
     legacy_paths = artifact.get("legacyPaths")
     if legacy_paths is None and approved_intake_source:
         source_path = _relative_path(
@@ -1221,6 +1268,19 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
         return
 
     declared_files = set(ROOT_FILES)
+    private_reference_identities: frozenset[tuple[str, int]] = frozenset()
+    confidential_manifest_path = repository_root / "docs/references/confidential-references.json"
+    if confidential_manifest_path.exists():
+        confidential_manifest = _load_object(
+            confidential_manifest_path, repository_root, "confidential reference manifest", errors
+        )
+        if confidential_manifest is not None:
+            private_reference_identities = frozenset(
+                (entry["sha256"], entry["sizeBytes"])
+                for entry in confidential_manifest.get("entries", [])
+                if isinstance(entry, dict) and isinstance(entry.get("sha256"), str)
+                and type(entry.get("sizeBytes")) is int
+            )
     direct_source_case_ids: set[str] = set()
     alias_sources: list[tuple[str, str, str]] = []
     direct_source_workflows: dict[str, str] = {}
@@ -1310,6 +1370,8 @@ def validate_canonical_golden(repository_root: Path, errors: list[str]) -> None:
                         and not approved_intake_source
                     ),
                     approved_intake_source=approved_intake_source,
+                    private_reference_identities=private_reference_identities,
+                    implicit_private_artifact_ids=CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.get(case_id, frozenset()),
                 )
                 if (
                     isinstance(artifact, dict)
@@ -1662,7 +1724,12 @@ def validate_canonical_release_allowlist(
             if not isinstance(release_artifact, dict):
                 errors.append(f"{artifact_label} must be an object")
                 continue
-            if set(release_artifact) != {"artifactId", "role", "path", "size", "sha256"}:
+            expected_fields = {"artifactId", "role", "path", "size", "sha256"}
+            if "storage" in release_artifact:
+                expected_fields.add("storage")
+                if release_artifact["storage"] != "private-reference" or release_artifact.get("role") != "provenance":
+                    errors.append(f"{artifact_label} private storage is permitted only for provenance artifacts")
+            if set(release_artifact) != expected_fields:
                 errors.append(f"{artifact_label} fields must match the closed artifact contract")
             artifact_id = _required_string(
                 release_artifact, "artifactId", artifact_label, errors
@@ -1683,6 +1750,15 @@ def validate_canonical_release_allowlist(
                     errors.append(
                         f"{artifact_label}.{field} differs from canonical case {case_id}"
                     )
+            # Both sides declare the same storage. Only the certified case keeps an unchanged canonical manifest
+            # that says nothing, while the allowlist marks the artifact private.
+            certified_implicit = (
+                artifact_id in CERTIFIED_IMPLICIT_PRIVATE_ARTIFACTS.get(case_id, frozenset())
+                and "storage" not in canonical_artifact
+                and release_artifact.get("storage") == "private-reference"
+            )
+            if release_artifact.get("storage") != canonical_artifact.get("storage") and not certified_implicit:
+                errors.append(f"{artifact_label}.storage differs from canonical case {case_id}")
             artifact_declaration_count += 1
             artifact_path = release_artifact.get("path")
             if isinstance(artifact_path, str):
