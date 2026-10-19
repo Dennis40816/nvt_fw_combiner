@@ -160,7 +160,8 @@ jobs:
           function Write-DeployKey([string]$Value, [string]$Path) {
             $text = ($Value -replace "`r`n", "`n").TrimEnd("`n") + "`n"
             [IO.File]::WriteAllText($Path, $text, [Text.UTF8Encoding]::new($false))
-            & icacls.exe $Path /inheritance:r /grant:r "$($env:USERNAME):(F)" | Out-Null
+            $null = & icacls.exe $Path /inheritance:r /grant:r "$($env:USERNAME):(F)" *>&1
+            if ($LASTEXITCODE -ne 0) { throw 'debug-archive: The deploy key file permissions could not be restricted.' }
           }
           function Invoke-QuietGit([string[]]$Arguments) {
             $null = & git @Arguments 2>&1
@@ -209,7 +210,7 @@ jobs:
               throw 'debug-archive: The test data pin is invalid.'
             }
             $testdataCommit = Copy-SparseCommit $pin.assetsRepo $testdataKey $pin.assetsCommit $pin.assetsPath $testdataClone
-            $null = & python ./scripts/golden/golden_pin.py verify --root (Join-Path $testdataClone $pin.assetsPath) --baseline ./scripts/ci/test-baseline.json
+            $null = & python ./scripts/golden/golden_pin.py verify --root (Join-Path $testdataClone $pin.assetsPath) --baseline ./scripts/ci/test-baseline.json *>&1
             if ($LASTEXITCODE -ne 0) { throw 'debug-archive: The test data does not match its pin.' }
             $testdataStage = Join-Path $stage 'testdata'
             New-Item -ItemType Directory -Force -Path $testdataStage | Out-Null
@@ -313,11 +314,15 @@ jobs:
             Remove-Item Env:GIT_SSH_COMMAND, Env:GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue
             foreach ($keyFile in $testdataKey, $privateKey) {
               if (Test-Path -LiteralPath $keyFile -PathType Leaf) {
-                & icacls.exe $keyFile /grant:r "$($env:USERNAME):F" | Out-Null
+                $null = & icacls.exe $keyFile /grant:r "$($env:USERNAME):F" *>&1
                 Remove-Item -LiteralPath $keyFile -Force -ErrorAction SilentlyContinue
               }
             }
             if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
+            if ((Test-Path -LiteralPath $testdataKey) -or (Test-Path -LiteralPath $privateKey) -or (Test-Path -LiteralPath $work)) {
+              $failed = $true
+              Write-Host '::error::debug-archive: Cleanup left key or work files behind.'
+            }
           }
           if ($failed) { exit 1 }
       - name: Upload encrypted debug archive

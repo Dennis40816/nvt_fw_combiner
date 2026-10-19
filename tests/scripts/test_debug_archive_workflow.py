@@ -33,6 +33,15 @@ class DebugArchiveWorkflowTests(unittest.TestCase):
         self.assertNotIn("pull_request", self.text.replace("pull-requests", ""))
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
         gate = self.workflow["jobs"]["gate"]
+        self.assertEqual(
+            "${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || "
+            "(github.event.workflow_run.conclusion == 'success' && "
+            "github.event.workflow_run.event == 'push' && "
+            "github.event.workflow_run.head_branch == 'main' && "
+            "github.event.workflow_run.head_sha == github.sha && "
+            "github.sha == github.workflow_sha)) }}",
+            gate["if"],
+        )
         for clause in ("github.ref == 'refs/heads/main'",
                        "github.event.workflow_run.conclusion == 'success'",
                        "github.event.workflow_run.event == 'push'",
@@ -90,6 +99,80 @@ class DebugArchiveWorkflowTests(unittest.TestCase):
         for forbidden in ("Write-Output", "Write-Verbose", "Format-List", "Out-Host", "Tee-Object"):
             self.assertNotIn(forbidden, run)
         self.assertNotIn("Write-Host \"$", run.replace('Write-Host "::error::$text"', ""))
+
+    def test_every_native_command_keeps_its_output_out_of_the_log(self) -> None:
+        run = self.pack_steps["Pack and self-check the encrypted archive"]["run"]
+        native = re.compile(r"& (git|python|icacls\.exe|\$sevenZip)\b")
+        # Either the output is discarded and both streams are merged first, or a git
+        # query returns its value to a variable and drops stderr. A comment sign anywhere
+        # on the line would let a commented-out redirect pass, so none is allowed.
+        # A pipe would let the output continue to Write-Host, so none is allowed either.
+        discarded = re.compile(r"^\s*\$null = & [^#|]+ (?:\*>&1|2>&1)$")
+        queried = re.compile(r"^\s*\$\w+ = \(& git [^#|]+ 2>\$null\)\.Trim\(\)$")
+        calls = [line for line in run.splitlines() if native.search(line)]
+        self.assertEqual(7, len(calls), calls)
+        for line in calls:
+            with self.subTest(line=line.strip()):
+                self.assertTrue(discarded.match(line) or queried.match(line), line)
+
+    def test_the_password_comes_from_the_secret_and_all_scratch_paths_sit_under_the_work_directory(self) -> None:
+        run = self.pack_steps["Pack and self-check the encrypted archive"]["run"]
+        lines = {line.strip() for line in run.splitlines()}
+        for expected in (
+            "$password = $env:NFC_DEBUG_ARCHIVE_PASSWORD",
+            "$work = Join-Path $env:RUNNER_TEMP 'debug-archive-work'",
+            "$stage = Join-Path $work 'stage'",
+            "$testdataKey = Join-Path $work 'testdata-key'",
+            "$privateKey = Join-Path $work 'private-key'",
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, lines)
+        # The password is read once, from the environment, and never assigned elsewhere.
+        self.assertEqual(1, len(re.findall(r"^\s*\$password = ", run, re.MULTILINE)))
+
+    def test_the_archive_name_and_the_job_summary_hold_only_public_values(self) -> None:
+        run = self.pack_steps["Pack and self-check the encrypted archive"]["run"]
+        lines = {line.strip() for line in run.splitlines()}
+        for expected in (
+            '$archiveName = "NvtFwCombiner-v$($env:NFC_VERSION)-debug.7z"',
+            '"## Debug archive v$($env:NFC_VERSION)"',
+            '"Source SHA: ``$($env:NFC_SOURCE_SHA)``"',
+            '"Files: $($inventory.Count) ($testdataCount test data, $purgedCount removed from the public tree)"',
+            '"Archive: $size bytes, SHA-256 ``$sha256``"',
+            '"Artifact: ``$artifactName``"',
+        ):
+            with self.subTest(expected=expected):
+                self.assertIn(expected, lines)
+
+    def test_key_permissions_are_proven_and_cleanup_is_proven(self) -> None:
+        run = self.pack_steps["Pack and self-check the encrypted archive"]["run"]
+        squash = lambda value: re.sub(r"\s+", " ", value).strip()
+        restrict = run.index("/inheritance:r")
+        self.assertIn("$LASTEXITCODE -ne 0", run[restrict:restrict + 400])
+        self.assertIn("debug-archive: The deploy key file permissions could not be restricted.", run)
+        # The whole cleanup is pinned as one block: it is the finally clause of the main
+        # try/catch, it restores and deletes both key files and the work directory, and it
+        # ends with the proof that sets $failed, followed by the exit on failure.
+        cleanup = squash(
+            """
+            private files.' } } finally {
+              Remove-Item Env:GIT_SSH_COMMAND, Env:GIT_TERMINAL_PROMPT -ErrorAction SilentlyContinue
+              foreach ($keyFile in $testdataKey, $privateKey) {
+                if (Test-Path -LiteralPath $keyFile -PathType Leaf) {
+                  $null = & icacls.exe $keyFile /grant:r "$($env:USERNAME):F" *>&1
+                  Remove-Item -LiteralPath $keyFile -Force -ErrorAction SilentlyContinue
+                }
+              }
+              if (Test-Path -LiteralPath $work) { Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue }
+              if ((Test-Path -LiteralPath $testdataKey) -or (Test-Path -LiteralPath $privateKey) -or (Test-Path -LiteralPath $work)) {
+                $failed = $true
+                Write-Host '::error::debug-archive: Cleanup left key or work files behind.'
+              }
+            }
+            if ($failed) { exit 1 }
+            """
+        )
+        self.assertIn(cleanup, squash(run))
 
     def test_the_artifact_is_the_7z_alone_with_a_release_or_rehearsal_name(self) -> None:
         pack = self.pack_steps["Pack and self-check the encrypted archive"]["run"]
