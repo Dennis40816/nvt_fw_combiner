@@ -52,6 +52,16 @@ package without a GitHub token in its execution step. A failed post-tag
 promotion can be rerun only within the same run while protected `main` remains
 at the candidate SHA; conflicting immutable Releases require a new version.
 
+`debug-archive.yml` builds the encrypted debug archive that every stable release
+from `1.2.2` carries as one extra asset. The `gate` job derives the release
+request with the same policy function as the release candidate. The `pack` job
+runs in the protected `debug-archive` environment, which needs the owner's
+approval and allows only `main`. Only that job receives the archive password and
+the two read-only deploy keys. Its log holds counts and one SHA-256, never a file
+name. `release.yml` does not run it. The release promotion job fetches the
+artifact of the successful run for the exact release source and uploads it with
+the closed assets. A manual dispatch is a rehearsal that promotion never reads.
+
 `release-rehearsal.yml` is manually dispatched on the selected branch. It uses
 the same pinned toolchain setup and stable package path as the release candidate,
 then runs release Golden verification, package smoke, notes rendering and the

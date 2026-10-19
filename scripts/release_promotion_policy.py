@@ -8,6 +8,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from datetime import datetime
 from typing import Any
@@ -32,6 +33,10 @@ REQUIRED_RELEASE_CHECKS = (
 )
 MAX_GITHUB_PAGES = 100
 MAX_GITHUB_ITEMS = 10_000
+DEBUG_ARCHIVE_FIRST_VERSION = (1, 2, 2)
+DEBUG_ARCHIVE_WORKFLOW = ".github/workflows/debug-archive.yml"
+DEBUG_ARCHIVE_SIGNATURE = b"7z\xbc\xaf\x27\x1c"
+DEBUG_ARCHIVE_MAX_BYTES = 2 * 1024**3 - 1
 SOURCE_CI_JOB_FIELDS = ("id", "run_id", "head_sha", "name", "status", "conclusion")
 
 
@@ -988,6 +993,173 @@ def collect_release_request(
             "publishedAt": pull["merged_at"], "reviewHeadSha": pull["head"]["sha"]}
 
 
+def debug_archive_required(version: str) -> bool:
+    """Releases from 1.2.2 on carry the encrypted debug archive."""
+
+    return (
+        _stable_version_parts(version, "debug archive version")
+        >= DEBUG_ARCHIVE_FIRST_VERSION
+    )
+
+
+def debug_archive_name(version: str) -> str:
+    _require(
+        debug_archive_required(version),
+        "the encrypted debug archive starts with version 1.2.2",
+    )
+    return f"NvtFwCombiner-v{version}-debug.7z"
+
+
+def debug_archive_artifact_name(version: str, source_sha: str) -> str:
+    """Name of the workflow artifact that hands the archive to promotion."""
+
+    debug_archive_name(version)
+    _require_sha(source_sha, "debug archive source SHA")
+    return f"debug-archive-v{version}-{source_sha}"
+
+
+def select_debug_archive_run(
+    runs: object, *, repository: str, source_sha: str
+) -> dict[str, Any]:
+    """Select the newest successful automatic run of the debug archive workflow."""
+
+    _require(isinstance(runs, list), "debug archive run inventory is malformed")
+    _require_sha(source_sha, "debug archive source SHA")
+    matches: list[dict[str, Any]] = []
+    for run in runs:
+        if not isinstance(run, dict):
+            continue
+        run_repository = run.get("repository")
+        workflow_path = run.get("path")
+        if not (
+            isinstance(run_repository, dict)
+            and run_repository.get("full_name") == repository
+            and isinstance(workflow_path, str)
+            and workflow_path.split("@", 1)[0] == DEBUG_ARCHIVE_WORKFLOW
+            and run.get("head_sha") == source_sha
+            and run.get("head_branch") == "main"
+            and run.get("event") == "workflow_run"
+            and run.get("status") == "completed"
+            and run.get("conclusion") == "success"
+            and isinstance(run.get("id"), int)
+            and not isinstance(run.get("id"), bool)
+            and isinstance(run.get("run_number"), int)
+            and not isinstance(run.get("run_number"), bool)
+        ):
+            continue
+        matches.append(run)
+    _require(
+        bool(matches),
+        "no successful debug archive run exists for the exact release source",
+    )
+    return max(matches, key=lambda run: (run["run_number"], run.get("run_attempt", 1)))
+
+
+def select_debug_archive_artifact(
+    inventory: object, *, name: str, run_id: int, source_sha: str
+) -> dict[str, Any]:
+    _require(
+        isinstance(inventory, dict) and isinstance(inventory.get("artifacts"), list),
+        "debug archive artifact inventory is malformed",
+    )
+    rows = [
+        row
+        for row in inventory["artifacts"]
+        if isinstance(row, dict) and row.get("name") == name
+    ]
+    _require(len(rows) == 1, "debug archive artifact is missing or ambiguous")
+    row = rows[0]
+    _require(row.get("expired") is False, "debug archive artifact has expired")
+    owner = row.get("workflow_run")
+    _require(
+        isinstance(owner, dict)
+        and owner.get("id") == run_id
+        and owner.get("head_sha") == source_sha,
+        "debug archive artifact belongs to another run or source",
+    )
+    return row
+
+
+def verify_debug_archive_download(directory: Path, version: str) -> Path:
+    """Accept exactly one 7z file with the expected name; never read its content."""
+
+    name = debug_archive_name(version)
+    entries = sorted(directory.iterdir())
+    _require(
+        len(entries) == 1 and entries[0].is_file() and entries[0].name == name,
+        "debug archive download must be exactly the expected single file",
+    )
+    path = entries[0]
+    size = path.stat().st_size
+    _require(
+        len(DEBUG_ARCHIVE_SIGNATURE) < size <= DEBUG_ARCHIVE_MAX_BYTES,
+        "debug archive size is outside the release asset bounds",
+    )
+    with path.open("rb") as handle:
+        header = handle.read(len(DEBUG_ARCHIVE_SIGNATURE))
+    _require(header == DEBUG_ARCHIVE_SIGNATURE, "debug archive is not a 7z file")
+    return path
+
+
+def fetch_debug_archive(
+    repository: str, source_sha: str, version: str, destination: Path
+) -> dict[str, Any]:
+    """Copy the verified archive of the exact source into the release asset directory."""
+
+    if not debug_archive_required(version):
+        return {"attached": False}
+    _require(
+        re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) is not None,
+        "release repository is malformed",
+    )
+    _require(destination.is_dir(), "release asset directory must already exist")
+    target = destination / debug_archive_name(version)
+    _require(not target.exists(), "release asset directory already holds the debug archive")
+    runs = _read_github_json(
+        [
+            "api", "--method", "GET",
+            f"repos/{repository}/actions/workflows/debug-archive.yml/runs",
+            "-f", f"head_sha={source_sha}", "-f", "event=workflow_run",
+            "-f", "status=success", "-f", "per_page=100",
+        ],
+        "debug archive runs",
+    )
+    _require(
+        isinstance(runs, dict) and isinstance(runs.get("workflow_runs"), list),
+        "debug archive run inventory is malformed",
+    )
+    run = select_debug_archive_run(
+        runs["workflow_runs"], repository=repository, source_sha=source_sha
+    )
+    name = debug_archive_artifact_name(version, source_sha)
+    inventory = _read_github_json(
+        [
+            "api", "--method", "GET",
+            f"repos/{repository}/actions/runs/{run['id']}/artifacts",
+            "-f", f"name={name}", "-f", "per_page=100",
+        ],
+        "debug archive artifacts",
+    )
+    select_debug_archive_artifact(
+        inventory, name=name, run_id=run["id"], source_sha=source_sha
+    )
+    with tempfile.TemporaryDirectory(prefix="debug-archive-") as temporary:
+        download = _execute_gh(
+            ["run", "download", str(run["id"]), "--repo", repository,
+             "--name", name, "--dir", temporary]
+        )
+        _require(download.returncode == 0, "debug archive artifact could not be downloaded")
+        verified = verify_debug_archive_download(Path(temporary), version)
+        shutil.copyfile(verified, target)
+    return {
+        "attached": True,
+        "runId": run["id"],
+        "name": target.name,
+        "size": target.stat().st_size,
+        "sha256": _sha256(target),
+    }
+
+
 def _runtime_from_body(body: object) -> str | None:
     if not isinstance(body, str):
         return None
@@ -1865,8 +2037,15 @@ def validate_existing_release(
 
 def expected_published_asset_metadata(
     manifest_path: Path,
+    *,
+    with_debug_archive: bool = False,
 ) -> dict[str, dict[str, Any]]:
-    """Read exact candidate metadata for every published GitHub Release asset."""
+    """Read exact candidate metadata for every published GitHub Release asset.
+
+    The encrypted debug archive is outside the closed candidate manifest. With
+    ``with_debug_archive`` it is one more expected asset, read from the same
+    directory as the manifest.
+    """
 
     manifest_path = manifest_path.resolve(strict=True)
     _require(manifest_path.is_file(), "candidate manifest path must be a file")
@@ -1902,6 +2081,11 @@ def expected_published_asset_metadata(
         _require(path.is_file(), f"candidate published asset is missing: {path.name}")
         _require(path.name not in result, "candidate repeats a published asset name")
         result[path.name] = {"size": path.stat().st_size, "sha256": _sha256(path)}
+    if with_debug_archive:
+        archive = manifest_path.parent / debug_archive_name(version)
+        _require(archive.is_file(), f"candidate published asset is missing: {archive.name}")
+        _require(archive.name not in result, "candidate repeats a published asset name")
+        result[archive.name] = {"size": archive.stat().st_size, "sha256": _sha256(archive)}
     return result
 
 
@@ -2004,6 +2188,8 @@ def plan_release_asset_recovery(
     manifest_path: Path,
     published_dir: Path,
     published_names: list[str],
+    *,
+    with_debug_archive: bool = False,
 ) -> list[str]:
     """Return only missing assets; reject unexpected names or conflicting bytes."""
 
@@ -2029,6 +2215,13 @@ def plan_release_asset_recovery(
         manifest_path.name,
         f"NvtFwCombiner-v{version}-assets.sha256",
     }
+    if with_debug_archive:
+        archive_name = debug_archive_name(version)
+        _require(
+            (manifest_path.parent / archive_name).is_file(),
+            f"candidate debug archive is missing: {archive_name}",
+        )
+        expected_names.add(archive_name)
     actual_names = set(published_names)
     _require(
         len(actual_names) == len(published_names),
@@ -2153,10 +2346,17 @@ def parse_args() -> argparse.Namespace:
     release.add_argument("--expected-tag", required=True)
     release.add_argument("--expected-body", type=Path, required=True)
     release.add_argument("--manifest", type=Path)
+    release.add_argument("--with-debug-archive", action="store_true")
     recovery = subparsers.add_parser("plan-recovery")
     recovery.add_argument("--manifest", type=Path, required=True)
     recovery.add_argument("--published-dir", type=Path, required=True)
     recovery.add_argument("--published-names", type=Path, required=True)
+    recovery.add_argument("--with-debug-archive", action="store_true")
+    archive = subparsers.add_parser("fetch-debug-archive")
+    archive.add_argument("--repository", required=True)
+    archive.add_argument("--source-sha", required=True)
+    archive.add_argument("--version", required=True)
+    archive.add_argument("--destination", type=Path, required=True)
     return parser.parse_args()
 
 
@@ -2280,17 +2480,23 @@ def main() -> int:
             expected_tag=args.expected_tag,
             expected_body=args.expected_body.read_text(encoding="utf-8"),
             expected_assets=(
-                expected_published_asset_metadata(args.manifest)
+                expected_published_asset_metadata(
+                    args.manifest, with_debug_archive=args.with_debug_archive
+                )
                 if args.manifest is not None
                 else None
             ),
         )
         print(json.dumps(names))
+    elif args.command == "fetch-debug-archive":
+        print(json.dumps(fetch_debug_archive(
+            args.repository, args.source_sha, args.version, args.destination)))
     else:
         missing = plan_release_asset_recovery(
             args.manifest,
             args.published_dir,
             json.loads(args.published_names.read_text(encoding="utf-8")),
+            with_debug_archive=args.with_debug_archive,
         )
         print(json.dumps(missing))
     return 0

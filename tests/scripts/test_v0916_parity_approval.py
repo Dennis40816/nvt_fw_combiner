@@ -775,7 +775,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
             "workflowRef": "refs/heads/main", "workflowCommitSha": workflow_head,
             "workflowBlobSha": workflow_blob_sha,
             "workflowRawSha256": hashlib.sha256(workflow_bytes).hexdigest(),
-            "workflowSemanticContractSha256": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61",
+            "workflowSemanticContractSha256": "6d14f5e672618cd067b4db5e0dc3233bb4e41890e5a0b766e11f5e89a31499d9",
             "workflowRun": {
                 "id": 123, "runAttempt": 1, "headSha": workflow_head,
                 "headBranch": "main", "event": "workflow_dispatch", "status": "completed",
@@ -1147,7 +1147,7 @@ class V0916ParityApprovalTests(V0916ParityTestBase):
                 "workflowCommitSha": "1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",
                 "workflowBlobSha": "e" * 40,
                 "workflowRawSha256": "f" * 64,
-                "workflowSemanticContractSha256": "1271dcc781d805c410b39a3b9e76a37bc4985fcdd982ba0ad1e27ffdeeeefb61",
+                "workflowSemanticContractSha256": "6d14f5e672618cd067b4db5e0dc3233bb4e41890e5a0b766e11f5e89a31499d9",
                 "runId": 123,
                 "artifactId": 456,
                 "artifactName": "stable-candidate-123-1d1d1cfcad7f0963dd3ed1e3e920d9a3425d6220",

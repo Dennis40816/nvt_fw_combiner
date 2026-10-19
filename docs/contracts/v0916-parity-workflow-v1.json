@@ -23,7 +23,7 @@
   "jobInventorySha256": {
     "candidate": "4e7692e7d0116e159f97f112ea73aa69206b161988404ff8fcea35a5bdcaea6b",
     "release-eligibility": "658c6b57f495be185d140c83ebe3742e72aa7807cba3d0d86567377daa4c5be5",
-    "promote": "e2dfd4d955f06316430fd663bdf0b27f10782ffd2b3031531965ba4d466cecfc",
+    "promote": "4012237fda8d8977e0496007a010a1796d7a02149e3418d0d0ff2222f34c65ee",
     "published-smoke": "6c9e6d9c9862ef70eb87125478e62a6c27183fee639b08ed1c8a553d799c4c53",
     "v0916-parity-compare": "deaf586551c8e858580a8f903947a6671de2caf5b9d2eba28d6502f71fc0e85f",
     "v0916-parity-attestation": "1a45098a74d8ccda97d0cfb7ba96b05dbe745981101e033f4bbef15f56f4ec32",
@@ -275,7 +275,7 @@
       "Publish or validate GitHub Release",
       "Verify published assets and source downloads"
     ],
-    "stepsSha256": "7f16e0efb396baaf726f789426e3cf451ca63e4f62010ddf61ecbf73ff0d2d85",
+    "stepsSha256": "0eecf214ebfb160ea450a72065cbcaf43cadc3948cb9fab8ab0de2b9c5e87735",
     "steps": [
       {
         "name": "Checkout protected release authority",
