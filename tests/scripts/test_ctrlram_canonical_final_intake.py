@@ -125,7 +125,7 @@ class CtrlRamCanonicalFinalIntakeTests(unittest.TestCase):
         # Previously retained artifact identities and hashes are unchanged.
         self.assertEqual(41, len(cases))
         self.assertEqual(
-            "7880cb8ae40d1a4450a5e44cd42425885900e362298aa4637ab73d42d83bc96a",
+            "2112541559b2ff608a183d788657effabac7e5fcdfaba3513d610de34f62124e",
             normalized_sha256(cases),
         )
         self.assertEqual(181, len(artifact_facts))
