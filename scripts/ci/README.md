@@ -55,7 +55,9 @@ coverage retains its existing inputs. Summaries contain final counters,
 parameter-free failed/flaky methods, assembly hashes and a retry receipt with
 only a boolean and a recovered-case count. The producer reuses this directory's
 TRX reader and shard checker; the finalizer checks their closed summary contract,
-hashes and baseline floors for all three shards in the current workflow attempt.
+hashes and baseline floors for all three shards of the current run. A shard
+that did not re-run after "Re-run failed jobs" keeps the evidence of its earlier
+attempt, which the finalizer checks against the attempt in its artifact name.
 
 Raw results, discovery lists, execution/retry logs, failure messages, captured
 output and hang/crash attachments stay on the producer runner under the existing

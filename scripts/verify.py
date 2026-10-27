@@ -5181,8 +5181,21 @@ def validate_ci_public_files(
 
 
 def validate_ci_public_documents(
-    manifest: dict, summary: dict, shard: str, *, require_success: bool = False
+    manifest: dict,
+    summary: dict,
+    shard: str,
+    *,
+    require_success: bool = False,
+    artifact_attempt: int | None = None,
 ) -> None:
+    """Validate one shard's public documents.
+
+    The manifest must name the attempt its artifact name declares. The finalizer
+    passes that attempt, because "Re-run failed jobs" leaves a producer that was
+    not re-run with the artifact of an earlier attempt. The producer, which runs
+    inside the current attempt, passes nothing and gets the current attempt.
+    """
+
     try:
         floor = baseline_contract.load_baseline(ROOT / "scripts/ci/test-baseline.json")[
             "shards"
@@ -5195,7 +5208,7 @@ def validate_ci_public_documents(
             project_paths=[p.relative_path for p in CI_DOTNET_SHARDS[shard]],
             source_sha=require_ci_source_sha(),
             run_id=run_id,
-            run_attempt=run_attempt,
+            run_attempt=run_attempt if artifact_attempt is None else artifact_attempt,
             sdk_version=repository_sdk_version(),
             platform=CI_DOTNET_PRODUCER_PLATFORM,
             floor=floor,
@@ -6863,8 +6876,6 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
         }
         summaries = {}
         for shard in CI_DOTNET_SHARDS:
-            if artifact_attempts[shard] != run_attempt:
-                raise RuntimeError(summary_evidence.STALE_PROVENANCE)
             root = artifact_roots[shard]
             manifest = summary_evidence.read_document(
                 require_ci_public_file(root, f"shards/{shard}/manifest.json")
@@ -6872,7 +6883,9 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
             summary = summary_evidence.read_document(
                 require_ci_public_file(root, f"shards/{shard}/shard-summary.json")
             )
-            validate_ci_public_documents(manifest, summary, shard)
+            validate_ci_public_documents(
+                manifest, summary, shard, artifact_attempt=artifact_attempts[shard]
+            )
             validate_ci_public_files(
                 manifest, root, shard, require_coverage=manifest["success"]
             )
@@ -6946,7 +6959,13 @@ def finalize_ci_dotnet_evidence(download_root: Path) -> None:
     all_flaky: list[dict[str, str]] = []
     for shard, projects in CI_DOTNET_SHARDS.items():
         manifest, summary = summaries[shard]
-        validate_ci_public_documents(manifest, summary, shard, require_success=True)
+        validate_ci_public_documents(
+            manifest,
+            summary,
+            shard,
+            require_success=True,
+            artifact_attempt=artifact_attempts[shard],
+        )
         coverage_sources.extend(
             validate_ci_public_files(
                 manifest, artifact_roots[shard], shard, require_coverage=True
