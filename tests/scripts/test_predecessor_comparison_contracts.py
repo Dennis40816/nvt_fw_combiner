@@ -387,11 +387,12 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         debt = set(self.ledger["debtSet"]["routeIds"])
         pending = set(self.ledger["pendingAcceptedGaps"]["routeIds"])
         accepted = {row["routeId"] for row in self.ledger["acceptedGaps"]}
-        self.assertEqual(74, len(self.universe))
+        self.assertEqual(83, len(self.universe))
         self.assertEqual(37, len(covered))
         self.assertEqual(26, len(debt & self.universe))
         self.assertEqual(11, len(accepted))
-        self.assertEqual(set(), pending)
+        self.assertEqual(9, len(pending))
+        self.assertTrue(all(route.startswith("route-7-nt51925-") for route in pending))
         self.assertEqual({"1.2.2"}, {row["approvedInVersion"] for row in self.ledger["acceptedGaps"]})
         self.assertEqual({"RP-1.2.2-01"}, {row["declarationEntryId"] for row in self.ledger["acceptedGaps"]})
         self.assertEqual("awaiting-owner-approval", self.ledger["pendingAcceptedGaps"]["status"])
@@ -446,11 +447,14 @@ class PredecessorComparisonContractTests(unittest.TestCase):
             self.assertNotEqual([], validation.report_of_record_blockers(ledger))
 
     def test_pending_gap_approvals_block_every_report_of_record(self) -> None:
-        self.assertEqual([], validation.report_of_record_blockers(self.ledger))
+        self.assertEqual(9, len(validation.report_of_record_blockers(self.ledger)))
+        approved = copy.deepcopy(self.ledger)
+        approved["pendingAcceptedGaps"]["routeIds"] = []
+        self.assertEqual([], validation.report_of_record_blockers(approved))
         unapproved = copy.deepcopy(self.ledger)
-        unapproved["pendingAcceptedGaps"]["routeIds"] = [row["routeId"] for row in unapproved["acceptedGaps"]]
+        unapproved["pendingAcceptedGaps"]["routeIds"] += [row["routeId"] for row in unapproved["acceptedGaps"]]
         unapproved["acceptedGaps"] = []
-        self.assertEqual(11, len(validation.report_of_record_blockers(unapproved)))
+        self.assertEqual(20, len(validation.report_of_record_blockers(unapproved)))
 
 
 if __name__ == "__main__":

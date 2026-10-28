@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Composition;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.TestSupport;
@@ -447,6 +448,65 @@ public sealed partial class CompositionRunServiceTests
         ArgumentException exception = Assert.Throws<ArgumentException>(() => CreateRequest(outputFileName: @"..\escape.bin"));
 
         Assert.Contains("Output file name", exception.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Verification keeps the exact evidence class and does not create another policy state.</summary>
+    [Theory]
+    [InlineData(CapabilityEvidenceStatus.DirectGolden, false, "verified")]
+    [InlineData(CapabilityEvidenceStatus.ApprovedAlias, false, "verified")]
+    [InlineData(CapabilityEvidenceStatus.SyntheticOracle, false, "verified")]
+    [InlineData(CapabilityEvidenceStatus.ContractOnly, true, "unverified")]
+    [InlineData(CapabilityEvidenceStatus.Missing, true, "unverified")]
+    public void VerificationIsDerivedFromTheExistingEvidenceClass(
+        CapabilityEvidenceStatus evidence, bool unverified, string status)
+    {
+        var disclosure = new CapabilityWorkflowReadiness(true, true, evidence, "policy", "review");
+        Assert.Equal(evidence, disclosure.EvidenceStatus);
+        Assert.Equal(unverified, disclosure.IsUnverified);
+        Assert.Equal(!unverified, disclosure.HasReviewedEvidence);
+        Assert.Equal(status, CapabilityWorkflowReadinessProjector.GetVerificationStatus(evidence));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            CapabilityWorkflowReadinessProjector.IsUnverified((CapabilityEvidenceStatus)(-1)));
+    }
+
+    /// <summary>Policy disclosure cannot change complete output bytes, names, hashes, or commit behavior.</summary>
+    [Theory]
+    [InlineData(false, CapabilityEvidenceStatus.ContractOnly)]
+    [InlineData(true, CapabilityEvidenceStatus.ContractOnly)]
+    [InlineData(false, CapabilityEvidenceStatus.Missing)]
+    [InlineData(true, CapabilityEvidenceStatus.Missing)]
+    public async Task PreviewAndBuildKeepOutputIdentityWhenDisclosureIsCaptured(
+        bool build, CapabilityEvidenceStatus evidence)
+    {
+        CompositionRunRequest baselineRequest = CreateRequest();
+        CompositionRunRequest disclosedRequest = WithPolicyDisclosure(baselineRequest, evidence);
+        CompositionRunService baselineService = CreateService(out FakeOutputWriter baselineWriter);
+        CompositionRunService disclosedService = CreateService(out FakeOutputWriter disclosedWriter);
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        CompositionRunResult baseline = build
+            ? await baselineService.BuildAsync(baselineRequest, cancellationToken)
+            : await baselineService.PreviewAsync(baselineRequest, cancellationToken);
+        CompositionRunResult disclosed = build
+            ? await disclosedService.BuildAsync(disclosedRequest, cancellationToken)
+            : await disclosedService.PreviewAsync(disclosedRequest, cancellationToken);
+
+        Assert.True(baseline.Succeeded);
+        Assert.True(disclosed.Succeeded);
+        Assert.Equal(baseline.OutputBytes.ToArray(), disclosed.OutputBytes.ToArray());
+        Assert.Equal(baseline.Report.Output.FileName, disclosed.Report.Output.FileName);
+        Assert.Equal(baseline.Report.Output.Size, disclosed.Report.Output.Size);
+        Assert.Equal(baseline.Report.Output.Sha256, disclosed.Report.Output.Sha256);
+        Assert.Equal(build, disclosed.Report.Output.Committed);
+        Assert.Equal(baseline.CommittedOutputId, disclosed.CommittedOutputId);
+        Assert.Equal(baselineWriter.FileName, disclosedWriter.FileName);
+        Assert.Equal(baselineWriter.OutputBytes, disclosedWriter.OutputBytes);
+        Assert.Null(baseline.Report.Capability);
+        CapabilityRunSummary summary = Assert.IsType<CapabilityRunSummary>(disclosed.Report.Capability);
+        Assert.Equal(disclosedRequest.ResolvedCapability!.Identity.RouteId, summary.RouteId);
+        Assert.Equal(disclosedRequest.ResolvedCapability.CapabilityFingerprint, summary.CapabilityFingerprint);
+        Assert.Equal(CapabilityPublicationStatus.Candidate, summary.Publication);
+        Assert.Equal(evidence, summary.Evidence);
+        Assert.Equal("unverified", summary.VerificationStatus);
     }
 
     /// <summary>Verifies run requests snapshot caller-provided binding collections.</summary>

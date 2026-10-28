@@ -353,11 +353,12 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
     internal bool TryCompilePublishedClassificationCandidate(
         ResolvedCapabilityRoute publishedRoute,
         IReadOnlyCollection<string> selectedInputSlotIds,
-        out ResolvedCapability? capability)
+        out ResolvedCapability? capability,
+        string? explicitMapId = null)
     {
         return TryCompileClassificationCandidate(
             publishedRoute, requestedMapCapacity: null, selectedInputSlotIds,
-            exactSourceEnvelopeRoute: false, out capability);
+            exactSourceEnvelopeRoute: false, out capability, explicitMapId);
     }
 
     internal bool TryCompilePublishedClassificationCandidate(
@@ -376,7 +377,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         long? requestedMapCapacity,
         IReadOnlyCollection<string> selectedInputSlotIds,
         bool exactSourceEnvelopeRoute,
-        out ResolvedCapability? capability)
+        out ResolvedCapability? capability,
+        string? explicitMapId = null)
     {
         ArgumentNullException.ThrowIfNull(publishedRoute);
         ArgumentNullException.ThrowIfNull(selectedInputSlotIds);
@@ -422,7 +424,8 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
                 selectedInputSlotIds,
                 out _,
                 out ResolvedCapability? bound,
-                out IReadOnlyList<CompositionIssue> issues);
+                out IReadOnlyList<CompositionIssue> issues,
+                explicitMapId: explicitMapId);
             if (bound is null || issues.Count != 0)
             {
                 return false;
@@ -461,6 +464,14 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         {
             return false;
         }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     private void CompileAndBindDynamicRoute(
@@ -470,20 +481,46 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         out CompiledComposition? composition,
         out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues,
-        TopologySelection? requestedTopology = null)
+        TopologySelection? requestedTopology = null,
+        string? explicitMapId = null)
     {
-        _dynamicCompiler.Compile(
-            route.Identity,
-            requestedMapCapacity,
-            selectedInputSlotIds,
-            out CompiledComposition? compiled,
-            out MetadataPlanDefinition? metadataPlan,
-            out issues,
-            requestedTopology);
+        composition = null;
+        resolvedCapability = null;
+        if (explicitMapId is not null &&
+            (_dynamicCompiler.GetMapSelectionPrerequisite(route.Identity.IcId, route.Identity.WorkflowId) is null ||
+             !route.CompilationContract.AllowedMapVariantIds.Contains(explicitMapId, StringComparer.Ordinal)))
+        {
+            issues = [new CompositionIssue("profile.v2.compile.map-selection-invalid",
+                "Explicit classification maps require a published map-selection prerequisite and allowed map id.")];
+            return;
+        }
+        CompiledComposition? compiled;
+        MetadataPlanDefinition? metadataPlan;
+        if (explicitMapId is not null)
+        {
+            _dynamicCompiler.Compile(route.Identity, requestedMapCapacity, [], selectedInputSlotIds, explicitMapId,
+                out compiled, out metadataPlan, out issues, requestedTopology);
+        }
+        else
+        {
+            _dynamicCompiler.Compile(
+                route.Identity,
+                requestedMapCapacity,
+                selectedInputSlotIds,
+                out compiled,
+                out metadataPlan,
+                out issues,
+                requestedTopology);
+        }
         if (compiled is null || issues.Count != 0)
         {
-            composition = null;
-            resolvedCapability = null;
+            return;
+        }
+        if (explicitMapId is not null && !StringComparer.Ordinal.Equals(
+                compiled.V2Details.Provenance.ResolvedMap.ImageMap.MapId, explicitMapId))
+        {
+            issues = [new CompositionIssue("profile.v2.compile.map-selection-invalid",
+                "The compiled classification map does not match the requested map id.")];
             return;
         }
 

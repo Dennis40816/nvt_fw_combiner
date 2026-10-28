@@ -617,7 +617,39 @@
         "topologyRequirement": {
           "kind": "none"
         },
-        "capacityBytes": 262144
+        "capacityBytes": 262144,
+        "commonFirmwareVersionFrom": "1.0.0"
+      },
+      "coveragePolicy": "complete-with-explicit-gaps",
+      "regionSetIds": [
+        "nt51925-standard-merge-flash"
+      ],
+      "metadataSetIds": [
+        "nt51926-normal-tp-flash-header-metadata",
+        "firmware-config-general-parameters-metadata",
+        "dpcmi-metadata",
+        "tp-svn-metadata"
+      ],
+      "evidenceRefs": [
+        "owner-decision-2026-10-10-nt51925-tp-overview-postbuild",
+        "nt51925-isolated-candidate-pending-owner-evidence"
+      ]
+    },
+    {
+      "mapId": "nt51925-standard-merge-fw2-256k",
+      "addressSpaceId": "flash",
+      "applicability": {
+        "memberIds": [
+          "NT51925"
+        ],
+        "modeIds": [
+          "standard-merge"
+        ],
+        "topologyRequirement": {
+          "kind": "none"
+        },
+        "capacityBytes": 262144,
+        "commonFirmwareVersionFrom": "2.0.0"
       },
       "coveragePolicy": "complete-with-explicit-gaps",
       "regionSetIds": [

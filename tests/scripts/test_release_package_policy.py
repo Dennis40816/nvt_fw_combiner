@@ -56,7 +56,7 @@ CAPABILITY_POLICY_RELATIVE_PATH = Path(
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "e75b4eccff39e719046d70224b6faf569735d893e0ea45293198a913c58a54ad"
+    "130e44e4c5ce8b23fce5150438c6df1292aca0e0067e776c96cc7d84796d23fb"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -1851,7 +1851,7 @@ finally {
             result.stdout,
         )
         self.assertIn(
-            "Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, and 174 unique artifact paths selected",
+            "Canonical golden package policy dry-run passed: 25 direct Goldens, three owner-certified input-only evidence cases, twelve self-contained aliases, 177 declarations, 173 public artifact paths, and one private reference selected",
             result.stdout,
         )
         self.assertIn(
@@ -4640,7 +4640,7 @@ finally {
             for case in allowlist["cases"]:
                 for relative_path in dict.fromkeys(
                     [case["manifestPath"]]
-                    + [artifact["path"] for artifact in case["artifacts"]]
+                    + [artifact["path"] for artifact in case["artifacts"] if artifact.get("storage") != "private-reference"]
                 ):
                     projected_files.append({
                         "caseId": case["caseId"],
@@ -4684,6 +4684,8 @@ finally {
                     golden_package_path(allowlist, case, manifest_relative_path)
                 ] = (canonical_source / manifest_relative_path).read_bytes()
                 for artifact in case["artifacts"]:
+                    if artifact.get("storage") == "private-reference":
+                        continue
                     artifact_key = golden_package_path(allowlist, case, artifact["path"])
                     golden_entries.setdefault(
                         artifact_key,

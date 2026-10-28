@@ -80,6 +80,7 @@ public static class CompositionRunReportJson
         TypeInfoResolver = JsonTypeInfoResolver.Combine(
             AbMergeFormatReportJsonContext.Default,
             SourceEnvelopeRunReportJsonContext.Default,
+            CapabilityRunReportJsonContext.Default,
             new DefaultJsonTypeInfoResolver()),
     };
 
@@ -88,6 +89,33 @@ public static class CompositionRunReportJson
     {
         ArgumentNullException.ThrowIfNull(result);
         return JsonSerializer.Serialize(result.Report, Options);
+    }
+
+    /// <summary>Reads optional generated policy metadata; absence in a legacy report means not recorded.</summary>
+    public static CapabilityRunSummary? ReadCapabilitySummary(JsonElement root)
+    {
+        if (!root.TryGetProperty(nameof(CompositionRunReport.Capability), out JsonElement summary) ||
+            summary.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+        if (summary.ValueKind != JsonValueKind.Object ||
+            !IsString(summary, nameof(CapabilityRunSummary.RouteId)) ||
+            !IsString(summary, nameof(CapabilityRunSummary.CapabilityFingerprint)) ||
+            !IsString(summary, nameof(CapabilityRunSummary.Publication)) ||
+            !IsString(summary, nameof(CapabilityRunSummary.Evidence)))
+        {
+            throw new JsonException("Recorded capability metadata requires its route, fingerprint, publication, and evidence.");
+        }
+        try
+        {
+            return JsonSerializer.Deserialize<CapabilityRunSummary>(summary, Options);
+        }
+        catch (ArgumentException exception)
+        {
+            // Normalize DTO invariants at the JSON boundary so incomplete reports retain Raw/Unknown review.
+            throw new JsonException("Recorded capability metadata is invalid.", exception);
+        }
     }
 
     /// <summary>Serializes one typed plan-only report while explicitly omitting an output artifact.</summary>

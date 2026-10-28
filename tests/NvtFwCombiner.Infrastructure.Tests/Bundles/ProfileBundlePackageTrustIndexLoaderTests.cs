@@ -79,7 +79,7 @@ public sealed class ProfileBundlePackageTrustIndexLoaderTests
         Assert.Equal("0.1.0", generalReplace.ProfileVersion);
         Assert.Equal(
             ["nt51919-ab-merge-512k", "nt51929-ab-merge-512k", "nt51932-ab-merge-512k",
-                "nt51928-dual-capacity-256k-512k",
+                "nt51925-common-fw-256k", "nt51928-dual-capacity-256k-512k",
                 "nt51950-ab-merge-maps", "nt51951-ab-merge-1024k",
                 "nt51950-ab-cascade-maps"],
             index.Bundles.SelectMany(static bundle => bundle.RuntimeRegistrations)

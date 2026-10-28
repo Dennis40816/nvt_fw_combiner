@@ -14,10 +14,10 @@ public interface IStandardMergeCompilationPort
         out IReadOnlyList<CompositionIssue> issues);
 }
 
-/// <summary>Read-only Standard source-envelope metadata lookup; never grants execution authority.</summary>
+/// <summary>Read-only Standard declared-layout and source-envelope metadata lookup; never grants execution authority.</summary>
 public interface IStandardMergeMetadataPlanQuery
 {
-    /// <summary>Returns null only when the IC has no Standard source-envelope declaration.</summary>
+    /// <summary>Returns null when the IC has neither a map-selection prerequisite nor a Standard source envelope.</summary>
     MetadataPlanResolutionResult? ResolveSourceEnvelopeMetadataPlan(string icId, long dpInputLength);
 }
 

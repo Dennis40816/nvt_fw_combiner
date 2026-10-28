@@ -48,9 +48,9 @@ public sealed class CtrlRamBaseInspection
     public ResolutionToken ResolutionToken { get; }
     /// <summary>Identity of the exact complete Reference capture used by these observations.</summary>
     public FileStamp ReferenceStamp { get; }
-    /// <summary>Canonical optional field from a unique exact Standard candidate or unanimous current TP-only candidates in this capture.</summary>
+    /// <summary>Canonical optional field from a unique exact Standard candidate or agreement across all declared map candidates in this capture.</summary>
     public byte? StandardEventBufferFormatVersion { get; }
-    /// <summary>TP SVN stamp read through the unique exact Standard plan, or identical across every current TP-only candidate, from this capture.</summary>
+    /// <summary>TP SVN stamp read through the unique exact Standard plan, or identical across every declared map candidate, from this capture.</summary>
     public TpSvnObservation? StandardTpSvn { get; }
 }
 

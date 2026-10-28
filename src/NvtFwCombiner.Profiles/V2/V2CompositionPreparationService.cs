@@ -36,7 +36,8 @@ internal static class V2CompositionPreparationService
             FirmwareMapResolutionInputs resolutionInputs,
             [NotNullWhen(true)] out PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompositionIssue> issues)
+            out IReadOnlyList<CompositionIssue> issues,
+            string? explicitMapId = null)
         {
             ArgumentNullException.ThrowIfNull(catalog);
             ArgumentNullException.ThrowIfNull(selectedProfile);
@@ -52,6 +53,14 @@ internal static class V2CompositionPreparationService
                         SelectionStale,
                         "The selected trusted profile no longer belongs to this catalog."),
                 ];
+                return false;
+            }
+
+            if (selectedProfile.Profile.Header.SourceEnvelopeBinding is not null &&
+                selectedProfile.Family.Family.CommonFirmwareVersionArtifactBindingId is not null)
+            {
+                issues = [new CompositionIssue("profile.v2.compile.version-source-envelope-not-admitted",
+                    "Version-conditioned map selection cannot be combined with source-envelope execution.")];
                 return false;
             }
 
@@ -87,7 +96,19 @@ internal static class V2CompositionPreparationService
                 boundSource is not null &&
                 boundSource.LengthBytes == resolutionInputs.CapacityBytes &&
                 !hasExactProfileMap;
-            if (hasNonstandardBoundSource)
+            if (explicitMapId is not null)
+            {
+                if (selectedProfile.Family.Family.CommonFirmwareVersionArtifactBindingId is null ||
+                    !profileMapIds.Contains(explicitMapId))
+                {
+                    issues = [new CompositionIssue("profile.v2.compile.map-selection-invalid",
+                        "Explicit classification maps require a declared version-selection prerequisite and map.")];
+                    return false;
+                }
+                mapResolution = selectedProfile.Family.Family.ResolveLayoutTemplateWithinForProfile(
+                    resolutionInputs, explicitMapId, profileMapIds, requiredMetadataStructureIds);
+            }
+            else if (hasNonstandardBoundSource)
             {
                 mapResolution = selectedProfile.Family.Family.ResolveLayoutTemplateWithinForProfile(
                     resolutionInputs,
@@ -127,6 +148,18 @@ internal static class V2CompositionPreparationService
             }
             if (mapResolution.Status != FirmwareMapResolutionStatus.Unique)
             {
+                issues = mapResolution.RejectionKind switch
+                {
+                    FirmwareMapResolutionRejectionKind.CommonFirmwareVersionRequired =>
+                        [new CompositionIssue("profile.v2.compile.common-fw-version-required",
+                            "A readable TP FWConfig Common FW version is required for map selection.")],
+                    FirmwareMapResolutionRejectionKind.CommonFirmwareVersionBelowMinimum =>
+                        [new CompositionIssue("profile.v2.compile.common-fw-version-below-minimum",
+                            "TP FWConfig Common FW version must be at least 1.0.0.")],
+                    null or FirmwareMapResolutionRejectionKind.NoMatchingMap or
+                        FirmwareMapResolutionRejectionKind.AmbiguousMaps => [],
+                    _ => [],
+                };
                 return false;
             }
 

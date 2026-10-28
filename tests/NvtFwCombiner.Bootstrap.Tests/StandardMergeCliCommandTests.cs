@@ -155,6 +155,41 @@ public sealed class StandardMergeCliCommandTests
         Assert.Equal("copy-tp", root.GetProperty("Operations")[0].GetProperty("OperationId").GetString());
     }
 
+    /// <summary>NT51925 selects its Standard map from the TP Common FW version through the CLI.</summary>
+    [Theory]
+    [InlineData(1, "nt51925-standard-merge-256k")]
+    [InlineData(2, "nt51925-standard-merge-fw2-256k")]
+    public async Task StandardMergePreviewSelectsNt51925MapFromTpCommonFwVersion(byte major, string expectedMap)
+    {
+        using var workspace = TempWorkspace.Create();
+        byte[] dp = new byte[0x40000];
+        dp[0x3E001] = 0x71;
+        string dpPath = workspace.Write("dp.bin", dp);
+        string tpPath = workspace.Write("tp.bin", Nt51925MapClassificationTests.CreateReference(major, 0x30000));
+        string report = workspace.PathFor("nt51925-report.json");
+
+        CliRunResult result = await RunCliAsync(
+        [
+            "standard-merge",
+            "preview",
+            "--profile",
+            "NT51925",
+            "--dp",
+            dpPath,
+            "--tp",
+            tpPath,
+            "--report",
+            report,
+        ]);
+
+        Assert.True(result.ExitCode == 0, result.Output + result.Error);
+        Assert.Contains("Status: Succeeded", result.Output, StringComparison.Ordinal);
+        string json = await File.ReadAllTextAsync(report, TestContext.Current.CancellationToken);
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal("NT51925", document.RootElement.GetProperty("IcId").GetString());
+        Assert.Contains(expectedMap, json, StringComparison.Ordinal);
+    }
+
     /// <summary>Verifies the packaged NT51923 V2 profile accepts a caller-selected plain output path through the Standard Merge CLI.</summary>
     [Fact]
     public async Task StandardMergeBuildWritesCallerOutputThroughNt51923V2Profile()

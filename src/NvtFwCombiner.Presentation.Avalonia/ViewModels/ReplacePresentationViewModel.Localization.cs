@@ -36,8 +36,7 @@ internal sealed partial class ReplacePresentationViewModel
             title,
             description,
             Text.RequiredLabel,
-            Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
+            Text.OptionalLabel, Text.NoBinSelectedLabel);
     }
 
 }

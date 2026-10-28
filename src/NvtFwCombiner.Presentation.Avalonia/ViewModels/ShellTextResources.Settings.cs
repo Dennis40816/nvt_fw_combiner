@@ -280,9 +280,9 @@ internal sealed partial class ShellTextResources
             CapabilityEvidenceStatus.SyntheticOracle =>
                 Language == ShellLanguage.ChineseTraditional ? "合成判定基準" : "Synthetic oracle",
             CapabilityEvidenceStatus.ContractOnly =>
-                Language == ShellLanguage.ChineseTraditional ? "僅有定義" : "Contract only",
+                Language == ShellLanguage.ChineseTraditional ? "未驗證（僅有定義）" : "Unverified (contract only)",
             CapabilityEvidenceStatus.Missing =>
-                Language == ShellLanguage.ChineseTraditional ? "缺少" : "Missing",
+                Language == ShellLanguage.ChineseTraditional ? "未驗證（缺少證據）" : "Unverified (missing evidence)",
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null),
         };
     }

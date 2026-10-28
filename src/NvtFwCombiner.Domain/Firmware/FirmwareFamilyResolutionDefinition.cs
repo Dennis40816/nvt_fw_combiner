@@ -76,6 +76,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             _structuresByMap.Add(map.MapId, Array.AsReadOnly(structures));
         }
 
+        ValidateCommonFirmwareVersionMetadata();
+
         DomainInvariant.Reject(
             _metadataSets.Any(set => !referencedMetadataSetIds.Contains(set.MetadataSetId)),
             "Normalized family resolution definitions cannot contain unreferenced metadata sets.",
@@ -170,6 +172,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             StringComparer.Ordinal,
             requireValue: true);
 
+        ValidateCommonFirmwareVersionSlots(snapshot);
         Array.Sort(snapshot, static (left, right) => StringComparer.Ordinal.Compare(left.MapId, right.MapId));
         return snapshot;
     }

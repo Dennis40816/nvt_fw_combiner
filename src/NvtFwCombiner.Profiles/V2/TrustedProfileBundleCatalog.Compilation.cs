@@ -179,7 +179,8 @@ internal sealed partial class TrustedProfileBundleCatalog
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
         IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+        IReadOnlyCollection<string>? selectedInputSlotIds = null,
+        string? explicitMapId = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (!TryResolveMapCandidates(
@@ -192,6 +193,17 @@ internal sealed partial class TrustedProfileBundleCatalog
                 out IReadOnlyList<CompositionIssue> resolutionIssues))
         {
             return V2CompositionPlanCompileResult.Failed(resolutionIssues);
+        }
+
+        if (explicitMapId is not null)
+        {
+            if (selectedProfile.Family.Family.CommonFirmwareVersionArtifactBindingId is null ||
+                !mapCandidates.Any(map => StringComparer.Ordinal.Equals(map.MapId, explicitMapId)))
+            {
+                return Failed([], MapSelectionInvalid,
+                    "Explicit classification maps require a declared version-selection prerequisite and map.");
+            }
+            mapCandidates = [.. mapCandidates.Where(map => StringComparer.Ordinal.Equals(map.MapId, explicitMapId))];
         }
 
         bool usesSourceEnvelope = false;
@@ -260,7 +272,10 @@ internal sealed partial class TrustedProfileBundleCatalog
             ];
         }
 
-        if (mapCandidates.Length != 1)
+        bool versionGroup = mapCandidates.Length > 1 &&
+            mapCandidates.Select(static map => map.CapacityBytes).Distinct().Count() == 1 &&
+            mapCandidates.Any(static map => map.Applicability.CommonFirmwareVersionFrom is not null);
+        if (mapCandidates.Length != 1 && !versionGroup)
         {
             return Failed(
                 [],
@@ -281,7 +296,8 @@ internal sealed partial class TrustedProfileBundleCatalog
                 resolutionArtifacts),
             out V2CompositionPreparationService.PreparedCompilation? preparation,
             out _,
-            out IReadOnlyList<CompositionIssue> preparationIssues);
+            out IReadOnlyList<CompositionIssue> preparationIssues,
+            explicitMapId);
         return isPrepared
             ? V2CompositionPlanCompiler.CompilePrepared(preparation!, selectedInputSlotIds)
             : Failed(

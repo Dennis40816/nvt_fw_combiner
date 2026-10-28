@@ -65,6 +65,7 @@ public sealed class Nt51925EndFlagSelectionTests
     [InlineData("nt51925-ctrlram-replace-candidate", "nt51925-ctrlram-replace-fw200-runtime-cascade", "nt51925-ctrlram-fw200-cascade-tp-work-192k")]
     [InlineData("nt51925-ctrlram-replace-candidate", "nt51925-ctrlram-replace-fw200-runtime-cascade", "nt51925-ctrlram-fw200-cascade-full-flash-256k")]
     [InlineData("nt51925-standard-merge-candidate", "nt51925-standard-merge-gen-flash", "nt51925-standard-merge-256k")]
+    [InlineData("nt51925-standard-merge-candidate", "nt51925-standard-merge-gen-flash", "nt51925-standard-merge-fw2-256k")]
     public void ResolveNvtEndFlagEveryCandidateMapDeclaresSameMarker(string bundleId, string profileId, string mapId)
     {
         FirmwareFamilyResolutionDefinition family = BuiltInV2BundleRegistry.All[bundleId].GetFirmwareFamily(profileId, "0.1.0");
@@ -315,14 +316,18 @@ public sealed class Nt51925EndFlagSelectionTests
     {
         FirmwareFamilyResolutionDefinition family = BuiltInV2BundleRegistry.All["nt51925-standard-merge-candidate"]
             .GetFirmwareFamily("nt51925-standard-merge-gen-flash", "0.1.0");
-        FirmwareImageMap map = Assert.Single(family.ImageMaps);
+        Assert.Equal(["nt51925-standard-merge-256k", "nt51925-standard-merge-fw2-256k"],
+            family.ImageMaps.Select(static candidate => candidate.MapId).Order(StringComparer.Ordinal));
         (string Id, long Start, long Length)[] expected = [
             ("flash-image", 0, 0x40000), ("tp-code", 0, 196608),
             ("unmapped-gap", 0x30000, 0xD000), ("customer-info", 0x3D000, 0x1000), ("dp-code", 253952, 8192)];
 
-        Assert.Equal(expected.OrderBy(static row => row.Id, StringComparer.Ordinal),
-            map.Regions.Select(static region => (region.RegionId, region.Range.Start, region.Range.Length))
-                .OrderBy(static row => row.RegionId, StringComparer.Ordinal));
+        foreach (FirmwareImageMap map in family.ImageMaps)
+        {
+            Assert.Equal(expected.OrderBy(static row => row.Id, StringComparer.Ordinal),
+                map.Regions.Select(static region => (region.RegionId, region.Range.Start, region.Range.Length))
+                    .OrderBy(static row => row.RegionId, StringComparer.Ordinal));
+        }
     }
 
     /// <summary>Two and three ICs share Cascade geometry; other counts cannot select that map.</summary>

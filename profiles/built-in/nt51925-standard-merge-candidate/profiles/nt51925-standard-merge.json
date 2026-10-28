@@ -3,7 +3,7 @@
   "profileId": "nt51925-standard-merge-gen-flash",
   "profileVersion": "0.1.0",
   "promotion": {
-    "stage": "compilable",
+    "stage": "executable-candidate",
     "blockers": [
       {
         "blockerId": "nt51925-official-map-and-postbuild",
@@ -46,9 +46,10 @@
   "mapBinding": {
     "familyId": "nt51925-standard-merge",
     "familyVersion": "0.1.0",
-    "familyContentHash": "8ea45c0eb951defaa4d4b4ee211a9d97cc814eeba7d39021cb622201d9d74440",
+    "familyContentHash": "38d251fe817607a421b97e5644c5dbb82a2394988a507d02a2d61463e8fb1067",
     "mapIds": [
-      "nt51925-standard-merge-256k"
+      "nt51925-standard-merge-256k",
+      "nt51925-standard-merge-fw2-256k"
     ],
     "requiredRegionIds": [
       "tp-code",
@@ -273,7 +274,7 @@
     {
       "regionId": "tp-code",
       "access": "whole",
-      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy the declared 0x30000-byte TP prefix. The 11-byte range [0x2EA80, 0x2EA8B) of FW 2.0.0 outputs (five non-blank bytes written by a pending owner script) is copied as is from the TP input and carries no output claim until the owner provides the script."
+      "reason": "The declared TP prefix [0x0, 0x30000) is copied whole, including the content from 0x2EA80 (owner 2026-10-14 20:58)."
     },
     {
       "regionId": "dp-code",

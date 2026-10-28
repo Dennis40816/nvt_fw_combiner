@@ -185,7 +185,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         }
     }
 
-    /// <summary>TP-only map consensus publishes only a source-identical canonical field.</summary>
+    /// <summary>Agreement across all declared maps publishes only a source-identical canonical field.</summary>
     [Fact]
     public void StandardEventBufferConsensusRejectsMissingOrDisagreeingCandidate()
     {
@@ -235,7 +235,7 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
         CtrlRamBaseInspection baseInspection = Assert.IsType<CtrlRamBaseInspection>(
             reference.CtrlRamBaseInspection);
         Assert.Equal(CtrlRamBaseKind.StandardTp, baseInspection.Kind);
-        // TP-only map consensus retains only a canonical field shared by every current candidate.
+        // Agreement across all declared maps retains only a canonical field shared by every current candidate.
         Assert.Equal((byte)0xA3, reference.StandardEventBufferFormatVersion);
         Assert.Equal(reference.FileStamp, baseInspection.ReferenceStamp);
 

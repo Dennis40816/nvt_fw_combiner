@@ -275,6 +275,45 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
         Assert.NotEmpty(result.Issues);
     }
 
+    /// <summary>Report layout declarations cannot authorize execution that bypasses a version interval.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VersionConditionedSourceEnvelopeExecutionIsRejected(bool includeTp)
+    {
+        TrustedProfileBundleCatalog catalog = CreateStandardEnvelopeCatalog(mutateFamily: family =>
+        {
+            string regionId = family["regionSets"]![0]!["regions"]![0]!["regionId"]!.GetValue<string>();
+            JsonObject set = Assert.IsType<JsonObject>(JsonNode.Parse("""
+                {"metadataSetId":"version-config","structures":[{"structureId":"firmware-config-general-parameters",
+                 "artifactBindingId":"tp-input","length":3,"assertions":[],
+                 "locator":{"kind":"region-relative","regionId":"placeholder","offset":0,"allowedResultRegionId":"placeholder"},
+                 "fields":[{"fieldId":"common-firmware-major-version","offset":0,"widthBytes":1,"encoding":"unsigned-integer","byteOrder":"little"},
+                 {"fieldId":"common-firmware-minor-version","offset":1,"widthBytes":1,"encoding":"unsigned-integer","byteOrder":"little"},
+                 {"fieldId":"common-firmware-additional-version","offset":2,"widthBytes":1,"encoding":"unsigned-integer","byteOrder":"little"}]}],
+                 "evidenceRefs":["synthetic-version-config"]}
+                """));
+            set["structures"]![0]!["locator"]!["regionId"] = regionId;
+            set["structures"]![0]!["locator"]!["allowedResultRegionId"] = regionId;
+            family["metadataSets"] = new JsonArray(set);
+            foreach (JsonNode? map in family["imageMaps"]!.AsArray())
+            {
+                map!["metadataSetIds"] = new JsonArray("version-config");
+                map["applicability"]!["commonFirmwareVersionFrom"] = "1.0.0";
+            }
+        });
+        byte[] dp = new byte[0x100001];
+        byte[] tp = new byte[0x37000];
+        tp[0] = 2;
+        FirmwareArtifactPayload[] artifacts = includeTp
+            ? [new("dp-input", dp), new("tp-input", tp)] : [new("dp-input", dp)];
+        V2CompositionPlanCompileResult result = catalog.Compile("nt51950-standard-merge-dp-perspective", "0.8.0",
+            "NT51950", "standard-merge", dp.Length, null, artifacts);
+
+        Assert.False(result.IsCompiled);
+        Assert.Contains(result.Issues, static issue => issue.Code == "profile.v2.compile.version-source-envelope-not-admitted");
+    }
+
     private static V2CompositionPlanCompileResult CompileStandardEnvelope(
         TrustedProfileBundleCatalog catalog,
         byte[] dp,
@@ -293,7 +332,8 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
 
     private static TrustedProfileBundleCatalog CreateStandardEnvelopeCatalog(
         Action<JsonObject>? mutateProfile = null,
-        bool preserveCanonicalInspectionMetadata = false)
+        bool preserveCanonicalInspectionMetadata = false,
+        Action<JsonObject>? mutateFamily = null)
     {
         string familyJson = File.ReadAllText(Path.Combine(FindSourceEnvelopeRepositoryRoot(),
             "profiles", "built-in", "nt51950-nt51951-standard-merge", "families",
@@ -315,6 +355,7 @@ public sealed partial class TrustedProfileBundleCatalogFactoryTests
             }
         }
 
+        mutateFamily?.Invoke(familyNode);
         familyJson = familyNode.ToJsonString();
         JsonObject profile = Assert.IsType<JsonObject>(JsonNode.Parse(profileJson));
         profile["schemaVersion"] = "2.16";

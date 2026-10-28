@@ -21,6 +21,12 @@ public enum FirmwareMapResolutionRejectionKind
 
     /// <summary>More than one candidate map fully satisfied the supplied selections and evidence.</summary>
     AmbiguousMaps,
+
+    /// <summary>Multiple Common FW slots require a readable canonical FWConfig version.</summary>
+    CommonFirmwareVersionRequired,
+
+    /// <summary>The canonical FWConfig Common FW version precedes 1.0.0.</summary>
+    CommonFirmwareVersionBelowMinimum,
 }
 
 /// <summary>Immutable public result of canonical map selection without retaining source payload bytes.</summary>
@@ -105,15 +111,21 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             FirmwareMapResolutionInputs inputs,
             FirmwareImageMap imageMap,
             IEnumerable<FirmwareResolvedMetadataStructure> resolvedMetadataStructures,
-            IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes)
+            IEnumerable<FirmwareMetadataPredicateOutcome> predicateOutcomes,
+            CommonFirmwareVersion? commonFirmwareVersion = null)
         {
             DomainInvariant.Reject(
                 !ReferenceEquals(constructionToken, ResolvedMapConstructionToken),
                 "Resolved maps may be constructed only by their owning family resolver.",
                 nameof(constructionToken));
 
-            FirmwareArtifactIdentity[] artifactIdentitiesSnapshot = [.. inputs.Artifacts.Select(static artifact => artifact.Identity)];
-            FirmwareResolvedMetadataStructure[] resolvedMetadataStructuresSnapshot = [.. resolvedMetadataStructures];
+            FirmwareResolvedMetadataStructure[] metadataSnapshot = [.. resolvedMetadataStructures];
+            // Version-only payloads are inputs to a typed selection fact, not map identities.
+            FirmwareArtifactIdentity[] artifactIdentitiesSnapshot = [.. inputs.Artifacts
+                .Where(artifact => commonFirmwareVersion is null || metadataSnapshot.Any(structure =>
+                    structure.ArtifactIdentity.ArtifactId == artifact.ArtifactId))
+                .Select(static artifact => artifact.Identity)];
+            FirmwareResolvedMetadataStructure[] resolvedMetadataStructuresSnapshot = metadataSnapshot;
             Array.Sort(resolvedMetadataStructuresSnapshot, static (left, right) =>
                 StringComparer.Ordinal.Compare(
                     left.DecodedStructure.MetadataStructureId,
@@ -136,6 +148,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             PredicateOutcomes = Array.AsReadOnly(predicateOutcomesSnapshot);
             FactProvenance = Array.AsReadOnly(factProvenanceSnapshot);
             NvtEndFlagResolution = definition.ResolveNvtEndFlag(imageMap.MapId);
+            CommonFirmwareVersion = commonFirmwareVersion;
             ResolutionFingerprint = CalculateResolutionFingerprint(this);
         }
 
@@ -187,6 +200,9 @@ public sealed partial class FirmwareFamilyResolutionDefinition
 
         /// <summary>Canonical lowercase SHA-256 over the resolved physical map and resolver-owned outcomes.</summary>
         public string ResolutionFingerprint { get; }
+
+        /// <summary>Decoded Common FW selection fact, when an interval was selected from readable FWConfig.</summary>
+        public CommonFirmwareVersion? CommonFirmwareVersion { get; }
 
         private static string? ProjectDisplayName(FirmwareAbFormatPolicy? policy, string memberId, string mapId)
         {

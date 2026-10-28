@@ -14,7 +14,7 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         IReadOnlyList<string> icIds = BootstrapTestHost.Canonical.Projection.GetIcIds();
 
-        Assert.Equal(10, icIds.Count);
+        Assert.Equal(11, icIds.Count);
         Assert.Equal(icIds.Order(StringComparer.Ordinal), icIds);
         Assert.Equal("NT51950", BootstrapTestHost.Canonical.Projection.DefaultIcId);
         Assert.Equal(
@@ -87,9 +87,9 @@ public sealed class WorkbenchCatalogProjectionTests
         Assert.DoesNotContain(replaceSummaries, static summary => summary.IcId == "NT-SYNTHETIC");
 
         CapabilityCatalogSummary settings = BootstrapTestHost.Canonical.Projection.GetCatalogSummary();
-        Assert.Equal(10, settings.CatalogIcCount);
+        Assert.Equal(11, settings.CatalogIcCount);
         Assert.Equal(standardSummaries.Count, settings.StandardMergeProfileCount);
-        Assert.Equal(10, settings.CtrlRamReplaceAvailableIcCount);
+        Assert.Equal(11, settings.CtrlRamReplaceAvailableIcCount);
     }
 
     private static void AssertStandardMergeProfileSummaries(
@@ -97,7 +97,7 @@ public sealed class WorkbenchCatalogProjectionTests
     {
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51917", "NT51919", "NT51923", "NT51925", "NT51926", "NT51927", "NT51928",
                 "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             summaries.Select(static summary => summary.IcId).Order(StringComparer.Ordinal));
@@ -105,16 +105,14 @@ public sealed class WorkbenchCatalogProjectionTests
         foreach (CapabilityProfileSummary summary in summaries)
         {
             long? dpLength = summary.IcId is "NT51950" or "NT51951" ? 0x40000 : null;
-            Assert.True(
-                BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
-                    summary.IcId,
-                    dpLength,
-                    out CompiledComposition? composition,
-                    out IReadOnlyList<CompositionIssue> issues),
+            (bool compiled, CompiledComposition? composition, IReadOnlyList<CompositionIssue> issues) =
+                CompileSummary(summary.IcId, dpLength);
+            Assert.True(compiled,
                 string.Join(Environment.NewLine, issues.Select(static issue => $"{issue.Code}: {issue.Message}")));
+            Assert.NotNull(composition);
 
             Assert.True(summary.DeclarationReady);
-            Assert.Equal(summary.IcId is not ("NT51950" or "NT51951"),
+            Assert.Equal(summary.IcId is not ("NT51925" or "NT51950" or "NT51951"),
                 summary.CompileSucceeded);
             Assert.Empty(summary.IssueCodes);
             Assert.Equal(composition.V2Details.ProfileId, summary.ProfileId);
@@ -123,6 +121,22 @@ public sealed class WorkbenchCatalogProjectionTests
             Assert.Equal(composition.V2Details.OutputNamingRequirement.FileNameTemplate, summary.DefaultOutputFileName);
             Assert.Equal(composition.V2Details.IcNumberInputMode, summary.IcNumberInputMode);
         }
+    }
+
+    private static (bool Compiled, CompiledComposition? Composition, IReadOnlyList<CompositionIssue> Issues) CompileSummary(
+        string icId, long? dpLength)
+    {
+        if (icId == "NT51925")
+        {
+            bool versionCompiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(icId,
+                Nt51925VersionSelectionTests.CreateTp(2, 0, 0), ["tp-input", "dp-input"],
+                out CompiledComposition? versionComposition, out _, out IReadOnlyList<CompositionIssue> versionIssues);
+            return (versionCompiled, versionComposition, versionIssues);
+        }
+
+        bool compiled = BootstrapTestHost.Canonical.Compiler.TryCompileStandardMerge(
+            icId, dpLength, out CompiledComposition? composition, out IReadOnlyList<CompositionIssue> issues);
+        return (compiled, composition, issues);
     }
 
 }

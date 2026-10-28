@@ -6,8 +6,8 @@ The isolated profile `nt51925-standard-merge-gen-flash` version `0.1.0`
 belongs to the NT51925-only `nt51925-standard-merge-candidate` bundle.
 Its geometry follows the owner TP overview and postbuild flow; it supplies
 no NT51926 shared authority or independent expected-output evidence. Policy is
-`Unavailable`/`Candidate`/`ContractOnly`; authoring snapshot, exact
-executable resolution, execution and Build remain blocked. It has no approved
+`Available`/`Candidate`/`ContractOnly` under PR4b; authoring and execution
+are admitted with valid inputs and runtime dependencies. Outputs retain `_UNVERIFIED`. It has no approved
 support or Golden-certified output.
 
 ## Cases and file placement
@@ -35,7 +35,7 @@ NT51925 geometry difference for profile-owner review.
 
 The provisional operation declaration copies TP then DP, leaves the forbidden gap
 `[0x30000,0x3E000)` zero-filled, and uses
-`NT51925_FlashCode_D{dp-version}T{tp-version}_{date}.bin`. Missing version
+`NT51925_FlashCode_D{dp-version}T{tp-version}_{date}_UNVERIFIED.bin`. Missing version
 metadata follows the existing `xxxx` placeholder rule. The owner must confirm
 the actual expected filename and full output, not accept an NFC-generated file
 as its own oracle.
@@ -57,10 +57,8 @@ customer region, as in the CtrlRAM Replace full-flash map, and also stays
 zero-filled. The TP header metadata and TP SVN at
 `0x24` are unchanged. No `.data` or Project ID region is declared.
 
-The 11-byte range `[0x2EA80, 0x2EA8B)` of the FW 2.0.0 output holds five
-non-blank bytes from an owner insertion script that is not yet available. The
-Merge candidate copies the range as is from the TP input and makes no output
-claim for it until the owner provides that script.
+The declared TP prefix `[0x0, 0x30000)` is copied whole, including the
+content from 0x2EA80 (owner 2026-10-14 20:58).
 
 1.x Single: postbuild only, no real BIN. 1.x Cascade: postbuild plus two real
 BINs agree (owner-reported). 2.0.0 Single: postbuild only, no real BIN.

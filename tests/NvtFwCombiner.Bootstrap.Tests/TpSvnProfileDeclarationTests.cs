@@ -238,7 +238,10 @@ public sealed class TpSvnProfileDeclarationTests
         foreach ((string icId, BuiltInV2Registration registration) in BuiltInV2RegistrationRegistry.StandardMergeByIc)
         {
             long capacity = icId == "NT51928" ? 0x80000 : 0x40000;
-            MetadataPlanEntry entry = SingleStamp(Plan(registration, capacity), CompositionAddressSpaceIds.TpInput);
+            MetadataPlanDefinition standardPlan = registration.MapSelectionPrerequisite is null
+                ? Plan(registration, capacity)
+                : registration.CreateExactMapMetadataPlan(registration.GetMapVariants(out _, out _)[0].MapId);
+            MetadataPlanEntry entry = SingleStamp(standardPlan, CompositionAddressSpaceIds.TpInput);
             canonical ??= entry.StructureDefinition.Definition;
             AssertStamp(entry, canonical, MainStampByIc[icId]);
         }

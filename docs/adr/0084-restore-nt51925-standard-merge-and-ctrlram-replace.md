@@ -1,19 +1,26 @@
 # ADR 0084: Prepare isolated NT51925 Standard Merge and CtrlRAM Replace candidates
 
-- Status: Proposed
+- Status: Accepted for unverified candidate authoring through the owner's R3 approval of PR4b; support and release promotion remain gated
 - Date: 2026-10-07
 - Owners: Product owner + firmware owner + architecture owner
 - Risk: R3 firmware/support capability restoration
-- Amends: [ADR 0042](0042-retire-nt51920-nt51925-nt51930-nt51931.md), NT51925 only, if accepted
+- Amends: [ADR 0042](0042-retire-nt51920-nt51925-nt51930-nt51931.md), NT51925 candidate authoring only
 
 ## Context and authority
+
+PR4b implements the 2026-10-14 amendment below (owner direction relayed
+2026-10-14 01:20). It opens the nine NT51925 routes for authoring as
+`available/candidate/contract-only`. It supersedes earlier statements below
+that authoring remains unavailable. Outputs retain `_UNVERIFIED`; all profile
+promotion blockers remain. This accepts candidate authoring, not support or
+release promotion.
 
 On 2026-10-07 the owner requested NT51925 Standard Merge and CtrlRAM Replace
 local preparation for NFC 1.2.2, based on v1.2.1. Core integration is targeted
 at 1.3.0; 1.2.x becomes a correction line afterwards. Owner isolation decision
 Decision 334 accepts a separate NT51925 map, family and candidate bundles for this
-preparation. This restoration ADR remains Proposed. Support, firmware output
-and release have no R3 approval.
+preparation. PR4b accepts unverified candidate authoring as stated above;
+support and release promotion retain their R3 gates.
 
 [ADR 0042](0042-retire-nt51920-nt51925-nt51930-nt51931.md) retired NT51920,
 NT51925, NT51930 and NT51931. This proposal concerns only NT51925 and the two
@@ -53,7 +60,7 @@ owner's TP overview; read the geometry there.
    NT51923/NT51926 identities and closes execution until independent evidence
    arrives. Selected by owner decision 334 (2026-10-07).
 
-## Proposed restoration boundary
+## Restoration boundary (PR4b)
 
 Profiles owns isolated firmware declarations; the trusted package index owns
 candidate registrations; the canonical capability policy owns exact-route
@@ -62,13 +69,14 @@ execution admission. UI and CLI consume those typed decisions. The existing
 profile/compiler, catalog and admission owners are reused or extended. No
 second semantic path or IC-specific presentation rule is authorized.
 
-NT51925 Standard Merge and CtrlRAM Replace are Candidate/ContractOnly routes
-with authoring unavailable. They may appear as blocked declarations, but cannot
-create an authoring snapshot, resolve into an executable session, execute, or
-Build. The runtime-reference candidate exception used by other CtrlRAM routes
-does not admit these NT51925 routes. No candidate execution exception is added.
-A declaration, structural check or policy row implies neither Supported nor
-approved nor Golden-verified firmware.
+NT51925 Standard Merge and CtrlRAM Replace are Available/Candidate/ContractOnly
+routes. They can create authoring snapshots and execute with valid inputs and
+runtime dependencies. Standard uses the shared open-candidate admission;
+Replace uses the existing runtime-reference candidate admission. Every output
+retains `_UNVERIFIED`, and all promotion blockers remain. A declaration,
+structural check or policy row implies neither Supported nor approved nor
+Golden-verified firmware. Dated proposals below preserve their recorded scope;
+PR4b supersedes their blocked-authoring and execution statements.
 
 The isolated Standard candidate declares a 262,144-byte `flash` image with a
 196,608-byte TP prefix, a forbidden zero-filled gap before the DP window, and
@@ -96,7 +104,7 @@ separate owner approval; this proposal neither prepares nor authorizes it.
 
 ## Amendment (2026-10-09): version-keyed Standard Merge TP maps
 
-Status of this amendment: Proposed, together with the rest of this ADR.
+Status of this amendment: Accepted with the rest of this ADR (see the status line).
 
 Owner decision (relayed 2026-10-08): the NT51925 layouts V1 and V2 are Common FW
 major versions. Both are supported. For now they split at 2.0.0: V1 below 2.0.0,
@@ -156,11 +164,11 @@ Decision proposed here:
 
 The version-slot model is unchanged by the NT51925 maps amendment below.
 Candidate Replace geometry follows the later owner TP overview and postbuild
-amendment; Replace stays deferred and blocked.
+amendment; PR4b opens Replace for unverified candidate authoring.
 
 ## Amendment (2026-10-10): NT51925 maps
 
-Status: Proposed. Owner decision (relayed 2026-10-10): the owner's postbuild
+Status: Accepted with this ADR. Owner decision (relayed 2026-10-10): the owner's postbuild
 flow and TP overview declare NT51925 addresses and sizes.
 
 The layout key is the Common FW slot and IC count: 1.x starts at 1.0.0 and
@@ -202,7 +210,7 @@ makes no support, approval or Golden claim and does not change the ADR status.
 
 ## Amendment (2026-10-10): candidate geometry from the TP overview
 
-Status: Proposed. Owner decisions at 14:49 and 14:59 replace the borrowed
+Status: Accepted with this ADR. Owner decisions at 14:49 and 14:59 replace the borrowed
 NT51926 candidate geometry with the owner's TP overview and postbuild flow.
 The TP region is 196,608 bytes, full flash is 262,144 bytes, and every layout
 uses the end flag at `0x2FFFC`. The existing Common FW slot and topology
@@ -213,9 +221,10 @@ Verification level: 1.x Single has postbuild evidence only, with no real BIN.
 2.0.0 Single has postbuild evidence only, with no real BIN.
 2.0.0 Cascade agrees with postbuild plus three real BINs (owner-reported).
 No layout has an independent expected output (Golden). These observations
-make no support, approval or Golden claim; the candidate remains Proposed
-and Blocked, with Unavailable/Candidate/ContractOnly policy and every existing
-promotion blocker retained.
+make no support, approval or Golden claim. At this amendment the candidate was
+Proposed and Blocked (Unavailable/Candidate/ContractOnly); PR4b later opened
+authoring (Available/Candidate/ContractOnly) with every existing promotion
+blocker retained.
 
 Only 1.x Cascade declares CtrlRAM_S and the Vec Table; only 2.0.0 Cascade
 declares DIFF. Only 2.0.0 has a Header Copy. For 1.x, TP SVN uses the existing
@@ -224,14 +233,8 @@ is unchanged; the removed NT51926 Header Copy locator supplies no authority.
 The Standard Merge TP SVN binding stays unchanged. No `.data` or Project ID
 region is declared. The unknown 1.x Single `.data` position is not guessed.
 
-Pending owner script: the 11-byte range `[0x2EA80, 0x2EA8B)` of the FW 2.0.0
-output holds five non-blank bytes that an owner insertion script writes. The
-script is not yet in the private asset repository. Until the owner provides it,
-Standard Merge copies the range as is from the TP input and makes no output
-claim for it. A later Golden comparison declares it as a difference bound; the
-layout does not split a region for it. This is a pending item, not a missing
-layout region. Replace flows clone the reference image, so those bytes carry
-over unchanged.
+The TP prefix [0x0, 0x30000) is copied whole, including the content from
+0x2EA80. (owner 2026-10-14 20:58)
 
 CtrlRAM_S keeps the `explicit-range` physical constraint because the range
 exists in the TP overview. The FW 1.x cascade runtime profile makes it
@@ -263,3 +266,178 @@ protected checks and final owner R3 approval of the exact source are required
 before support promotion, integration or release. NT51923 and NT51926
 regression evidence must remain valid without re-pinning their definition
 identities. Missing owner evidence is unexecuted, never a passing Golden case.
+
+## Amendment (2026-10-14): unverified candidate execution
+
+Status: Accepted for unverified candidate authoring through the owner's R3
+approval of PR4b.
+Support and release promotion remain gated. This amendment changes no firmware
+byte, no region and no existing IC.
+
+Owner direction (relayed 2026-10-14 01:20): build NT51925 as far as the declared
+layout facts allow, and do not wait for independent Golden output. Correct it
+later if a fact turns out wrong. Tests and the remaining documents follow the
+construction.
+
+Owner 2026-10-14 16:47 confirmed: the TP Overview DIFF row applies to the
+Cascade layout only. The 2.0.0 Single layout has no DIFF CtrlRAM.
+
+Facts that exist today:
+
+- Four layouts are declared (Common FW 1.x and 2.0.0, Single and Cascade). The
+  declared regions follow the owner TP overview and the postbuild flow. These
+  two sources agree on all four layouts.
+- Real images were compared for the two Cascade layouts only (owner-reported).
+  The two Single layouts have postbuild evidence and no real image.
+- No layout has an independent expected output (Golden).
+
+### What this amendment supersedes
+
+Every statement in this ADR that says the NT51925 routes are blocked, deferred,
+or cannot create a snapshot, execute or Build is superseded. This covers the
+"Proposed restoration boundary" paragraph (including "No candidate execution
+exception is added"), the blocked and deferred statements of the 2026-10-09 and
+2026-10-10 amendments, and the 2026-10-08 scope decision that deferred CtrlRAM
+Replace until Golden cases arrive. The old text stays as history. The gates in
+"Required owner evidence and gates" stay in force for promotion, integration and
+release.
+
+### Accepted candidate decision
+
+1. **Unverified candidate state.** The nine NT51925 routes are authorable
+   and executable with authoring `available`, publication `candidate` and
+   evidence `contract-only`. The last two values do not change. Together the
+   three values mean: built from declared facts, with no independent Golden
+   result.
+2. **Promotion stage.** The five NT51925 profiles move from `compilable` to
+   `executable-candidate`. The three blockers (official map and postbuild,
+   independent Golden, owner R3 approval) stay in the profiles. A profile with
+   blockers cannot reach `supported`.
+3. **Admission.** The eight CtrlRAM Replace routes use the existing
+   runtime-reference candidate exception. They need no new path. The Standard
+   Merge route needs one bounded admission. The admission rule exists in two
+   places today (`CapabilityPublicationCoherence` and `CompositionRunRequest`).
+   The change keeps one shared rule. The condition keys on typed profile facts
+   (workflow, promotion stage, compile context, blocker kinds), not on an IC
+   name. No other resolved-map profile becomes admitted. Standard Merge also
+   needs open decision 1 below before it can run.
+4. **Label.** Every result from these routes says that it is unverified. The UI
+   shows the word. The run report records route, capability fingerprint,
+   publication, evidence and the verification status. The output name carries
+   the marker `_UNVERIFIED` before `.bin`. For a typed naming renderer
+   (`normal-flashcode-v1`, `tp-firmware-v1`), Application adds it and rejects a
+   custom file name. For a static name, the profile declares the marked name
+   and sets `allowOverride` to false. This changes two contracts: the additive
+   fields of `composition-report-v1`, and the output naming rule. The existing
+   disclosure, report and naming code carries the label. No second label path
+   is added. The label follows the evidence value. A supported route whose
+   evidence is `contract-only` today therefore also shows "Unverified", because
+   it also has no independent Golden result. Open decision 5 covers the
+   wording.
+5. **Build.** Build does not read publication or evidence. A route that is
+   `available` therefore has no publication or evidence blocker. Build still
+   needs a valid execution admission, valid inputs and ready runtime
+   dependencies, such as the CtrlRAM postbuild tool. A release may close Build
+   for candidate routes with one explicit gate in the shared readiness code.
+   Adding that gate is a later owner decision.
+6. **Fingerprints.** NT51925 profile hashes, bundle hashes, capability
+   fingerprints and policy decision pins change in the pull request that opens
+   the routes, and again at each later correction of these profiles. No other
+   IC changes a fingerprint, a policy row or a bundle hash.
+7. **What does not change.**
+   - The support matrix shows NT51925 as candidate. No support, approval or
+     Golden claim is made.
+   - NT51920, NT51930 and NT51931 stay retired.
+   - No other IC changes a byte or a name.
+
+### Values that stay unverified
+
+Each value below rests on the owner TP overview or the postbuild flow alone, or
+has no source.
+
+- The 1.x Single `.data` position. The layout leaves it unmapped and
+  write-forbidden, and Replace carries it over from the reference.
+- Whether a two-chip 2.0.0 Cascade uses all declared DIFF bytes.
+- The 2.0.0 ranges `[0x2E660, 0x2E980)` and `[0x2EA80, 0x2F000)`. They hold no
+  declared item, and Standard Merge copies them as they are.
+- The TP SVN source in the 2.0.0 Standard Merge. The Standard Merge reads it at
+  offset `0x24` of the TP header. The 2.0.0 CtrlRAM maps read it from the Header
+  Copy.
+- The Customer Info range, which is blank in the real images.
+- Every Single layout, which has no real image.
+- Independent expected output for every layout.
+
+### Open decisions for the owner
+
+Each item has a default. Work continues on the default until the owner decides.
+A default does not approve the R3 change it names. That change waits for the
+owner's R3 approval before it merges.
+
+1. **Version-conditioned image map for Standard Merge.** The 2026-10-09 decision
+   says to add it before the Standard Merge candidate can run. It is a profile
+   schema change. The declared copy plan is the same for both Common FW lines:
+   TP `[0, 0x30000)` and DP `[0x3E000, 0x40000)`. One map expresses it.
+   Default: follow the 2026-10-09 decision and add the version condition. The
+   owner may instead amend that decision and require the version condition at
+   the first Standard Merge difference between the two lines.
+2. **192K TP-work routes.** Default: their output is the TP-work image only.
+   Extending it to a full 256K image adds an undeclared behavior.
+3. **File name override.** Default: an override cannot remove the unverified
+   marker, and the run report carries the label.
+4. **Build for release builds.** Default: Build is open and labelled unverified.
+   The owner may require the explicit gate in item 5 above.
+5. **Wording.** The owner approves the label text and the marker text when the
+   user interface and naming changes are reviewed.
+
+### Verification for this amendment
+
+- The pull requests that open the routes change, in the same pull request, the
+  tests that pin the blocked state, and the documents that say blocked:
+  `docs/contracts/canonical-capability-policy-v1.md`,
+  `docs/architecture/supported-ic-matrix.md` and
+  `docs/architecture/ic-workflow-flowcharts.md`.
+- The identity of every other IC (profile, bundle, fingerprint, policy row, and
+  output name) is unchanged and tested as unchanged.
+- A write-range audit of the processor staging copy is required before any
+  promotion, as in "Required owner evidence and gates".
+
+## Implementation boundary (2026-10-14): Standard image-map version condition
+
+Task 925-F implements the version condition required by the 2026-10-09 decision.
+At that boundary, the policy remained `unavailable/candidate/contract-only`.
+PR4b now opens authoring as `available/candidate/contract-only`; this earlier
+construction record does not limit the later owner decision.
+
+One dynamic Standard map-set route selects the existing first map for Common FW
+1.x and `nt51925-standard-merge-fw2-256k` from 2.0.0, using the TP input's declared
+FWConfig locator. The shared interval rule and value live in Domain; postbuild
+and TP flash-map adapters continue to consume that same rule. The new exact-hash
+family schema successor is selected by the NT51925 Standard bundle alone.
+
+The two maps share all physical and metadata sets and compile identical copy
+operations. Selection retains a typed version rather than TP SHA. Retained exact
+authoring capabilities are reselected when TP content changes. Fact aliases in
+version-conditioned families and source-envelope execution with version slots
+are rejected pending explicit contracts; report-only metadata retains the first
+map as a fixed layout declaration. The family and capability-policy contracts
+own the detailed rules. Other IC identities and output semantics stay unchanged.
+
+## PR4b evidence and naming boundary (2026-10-28)
+
+Common FW below 2.0.0 uses the 1.x map; from 2.0.0 it uses the 2.0.0 map.
+The `1.4.1` in `nfc.nt51925.ctrlram-postbuild-fw1.4.1` and `...-fw141-...`
+profile ids is naming only and serves `[1.0.0, 2.0.0)`; no identifier changes.
+Separately, golden coverage: FW version less than or equal to 1.4.1.
+An owner-certified official output is an evidence level, not a support upgrade.
+A certified no-op case may be described as byte-for-byte equal to the official
+output only after its same-package check is recorded. No NT51925 no-op case is
+recorded yet; the private same-package checks are pending. Single-chip and 3-IC are unverified. The 256 KiB Replace
+input shape has no official before/after file.
+
+The 2.0.0 Single map has no DIFF CtrlRAM. `[0x27A00, 0x2A200)` in TP flash
+remains unmapped and write-forbidden. The four FW 2.0.0 Replace CRC words
+`[0x1C,0x20)`, `[0xFC,0x100)`, `[0x2E99C,0x2E9A0)` and
+`[0x2EA7C,0x2EA80)` form a known difference bound with a found root cause:
+official postbuild runs Combiner twice from zeroed CRC fields; NFC Replace
+starts from the post-built reference. These differences are not a pass.
+No Golden case, expected bytes, evidence rank or support claim changes here.
