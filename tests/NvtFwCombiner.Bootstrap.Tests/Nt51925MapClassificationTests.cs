@@ -20,13 +20,14 @@ public sealed class Nt51925MapClassificationTests
     {
         byte[] tp = CreateReference(major, 0x30000);
         if (!readable) { tp.AsSpan(0x2FFFC, 4).Clear(); }
-        var canonical = BootstrapTestHost.Canonical;
+        CanonicalTestContext canonical = BootstrapTestHost.Canonical;
         var resolver = new FirmwareArtifactClassificationResolver(canonical.Catalog, canonical.Compiler);
-        var result = resolver.ResolveWithExactStandardCapability("NT51925", null, tp);
+        (CompiledFirmwareArtifactClassification? classification, ResolvedCapability? exactCapability,
+            IReadOnlyList<ResolvedCapability>? consensusCapabilities) = resolver.ResolveWithExactStandardCapability("NT51925", null, tp);
 
-        Assert.Equal(CompiledFirmwareArtifactKind.TpFirmware, result.Classification?.Kind);
-        Assert.Null(result.ExactCapability);
-        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<ResolvedCapability>>(result.ConsensusCapabilities).Count);
+        Assert.Equal(CompiledFirmwareArtifactKind.TpFirmware, classification?.Kind);
+        Assert.Null(exactCapability);
+        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<ResolvedCapability>>(consensusCapabilities).Count);
         var adapter = new BuiltInCtrlRamAuthoringAdapter(canonical.Catalog, canonical.Projection);
         CtrlRamBaseInspection inspection = resolver.ResolveCtrlRamBase("NT51925", null, tp, null, adapter);
         Assert.Equal(CtrlRamBaseKind.StandardTp, inspection.Kind);
@@ -51,7 +52,7 @@ public sealed class Nt51925MapClassificationTests
     [InlineData("NT51928", "nt51928-standard-merge-256k", false)]
     public void ExplicitClassificationMapRequestsStayWithinDeclaredAuthority(string icId, string mapId, bool allowed)
     {
-        var canonical = BootstrapTestHost.Canonical;
+        CanonicalTestContext canonical = BootstrapTestHost.Canonical;
         ResolvedCapabilityRoute route = Assert.Single(canonical.Catalog.GetCurrentSnapshot().DynamicRoutes,
             candidate => candidate.Identity.IcId == icId && candidate.Identity.WorkflowId == ExperienceIds.StandardMerge);
         var adapter = new BuiltInV2DynamicCompilationAdapter();
@@ -83,13 +84,14 @@ public sealed class Nt51925MapClassificationTests
     [Fact]
     public void EqualCapacityClassificationRequiresConsensusWithoutChoosingAMap()
     {
-        var canonical = BootstrapTestHost.Canonical;
+        CanonicalTestContext canonical = BootstrapTestHost.Canonical;
         var resolver = new FirmwareArtifactClassificationResolver(canonical.Catalog, canonical.Compiler);
         byte[] flash = CreateReference(2, 0x40000, fullFlash: true);
-        var complete = resolver.ResolveWithExactStandardCapability("NT51925", null, flash);
-        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, complete.Classification?.Kind);
-        Assert.Null(complete.ExactCapability);
-        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<ResolvedCapability>>(complete.ConsensusCapabilities).Count);
+        (CompiledFirmwareArtifactClassification? completeClassification, ResolvedCapability? completeExact,
+            IReadOnlyList<ResolvedCapability>? completeConsensus) = resolver.ResolveWithExactStandardCapability("NT51925", null, flash);
+        Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, completeClassification?.Kind);
+        Assert.Null(completeExact);
+        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<ResolvedCapability>>(completeConsensus).Count);
 
         var agreeing = new FirmwareArtifactClassificationResolver(canonical.Catalog,
             new CanonicalCapabilityCompilerAdapter(canonical.Catalog, new ChangedPlausibilityAdapter(disagree: false)));
@@ -113,10 +115,11 @@ public sealed class Nt51925MapClassificationTests
         }
         var conflicting = new FirmwareArtifactClassificationResolver(canonical.Catalog,
             new CanonicalCapabilityCompilerAdapter(canonical.Catalog, conflictingAdapter));
-        var disagreement = conflicting.ResolveWithExactStandardCapability("NT51925", null, flash);
-        Assert.Null(disagreement.Classification);
-        Assert.Null(disagreement.ExactCapability);
-        Assert.Null(disagreement.ConsensusCapabilities);
+        (CompiledFirmwareArtifactClassification? disagreeClassification, ResolvedCapability? disagreeExact,
+            IReadOnlyList<ResolvedCapability>? disagreeConsensus) = conflicting.ResolveWithExactStandardCapability("NT51925", null, flash);
+        Assert.Null(disagreeClassification);
+        Assert.Null(disagreeExact);
+        Assert.Null(disagreeConsensus);
     }
 
     /// <summary>Replace recognizes synthetic TP-prefix and complete references while policy still blocks authoring.</summary>
@@ -160,22 +163,31 @@ public sealed class Nt51925MapClassificationTests
     {
         private readonly BuiltInV2DynamicCompilationAdapter _inner = new();
 
-        public CanonicalMapSelectionPrerequisite? GetMapSelectionPrerequisite(string icId, string workflowId) =>
-            _inner.GetMapSelectionPrerequisite(icId, workflowId);
+        public CanonicalMapSelectionPrerequisite? GetMapSelectionPrerequisite(string icId, string workflowId)
+        {
+            return _inner.GetMapSelectionPrerequisite(icId, workflowId);
+        }
 
         public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
-            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues) =>
-            _inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+            out CanonicalAbAuthoringDefinition? definition, out IReadOnlyList<CompositionIssue> issues)
+        {
+            return _inner.TryGetAbAuthoringDefinition(identity, out definition, out issues);
+        }
 
         public IReadOnlyList<long> GetMapCapacities(string icId, string workflowId,
-            out IReadOnlyList<CompositionIssue> issues) => _inner.GetMapCapacities(icId, workflowId, out issues);
+            out IReadOnlyList<CompositionIssue> issues)
+        {
+            return _inner.GetMapCapacities(icId, workflowId, out issues);
+        }
 
         public void Compile(CapabilityRouteIdentity identity, long? requestedMapCapacity,
             IReadOnlyCollection<string>? selectedInputSlotIds, out CompiledComposition? composition,
             out MetadataPlanDefinition? metadataPlan, out IReadOnlyList<CompositionIssue> issues,
-            TopologySelection? requestedTopology = null) =>
+            TopologySelection? requestedTopology = null)
+        {
             _inner.Compile(identity, requestedMapCapacity, selectedInputSlotIds,
                 out composition, out metadataPlan, out issues, requestedTopology);
+        }
 
         public void Compile(CapabilityRouteIdentity identity, long? requestedMapCapacity,
             IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts, IReadOnlyCollection<string>? selectedInputSlotIds,
