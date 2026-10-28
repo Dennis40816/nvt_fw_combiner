@@ -464,6 +464,14 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter :
         {
             return false;
         }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     private void CompileAndBindDynamicRoute(

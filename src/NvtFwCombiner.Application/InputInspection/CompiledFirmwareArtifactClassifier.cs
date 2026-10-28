@@ -530,6 +530,21 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
         CanonicalCapabilityCatalogSnapshot snapshot,
         string icId)
     {
+        try
+        {
+            return ResolveCurrentCompositionsCore(snapshot, icId);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            // An unavailable trusted bundle cannot establish agreement across all declared maps.
+            return null;
+        }
+    }
+
+    private StandardCandidate[]? ResolveCurrentCompositionsCore(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        string icId)
+    {
         var compositions = new List<StandardCandidate>();
         foreach (ResolvedCapability capability in snapshot.Capabilities.Where(capability =>
                      StringComparer.Ordinal.Equals(capability.Identity.IcId, icId) &&

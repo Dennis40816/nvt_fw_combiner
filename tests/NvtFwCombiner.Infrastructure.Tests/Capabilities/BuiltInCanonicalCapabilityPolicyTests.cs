@@ -98,11 +98,11 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
                 route.Publication.Value);
         });
         Assert.Equal(
-            85,
+            94,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Available));
         Assert.Equal(
-            9,
+            0,
             policy.Routes.Count(static route =>
                 route.Authoring.Value == CapabilityAuthoringAvailability.Unavailable));
         Assert.Equal(
@@ -127,9 +127,7 @@ public sealed class BuiltInCanonicalCapabilityPolicyTests
             Assert.Contains(candidates, route => route.Identity.RouteId == routeId));
         Assert.All(candidates, static route =>
         {
-            Assert.Equal(route.Identity.IcId == "NT51925"
-                ? CapabilityAuthoringAvailability.Unavailable
-                : CapabilityAuthoringAvailability.Available, route.Authoring.Value);
+            Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
             // ADR 0084: NT51925 Standard Merge is the only Standard Merge candidate.
             Assert.True(

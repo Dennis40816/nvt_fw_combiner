@@ -1,31 +1,53 @@
 # Supported IC / Workflow Matrix
 
-## Proposed isolated NT51925 candidates for NFC 1.2.2 (2026-10-07)
+## NT51925 unverified candidates for NFC 1.2.2 (owner direction 2026-10-14 01:20; PR4b, 2026-10-28)
 
-[Proposed ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
-records owner decision 334 (2026-10-07). Policy catalog `1.25.0` has 94 exact
-routes, adding nine NT51925 routes to the 85-route v1.2.1 catalog: one Standard
-Merge and eight CtrlRAM Replace routes (two provisional Common FW contracts,
-Single/Cascade, TP-work/full-Flash capacities). All nine have `Unavailable`
-authoring, `Candidate` publication and `ContractOnly` evidence. They are
-blocked declarations, with no authoring snapshot, execution or Build. NT51925
-owns separate map/family/candidate bundles; NT51923/NT51926 v1.2.1 identities
-and Saved Rules remain stable. No NT51925 support, approval or Golden parity is
-claimed. NT51920, NT51930 and NT51931 remain retired. NT51925 has no AB Merge,
-General Merge, General Replace or DP Replace registration.
+[ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+opens nine NT51925 routes with `Available` authoring, `Candidate` publication
+and `ContractOnly` evidence: one Standard Merge and eight CtrlRAM Replace.
+All 94 catalog routes are authorable; the catalog and both workflow selectors
+include 11 ICs. NT51925 owns isolated maps/families/bundles. NT51923/NT51926
+v1.2.1 identities and Saved Rules remain stable. NT51920, NT51930 and NT51931
+remain retired; NT51925 has no AB Merge, General Merge, General Replace or DP
+Replace registration. Build requires valid inputs and runtime dependencies.
 
-| NT51925 prepared workflow | Declared geometry / applicability | Execution and evidence gate |
+| NT51925 workflow | Declared geometry / applicability | Execution and evidence gate |
 | --- | --- | --- |
-| Standard Merge | TP `[0,0x30000)`, forbidden gap `[0x30000,0x3D000)`, Customer Info `[0x3D000,0x3E000)`, DP `[0x3E000,0x40000)` in `flash` (owner TP overview, 2026-10-10); no topology selector | Blocked before authoring snapshot, execution and Build. At least one independent single-chip direct Golden is required. |
-| CtrlRAM Replace | Isolated provisional `[1.0.0,2.0.0)` / `[2.0.0,+infinity)`, Single / generic Cascade, `0x30000` TP-work / `0x40000` full Flash | Blocked before authoring snapshot, execution and Build. Complete independent Golden for each FW/topology, exact write-range audit and owner R3 approval remain pending. |
+| Standard Merge | TP `[0,0x30000)`, forbidden gap `[0x30000,0x3D000)`, Customer Info `[0x3D000,0x3E000)`, DP `[0x3E000,0x40000)` in `flash`; no topology selector | Authorable unverified candidate; Application retains `_UNVERIFIED`. Promotion blockers remain. |
+| CtrlRAM Replace | `[1.0.0,2.0.0)` / `[2.0.0,+infinity)`, Single / Cascade (two or three ICs), `0x30000` TP-work / `0x40000` full Flash | Authorable unverified candidate; static `nt51925-ctrlram-replace_UNVERIFIED.bin`, no override. Promotion blockers remain. |
 
-Official NT51925 map/mmap, postbuild BATs, actual FW/topologies and any
-differences from NT51923/NT51926 must be supplied before support promotion.
-A later family join requires the official map proving identical facts and
-separate owner approval. The `925&926` workbook proves limited header facts
-only. The CASE instructions are
+Common FW below 2.0.0 uses the 1.x map; from 2.0.0 it uses the 2.0.0 map.
+The `1.4.1` in processor id `nfc.nt51925.ctrlram-postbuild-fw1.4.1` and the
+`...-fw141-...` profile ids is naming only and serves `[1.0.0, 2.0.0)`;
+these ids are unchanged. Separately, golden coverage: FW version less than
+or equal to 1.4.1. This coverage statement is not the map boundary.
+
+An owner-certified official output is an evidence level, not a support
+upgrade. A certified no-op case may be described as byte-for-byte equal to the
+official output only after its same-package check is recorded. No NT51925 no-op
+case is recorded yet; the private same-package checks are pending. Single-chip
+and 3-IC remain
+unverified. The 256 KiB Replace input shape has no official before/after file.
+These evidence distinctions do not change `Candidate/ContractOnly` policy.
+The 2.0.0 Single layout has no DIFF CtrlRAM; `[0x27A00, 0x2A200)` in TP flash
+stays unmapped and write-forbidden.
+
+The FW 2.0.0 Replace output has four known differing CRC words:
+`[0x1C,0x20)`, `[0xFC,0x100)`, `[0x2E99C,0x2E9A0)` and
+`[0x2EA7C,0x2EA80)`. The root cause is known: official postbuild runs Combiner
+twice from zeroed CRC fields; NFC Replace starts from the post-built reference.
+This is a known difference bound, never a passing parity result.
+
+All `map`, `golden` and `human-review` blockers remain. Support promotion,
+integration and release retain independent evidence, write-range audit and
+firmware-owner gates. The evidence intake instructions are
 [Standard Merge](../../testdata/golden/owner-handoff/standard-merge/nt51925/CASE.md)
 and [CtrlRAM Replace](../../testdata/golden/owner-handoff/ctrlram-replace/nt51925/CASE.md).
+The canonical policy remains the in-app Support Matrix source. Dated support
+and retirement statements below describe their historical catalogs; PR4b is
+the NT51925 candidate-authoring amendment.
+
+History before PR4b, kept as recorded. Its route-state statements are superseded by PR4b.
 
 **Owner data received (2026-10-08).** The owner supplied a private NT51925
 data set. It sits in the private asset repository, not in this repository. It
@@ -60,10 +82,6 @@ Owner scope decisions (relayed 2026-10-08):
   holds up to three ICs. How a three-IC cascade maps to the generic Cascade
   plan is not yet proved.
 
-The existing canonical policy remains the in-app Support Matrix source; no UI
-support table or IC-specific semantic branch is added. Dated support and
-retirement statements below describe prior scope; this isolated candidate
-preparation is their NT51925-only exception, pending approval.
 This document separates exact-route publication from evidence kind and release
 readiness. Catalog `1.17.0` retains the 2026-08-25 owner decision: all 64 exact
 Standard Merge, AB Merge, and CtrlRAM Replace routes are `Supported` and
@@ -185,11 +203,11 @@ All bytes outside those ranges remained from Reference FlashCode. The DP/LDC pro
 
 | Area | IC coverage | Source of truth | What this currently means | Not enough for 1.0 until |
 | --- | --- | --- | --- | --- |
-| IC support exposure | NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51932, NT51950, NT51951 | exact routes in `canonical-capability-policy-v1.json` joined to compiled capabilities | Catalog `1.25.0` contains 94 exact routes: the v1.2.1 85-route baseline retains its 63 Supported Standard/AB/local-CtrlRAM routes, existing candidates, ten Internal General routes and one TestOnly General route; nine isolated NT51925 Standard/CtrlRAM routes add Unavailable authoring, Candidate publication and ContractOnly evidence. NT51925 has no authoring snapshot, execution or Build. Existing NT51923/NT51926 route identities and Saved Rules remain stable. The canonical manifest supplies the exact 94-route evidence join. | Keep the exact join and validator green through the frozen-tree verifier, package/signing, clean-machine, and release-owner gates. |
-| Standard Merge profiles | NT51917, NT51919, NT51923, NT51926, NT51927, NT51928, NT51929, NT51932, NT51950, NT51951 | trusted V2 bundles plus `TrustedV2CompositionCompiler` | All 14 exact routes are supported. Evidence is seven Direct Golden, two Approved Alias, four Synthetic Oracle, and one Contract Only. NT51950/NT51951 select the V2 map matching only DP input sizes `0x40000`/`0x80000`/`0x100000`, output the selected DP length, overlay TP `0x0A000-0x36FFF (len 0x2D000)`, and preserve customer info. | Publication and exact evidence cross-link are closed; weaker evidence remains visibly weaker, and release still requires firmware review, final verification, and release-owner approval. |
+| IC support exposure | NT51917, NT51919, NT51923, NT51925 (candidate), NT51926, NT51927, NT51928 non-NB, NT51929, NT51932, NT51950, NT51951 | exact routes in `canonical-capability-policy-v1.json` joined to compiled capabilities | Catalog `1.25.0` has 94 Available routes; publication remains 63 Supported, 20 Candidate, ten Internal and one TestOnly. Nine NT51925 Standard/CtrlRAM routes are Available/Candidate/ContractOnly and retain `_UNVERIFIED`. Existing NT51923/NT51926 identities and Saved Rules remain stable. The canonical manifest supplies the exact 94-route evidence join. | Independent evidence, firmware-owner review and release gates remain required. |
+| Standard Merge profiles | NT51917, NT51919, NT51923, NT51926, NT51927, NT51928, NT51929, NT51932, NT51950, NT51951 | trusted V2 bundles plus `TrustedV2CompositionCompiler` | All 14 exact routes are supported. Evidence is seven Direct Golden, two Approved Alias, four Synthetic Oracle, and one Contract Only. NT51950/NT51951 select the V2 map matching only DP input sizes `0x40000`/`0x80000`/`0x100000`, output the selected DP length, overlay TP `0x0A000-0x36FFF (len 0x2D000)`, and preserve customer info. NT51925 has one separate Standard Merge route that is Available/Candidate/ContractOnly, authorable as unverified with `_UNVERIFIED` output names; it is not one of the 14 supported routes. | Publication and exact evidence cross-link are closed; weaker evidence remains visibly weaker, and release still requires firmware review, final verification, and release-owner approval. |
 | AB Merge function | NT51919, NT51929, NT51932, NT51950, NT51951 | `nt51919-nt51929-nt51932-ab-merge` and `nt51950-ab-merge` trusted V2 bundles, exact canonical policy routes, shared Application runner | Six exact AB routes comprise five supported routes and one candidate. Their current policy evidence is Contract Only for all six; historical Golden cases below do not independently change a current route classification. Every AB profile declares its A/B CMI read regions; production naming and UI projection read only the compiled map and have no GenFlash catalog fallback. The canonical 950/951 route copies the complete exact-length DP AB image, projects TPA/TPB from the shared TP-native window, relocates TPB DIFF by the resolved `+0x40000` or `+0x80000` instance delta, materializes a private A/B Combiner image, and imports only the verified B ILM/DLM/CRC fields. It never backfills a whole bank into the DP-seeded output. TP metadata validates topology but never selects it; TP version/PID/Common FW are report/naming facts, not selectors. Short TP prefixes block; longer TP inputs retain ignored-tail provenance, and only the declared prefix has execution authority. A warning requires an explicit rule for the selected slot, not length alone. | The changed NT51950 cascade geometry has a new Candidate identity; the former Supported identity is retired. Desay special runtime routes and Common exact-two override are disabled/removed; labels remain and both formats share the applicable Common map. Normal DP length is exact 512 KiB for NT51950 single and 1 MiB otherwise. Missing direct Golden alone does not revoke other unchanged support. The exact evidence join is closed; release still requires firmware review of declared map/postbuild authority, packaged EXE smoke, final clean verification, and release-owner approval. |
 | TP flash-map catalog | NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51932, NT51950, NT51951 | hash-pinned `profiles/built-in/ctrlram-postbuild-v2/flash-map.json` plus `BuiltInTpFlashMapCatalog` | UI can display DP, CtrlRAM, customer-info, IC-count visibility, and declared TP/full-Flash base shapes from current evidence. Static C# range facts are retired. | Every released workflow maps these rows through profiles, compiler checks, report evidence, and direct TP/full-Flash parity. |
-| CtrlRAM postbuild command catalog | NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51932, NT51950, NT51951 | hash-pinned `profiles/built-in/ctrlram-postbuild-v2/catalog.json`, trusted V2 route bundles, Combiner `1.13.0` | All 44 exact CtrlRAM routes are supported. Nineteen exact route variants use a shortened `tp-work` map; a typed TP artifact that already spans the complete image capacity instead reuses the capacity-matched map without becoming FlashCode. Evidence is 19 Direct Golden, five Approved Alias, and 20 Contract Only. Production admission is IC + effective Common FW interval (only when multiple profiles exist) + typed IC Count plan; PID, filename, exact fixture version/count, and whole-file SHA are report/regression facts only. Shortened TP and larger full-Flash bases remain separate exact-capacity routes even though their effective CtrlRAM/TP range is identical. All four NT51950/NT51951 TP-only variants are **Pending Test** for independent TP-only expected output: NT51950 cascade currently has Approved Alias evidence, while NT51950 single and NT51951 single/two-IC remain Contract Only because their owner full-Flash prefixes contain DP-origin bytes. | The manifest's exact 44-route evidence join is closed; release still requires current packaged Combiner trust/smoke, firmware review of weaker-evidence routes, final verification, and release-owner approval. |
+| CtrlRAM postbuild command catalog | NT51917, NT51919, NT51923, NT51926, NT51927, NT51928 non-NB, NT51929, NT51932, NT51950, NT51951 | hash-pinned `profiles/built-in/ctrlram-postbuild-v2/catalog.json`, trusted V2 route bundles, Combiner `1.13.0` | All 44 exact CtrlRAM routes are supported. Nineteen exact route variants use a shortened `tp-work` map; a typed TP artifact that already spans the complete image capacity instead reuses the capacity-matched map without becoming FlashCode. Evidence is 19 Direct Golden, five Approved Alias, and 20 Contract Only. Production admission is IC + effective Common FW interval (only when multiple profiles exist) + typed IC Count plan; PID, filename, exact fixture version/count, and whole-file SHA are report/regression facts only. Shortened TP and larger full-Flash bases remain separate exact-capacity routes even though their effective CtrlRAM/TP range is identical. All four NT51950/NT51951 TP-only variants are **Pending Test** for independent TP-only expected output: NT51950 cascade currently has Approved Alias evidence, while NT51950 single and NT51951 single/two-IC remain Contract Only because their owner full-Flash prefixes contain DP-origin bytes. NT51925 has eight separate CtrlRAM Replace routes from its own candidate bundle that are Available/Candidate/ContractOnly, authorable as unverified with the static `_UNVERIFIED` output name; they are not among the 44 supported routes. | The manifest's exact 44-route evidence join is closed; release still requires current packaged Combiner trust/smoke, firmware review of weaker-evidence routes, final verification, and release-owner approval. |
 | AB CtrlRAM Replace candidate | NT51919, NT51929, NT51932, NT51950, NT51951 | Existing trusted AB maps join the same IC existing Single or Cascade full-Flash CtrlRAM profile through one Profiles admission and bank compiler | Ten exact member/shape routes remain Candidate/Contract Only. The six Perfect-family routes retain their reviewed 4 KiB Backup/DIFF contract. Four Partial-family routes use the existing 0x780 Backup at 0x36000, exact native 1/2 count, B address normalization, local postbuild and AB B-Header finalizer. NT51950 Cascade publishes only its 0x40000 local prefix and retains the bank tail; unselected banks stay unchanged. No AB CtrlRAM page profile was added. | Independent complete-output AB CtrlRAM Golden, firmware-owner CRC/write-range approval, final exact-source verification and integration gates block release promotion. |
 | Production Replace profiles | CtrlRAM Replace and retained General Replace workflows | Canonical capability catalog, focused authoring/planning/execution adapters and hash-pinned FlashMap/Postbuild configuration | DP Replace dedicated runtime and packaged profiles are retired. Canonical full-image views, explicit family disclosure, DPCMI and shared reference-clone lowering remain independently owned. Historical DP Report/History identities remain readable. | Verify surviving workflows against the actual candidate; retirement does not certify CtrlRAM AB Replace or waive firmware-owner, Golden and release gates. |
 | General Merge workbench | Catalog IC ids for selection only; no IC-specific support claim | `CompositionExecutionAdapter.RunGeneralMergeAcceptedSessionWithProgressAsync`, `general-merge` CLI, Merge page General mode, `saved-rule` CLI | General Merge initializes one caller-authored positive output capacity with a typed `0x00..0xFF` fill byte (`0x00` only when omitted), then compiles explicit source-start/target-start/length mappings as `CopyRange` operations through the shared composition planner. It supports Preview/Build from CLI and UI, rejects target overlap and out-of-bounds ranges, writes structured reports, and never invokes postbuild. General Merge `--rule` consumes a Saved Rule v2 initializer plus explicit `--slot` bindings and forbids `--size`/`--fill` overrides; reports mark those operations as `saved-rule`. Standalone saved-rule inspection accepts only v2 and rejects v1 with explicit migration guidance. | Saved-rule promotion into normal workflows, UI Saved Rules, owner-approved reusable General Merge policies, General Replace saved-rule execution, and any future postbuild-dependent variant must be separately reviewed. |

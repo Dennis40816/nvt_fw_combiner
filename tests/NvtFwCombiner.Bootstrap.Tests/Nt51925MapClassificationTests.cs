@@ -5,10 +5,11 @@ using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Bootstrap.Tests;
 
-/// <summary>Synthetic layout classification never selects a version map or opens authoring.</summary>
+/// <summary>Synthetic layout classification requires agreement across maps independently of authoring version selection.</summary>
 public sealed class Nt51925MapClassificationTests
 {
     /// <summary>Both version lines and unreadable Common FW retain layout classification and consensus TP SVN.</summary>
@@ -40,6 +41,12 @@ public sealed class Nt51925MapClassificationTests
         {
             Assert.Equal((byte)0x5A, inspection.StandardEventBufferFormatVersion);
             Assert.Equal((byte)0x5A, resolver.ReadCommonEventBufferFormatForTp("NT51925",
+                canonical.Catalog.GetCurrentSnapshot().ResolutionToken, tp, 0x2F000));
+        }
+        else
+        {
+            Assert.Null(inspection.StandardEventBufferFormatVersion);
+            Assert.Null(resolver.ReadCommonEventBufferFormatForTp("NT51925",
                 canonical.Catalog.GetCurrentSnapshot().ResolutionToken, tp, 0x2F000));
         }
     }
@@ -122,13 +129,13 @@ public sealed class Nt51925MapClassificationTests
         Assert.Null(disagreeConsensus);
     }
 
-    /// <summary>Replace recognizes synthetic TP-prefix and complete references while policy still blocks authoring.</summary>
+    /// <summary>Replace recognizes both extents and requires a replacement input after authoring opens.</summary>
     [Theory]
     [InlineData(1, 0x30000)]
     [InlineData(2, 0x30000)]
     [InlineData(1, 0x40000)]
     [InlineData(2, 0x40000)]
-    public void ReplacePreparationRecognizesBothReferenceExtentsWithoutOpeningAuthoring(byte major, int capacity)
+    public void ReplacePreparationRecognizesBothReferenceExtentsAndRequiresReplacement(byte major, int capacity)
     {
         byte[] reference = CreateReference(major, capacity, fullFlash: capacity == 0x40000);
         var session = new AuthoringSessionState(ExperienceIds.CtrlRamReplace);
@@ -140,12 +147,61 @@ public sealed class Nt51925MapClassificationTests
         Assert.False(preparation.Succeeded);
         Assert.Null(preparation.AcceptedSession);
         Assert.Null(session.CurrentSnapshot);
-        Assert.NotEmpty(preparation.Issues);
+        Assert.Contains(preparation.Issues, static issue => issue.Code == CompositionPlanningIssueCodes.ReplaceCtrlRamNoRegionInput);
         Assert.DoesNotContain(preparation.Issues, static issue => issue.Code == "input.reference.unrecognized");
-        Assert.False(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.CtrlRamReplace));
+        Assert.True(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.CtrlRamReplace));
     }
 
-    private static byte[] CreateReference(byte major, int capacity, bool fullFlash = false)
+    /// <summary>Accepted Standard sessions use version selection and Application's unverified naming rule.</summary>
+    [Theory]
+    [InlineData(1, "nt51925-standard-merge-256k")]
+    [InlineData(2, "nt51925-standard-merge-fw2-256k")]
+    [InlineData(3, "nt51925-standard-merge-fw2-256k")]
+    public async Task StandardAuthoringProducesUnverifiedOutputName(byte major, string expectedMap)
+    {
+        using TempWorkspace workspace = TempWorkspace.Create("nt51925-standard-unverified");
+        byte[] tp = CreateReference(major, 0x30000);
+        byte[] dp = new byte[0x40000];
+        dp[0x3E001] = 0x71;
+        string tpPath = workspace.Write("tp.bin", tp);
+        string dpPath = workspace.Write("dp.bin", dp);
+        AuthoringSessionState session = new(ExperienceIds.StandardMerge);
+        CompiledAuthoringSessionPreparation prepared = BootstrapTestHost.Services.StandardMergeAuthoring.PrepareSession(
+            session, "NT51925", [new("tp-input", tpPath, tp), new("dp-input", dpPath, dp)]);
+
+        Assert.True(prepared.Succeeded, CompositionExecutionTestSupport.FormatIssues(prepared.Issues));
+        ActiveSessionSnapshot accepted = Assert.IsType<ActiveSessionSnapshot>(prepared.Snapshot);
+        Assert.Same(accepted, session.CurrentSnapshot);
+        Assert.Equal(expectedMap, accepted.ExactCapability!.CompiledComposition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+        CompositionRunResult result = await BootstrapTestHost.Services.CompositionExecution.ExecuteAsync(
+            new AcceptedCompositionExecutionRequest(accepted,
+                new Dictionary<string, string> { ["tp-input"] = tpPath, ["dp-input"] = dpPath }, build: false),
+            new CompositionRunProgressFeed(), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Succeeded, CompositionRunReportJson.Serialize(result));
+        Assert.StartsWith("NT51925_FlashCode_", result.OutputFileName, StringComparison.Ordinal);
+        Assert.EndsWith("_UNVERIFIED.bin", result.OutputFileName, StringComparison.Ordinal);
+        Assert.Equal(CapabilityPublicationStatus.Candidate, accepted.ExactCapability.Publication.Value);
+        Assert.Equal(CapabilityEvidenceStatus.ContractOnly, accepted.ExactCapability.Evidence.Value);
+    }
+
+    /// <summary>Classification agreement cannot supply the Common FW version required for authoring.</summary>
+    [Fact]
+    public void StandardAuthoringRejectsUnreadableVersionWithoutSelectingAMap()
+    {
+        byte[] tp = CreateReference(2, 0x30000);
+        tp.AsSpan(0x2FFFC, 4).Clear();
+        AuthoringSessionState session = new(ExperienceIds.StandardMerge);
+        CompiledAuthoringSessionPreparation prepared = BootstrapTestHost.Services.StandardMergeAuthoring.PrepareSession(
+            session, "NT51925", [new("tp-input", "tp.bin", tp), new("dp-input", "dp.bin", new byte[0x40000])]);
+
+        Assert.False(prepared.Succeeded);
+        Assert.Null(prepared.Snapshot);
+        Assert.Null(session.CurrentSnapshot);
+        Assert.Contains(prepared.Issues, static issue => issue.Code == "profile.v2.compile.common-fw-version-required");
+    }
+
+    internal static byte[] CreateReference(byte major, int capacity, bool fullFlash = false)
     {
         byte[] reference = new byte[capacity];
         Nt51925VersionSelectionTests.CreateTp(major, major == 1 ? (byte)4 : (byte)0, major == 1 ? (byte)1 : (byte)0)
@@ -159,13 +215,105 @@ public sealed class Nt51925MapClassificationTests
         return reference;
     }
 
-    private sealed class ChangedPlausibilityAdapter(bool disagree) : ICanonicalDynamicCompilationAdapter
+    /// <summary>Read-only metadata must retain the exact route profile, bundle and allowed map.</summary>
+    [Theory]
+    [InlineData("", true)]
+    [InlineData("map", false)]
+    [InlineData("profile", false)]
+    [InlineData("version", false)]
+    [InlineData("bundle", false)]
+    [InlineData("missing-source", false)]
+    [InlineData("empty", false)]
+    public void DeclaredMetadataMustMatchPublishedCompilationContract(string fault, bool admitted)
+    {
+        CanonicalCapabilityCompilerAdapter compiler = new(BootstrapTestHost.Canonical.Catalog,
+            new ChangedPlausibilityAdapter(fault: fault));
+        MetadataPlanResolutionResult result = Assert.IsType<MetadataPlanResolutionResult>(
+            ((IStandardMergeMetadataPlanQuery)compiler).ResolveSourceEnvelopeMetadataPlan("NT51925", 0x40000));
+
+        Assert.Equal(admitted, result.Succeeded);
+        Assert.Equal(admitted, result.MetadataPlan is not null);
+        Assert.Equal(admitted ? null : CapabilityCatalogIssueCodes.RouteUnavailable, result.Issue?.Code);
+    }
+
+    /// <summary>Bundle failures in prerequisites and declared metadata return typed failures.</summary>
+    [Theory]
+    [InlineData("prerequisite-io")]
+    [InlineData("prerequisite-invalid")]
+    [InlineData("prerequisite-access")]
+    [InlineData("metadata-io")]
+    [InlineData("metadata-invalid")]
+    [InlineData("metadata-access")]
+    public void DeclaredMetadataBundleFailuresReturnTypedIssues(string fault)
+    {
+        CanonicalCapabilityCompilerAdapter compiler = new(BootstrapTestHost.Canonical.Catalog,
+            new ChangedPlausibilityAdapter(fault: fault));
+        MetadataPlanResolutionResult result = Assert.IsType<MetadataPlanResolutionResult>(
+            ((IStandardMergeMetadataPlanQuery)compiler).ResolveSourceEnvelopeMetadataPlan("NT51925", 0x40000));
+
+        Assert.False(result.Succeeded);
+        Assert.Null(result.MetadataPlan);
+        Assert.Equal("profile.v2.builtin-bundle-load-failed", result.Issue?.Code);
+    }
+
+    /// <summary>No classification or metadata consensus survives a failed trusted-bundle read.</summary>
+    [Theory]
+    [InlineData("prerequisite-io")]
+    [InlineData("prerequisite-invalid")]
+    [InlineData("prerequisite-access")]
+    [InlineData("compile-io")]
+    [InlineData("compile-invalid")]
+    [InlineData("compile-access")]
+    public void ClassificationBundleFailuresReturnNoConsensus(string fault)
+    {
+        CanonicalTestContext canonical = BootstrapTestHost.Canonical;
+        CanonicalCapabilityCompilerAdapter compiler = new(canonical.Catalog, new ChangedPlausibilityAdapter(fault: fault));
+        FirmwareArtifactClassificationResolver resolver = new(canonical.Catalog, compiler);
+        (CompiledFirmwareArtifactClassification? classification, ResolvedCapability? exact,
+            IReadOnlyList<ResolvedCapability>? consensus) = resolver.ResolveWithExactStandardCapability(
+                "NT51925", null, CreateReference(2, 0x40000, fullFlash: true));
+
+        Assert.Null(classification);
+        Assert.Null(exact);
+        Assert.Null(consensus);
+    }
+
+    private sealed class ChangedPlausibilityAdapter(bool disagree = false, string fault = "") : ICanonicalDynamicCompilationAdapter
     {
         private readonly BuiltInV2DynamicCompilationAdapter _inner = new();
 
         public CanonicalMapSelectionPrerequisite? GetMapSelectionPrerequisite(string icId, string workflowId)
         {
+            ThrowLoadFault("prerequisite");
             return _inner.GetMapSelectionPrerequisite(icId, workflowId);
+        }
+
+        public MetadataPlanDefinition? GetDeclaredMapMetadataPlan(string icId, string workflowId)
+        {
+            ThrowLoadFault("metadata");
+            MetadataPlanDefinition plan = _inner.GetDeclaredMapMetadataPlan(icId, workflowId)!;
+            MetadataPlanSourceIdentity source = plan.SourceIdentity!;
+            IEnumerable<MetadataPlanEntry> entries = fault switch
+            {
+                "map" => BootstrapTestHost.Canonical.Catalog.ResolveUniqueMetadataPlan(
+                    "NT51926", ExperienceIds.StandardMerge, "selector-free").MetadataPlan!.Definition.Entries,
+                "empty" => [],
+                "missing-source" => plan.Entries.Where(static entry =>
+                    !entry.Purposes.Contains(MetadataReferencePurpose.ReportClassification)),
+                _ => plan.Entries,
+            };
+            MetadataPlanSourceIdentity? changedSource = fault == "missing-source" ? null : new(
+                fault == "profile" ? "foreign-profile" : source.ProfileId!,
+                fault == "version" ? "9.9.9" : source.ProfileVersion!,
+                fault == "bundle" ? new string('a', 64) : source.TrustedDefinitionSha256);
+            return new MetadataPlanDefinition(entries, changedSource);
+        }
+
+        private void ThrowLoadFault(string phase)
+        {
+            if (fault == phase + "-io") { throw new IOException("Synthetic bundle read failure."); }
+            if (fault == phase + "-invalid") { throw new InvalidDataException("Synthetic invalid bundle."); }
+            if (fault == phase + "-access") { throw new UnauthorizedAccessException("Synthetic bundle access failure."); }
         }
 
         public bool TryGetAbAuthoringDefinition(CapabilityRouteIdentity identity,
@@ -194,6 +342,7 @@ public sealed class Nt51925MapClassificationTests
             string? explicitMapId, out CompiledComposition? composition, out MetadataPlanDefinition? metadataPlan,
             out IReadOnlyList<CompositionIssue> issues, TopologySelection? requestedTopology = null)
         {
+            ThrowLoadFault("compile");
             _inner.Compile(identity, requestedMapCapacity, capturedArtifacts, selectedInputSlotIds, explicitMapId,
                 out composition, out metadataPlan, out issues, requestedTopology);
             if (composition is null || explicitMapId != "nt51925-standard-merge-fw2-256k") { return; }

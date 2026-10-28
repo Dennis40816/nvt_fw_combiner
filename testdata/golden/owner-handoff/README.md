@@ -3,10 +3,10 @@
 ## NT51925 isolated candidate intake (2026-10-07)
 
 The new exception to the historical closed intake below is NT51925 under
-[Proposed ADR 0084](../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+[ADR 0084](../../../docs/adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 Owner decision 334 (2026-10-07) gives NT51925 its own map, family and candidate
-bundles; both workflows remain blocked before authoring snapshot, execution
-and Build. Official map/mmap, version-specific postbuild scripts, declared
+bundles. PR4b opens both workflows as Available/Candidate/ContractOnly,
+with `_UNVERIFIED` output names and all promotion blockers retained. Official map/mmap, version-specific postbuild scripts, declared
 FW/topologies, differences from NT51923/NT51926 and independent Golden cases
 remain pending. Use
 [`standard-merge/nt51925/CASE.md`](standard-merge/nt51925/CASE.md) and
