@@ -2,7 +2,7 @@
 
 `canonical-capability-policy-v1.json` is the sole publication and evidence policy for exact compiled capability routes. Its normative structure is `canonical-capability-policy-v1.schema.json`.
 
-## NT51925 unverified authoring (PR4b, 2026-10-28)
+## NT51925 unverified authoring (owner direction 2026-10-14 01:20; PR4b, 2026-10-28)
 
 Owner decision 334 (2026-10-07) isolated nine NT51925 Standard Merge/CtrlRAM
 Replace routes from the 85-route v1.2.1 catalog. PR4b opens all nine under

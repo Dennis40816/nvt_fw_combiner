@@ -48,13 +48,13 @@ public sealed class Nt51925AdmissionSettingsTests
 
 public sealed partial class ReplaceSurfaceCompatibilityTests
 {
-    /// <summary>Every FW/topology route is authorable, retains promotion blockers and needs inputs before Build.</summary>
+    /// <summary>Every FW/topology route is authorable without a route blocker and needs inputs before Build; promotion blockers stay in the profiles.</summary>
     [Theory]
     [InlineData("141", IcNumberSelectionTokens.SingleChip, "1-ic")]
     [InlineData("141", IcNumberSelectionTokens.Cascade, "2-plus-ic")]
     [InlineData("200", IcNumberSelectionTokens.SingleChip, "1-ic")]
     [InlineData("200", IcNumberSelectionTokens.Cascade, "2-plus-ic")]
-    public void Nt51925CtrlRamReplaceSelectionIsAuthorableWithPromotionBlockers(string fw, string number, string countVariant)
+    public void Nt51925CtrlRamReplaceSelectionIsAuthorableAndNeedsInputsBeforeBuild(string fw, string number, string countVariant)
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
         viewModel.ShowReplaceCommand.Execute(null);

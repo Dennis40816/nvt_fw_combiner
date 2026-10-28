@@ -122,8 +122,14 @@ public static partial class CliApplication
                 .SingleOrDefault()?.ExactCapability;
             if (exactCapability is null)
             {
-                string prerequisiteId = CompositionAddressSpaceIds.DpInput;
-                string prerequisitePath = slotPaths[prerequisiteId];
+                string prerequisiteId = services.StandardMergeAuthoring.GetCapturedSelectionSlotId(selectedProfile.IcId);
+                if (!slotPaths.TryGetValue(prerequisiteId, out string? prerequisitePath))
+                {
+                    await error.WriteLineAsync(
+                            $"error: {InputOptionsByAddressSpace.GetValueOrDefault(prerequisiteId, prerequisiteId)} is required for address space '{prerequisiteId}'")
+                        .ConfigureAwait(false);
+                    return UsageError;
+                }
                 byte[] prerequisiteBytes;
                 try
                 {

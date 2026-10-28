@@ -784,6 +784,12 @@ public sealed partial class ShellNavigationSystemTests
             return inner.GetProfileId(icId);
         }
 
+        public string GetCapturedSelectionSlotId(string icId)
+        {
+            Record(nameof(GetCapturedSelectionSlotId), icId);
+            return inner.GetCapturedSelectionSlotId(icId);
+        }
+
         public IReadOnlyList<string> GetRequiredAddressSpaces(string icId)
         {
             Record(nameof(GetRequiredAddressSpaces), icId);

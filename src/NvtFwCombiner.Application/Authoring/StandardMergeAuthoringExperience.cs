@@ -88,6 +88,12 @@ internal sealed partial class StandardMergeAuthoringExperience :
             icId, authoringRevision, selectedSlotIds, dpBytes);
     }
 
+    /// <summary>Gets the input slot whose captured bytes select the exact route: the declared map-selection prerequisite, otherwise DP.</summary>
+    public string GetCapturedSelectionSlotId(string icId)
+    {
+        return _compiler.GetStandardMapSelectionPrerequisite(icId)?.SlotId ?? CompositionAddressSpaceIds.DpInput;
+    }
+
     /// <summary>Atomically prepares one exact Standard Merge session from immutable inputs.</summary>
     public CompiledAuthoringSessionPreparation PrepareSession(
         AuthoringSessionState session,

@@ -104,7 +104,7 @@ separate owner approval; this proposal neither prepares nor authorizes it.
 
 ## Amendment (2026-10-09): version-keyed Standard Merge TP maps
 
-Status of this amendment: Proposed, together with the rest of this ADR.
+Status of this amendment: Accepted with the rest of this ADR (see the status line).
 
 Owner decision (relayed 2026-10-08): the NT51925 layouts V1 and V2 are Common FW
 major versions. Both are supported. For now they split at 2.0.0: V1 below 2.0.0,
@@ -164,11 +164,11 @@ Decision proposed here:
 
 The version-slot model is unchanged by the NT51925 maps amendment below.
 Candidate Replace geometry follows the later owner TP overview and postbuild
-amendment; Replace stays deferred and blocked.
+amendment; PR4b opens Replace for unverified candidate authoring.
 
 ## Amendment (2026-10-10): NT51925 maps
 
-Status: Proposed. Owner decision (relayed 2026-10-10): the owner's postbuild
+Status: Accepted with this ADR. Owner decision (relayed 2026-10-10): the owner's postbuild
 flow and TP overview declare NT51925 addresses and sizes.
 
 The layout key is the Common FW slot and IC count: 1.x starts at 1.0.0 and
@@ -210,7 +210,7 @@ makes no support, approval or Golden claim and does not change the ADR status.
 
 ## Amendment (2026-10-10): candidate geometry from the TP overview
 
-Status: Proposed. Owner decisions at 14:49 and 14:59 replace the borrowed
+Status: Accepted with this ADR. Owner decisions at 14:49 and 14:59 replace the borrowed
 NT51926 candidate geometry with the owner's TP overview and postbuild flow.
 The TP region is 196,608 bytes, full flash is 262,144 bytes, and every layout
 uses the end flag at `0x2FFFC`. The existing Common FW slot and topology
@@ -221,9 +221,10 @@ Verification level: 1.x Single has postbuild evidence only, with no real BIN.
 2.0.0 Single has postbuild evidence only, with no real BIN.
 2.0.0 Cascade agrees with postbuild plus three real BINs (owner-reported).
 No layout has an independent expected output (Golden). These observations
-make no support, approval or Golden claim; the candidate remains Proposed
-and Blocked, with Unavailable/Candidate/ContractOnly policy and every existing
-promotion blocker retained.
+make no support, approval or Golden claim. At this amendment the candidate was
+Proposed and Blocked (Unavailable/Candidate/ContractOnly); PR4b later opened
+authoring (Available/Candidate/ContractOnly) with every existing promotion
+blocker retained.
 
 Only 1.x Cascade declares CtrlRAM_S and the Vec Table; only 2.0.0 Cascade
 declares DIFF. Only 2.0.0 has a Header Copy. For 1.x, TP SVN uses the existing

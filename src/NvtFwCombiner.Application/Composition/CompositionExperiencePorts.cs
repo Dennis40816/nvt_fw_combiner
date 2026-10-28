@@ -81,12 +81,15 @@ public interface ICompositionCapabilityExperience
 /// <summary>Focused Standard Merge authoring operations over one canonical workflow owner.</summary>
 public interface IStandardMergeAuthoring
 {
-    /// <summary>Resolves an exact selection from one already-captured DP artifact.</summary>
+    /// <summary>Resolves an exact selection from the already-captured artifact of <see cref="GetCapturedSelectionSlotId"/>.</summary>
     CompiledAuthoringSelectionSnapshot ResolveCapturedDpSelection(
         string icId,
         ReadOnlyMemory<byte> dpBytes,
         IReadOnlyCollection<string> selectedSlotIds,
         AuthoringRevision authoringRevision);
+
+    /// <summary>Gets the input slot whose captured bytes select the exact route: the declared map-selection prerequisite, otherwise DP.</summary>
+    string GetCapturedSelectionSlotId(string icId);
 
     /// <summary>Returns whether the IC has one authorable Standard Merge route.</summary>
     bool IsSupported(string icId);

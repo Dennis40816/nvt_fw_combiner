@@ -18,7 +18,7 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 > #221 removes their selectable and executable flow rows. Retaining a diagram
 > until that removal lands does not preserve runtime or publication authority.
 
-> **NT51925 unverified authoring (PR4b, 2026-10-28):**
+> **NT51925 unverified authoring (owner direction 2026-10-14 01:20; PR4b, 2026-10-28):**
 > [ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
 > opens Standard Merge and CtrlRAM Replace as Available/Candidate/ContractOnly.
 > Every output retains `_UNVERIFIED`; all promotion blockers remain.
