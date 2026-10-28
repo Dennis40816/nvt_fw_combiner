@@ -85,7 +85,8 @@ public sealed partial class MergeWorkflowTests
             viewModel.Settings.SupportMatrix.Rows,
             static row => row.IcId == "NT51925" && row.WorkflowId == ExperienceIds.StandardMerge);
         Assert.Equal(CapabilityEvidenceStatus.ContractOnly, standard.EvidenceStatus);
-        Assert.True(standard.HasBlocker);
+        // Profile promotion blockers stay in the profile; the matrix lists only route blockers.
+        Assert.False(standard.HasBlocker);
     }
 
     /// <summary>Every admitted Standard Merge profile keeps IC Number out of its authoring context.</summary>

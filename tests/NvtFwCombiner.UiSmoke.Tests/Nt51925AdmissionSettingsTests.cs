@@ -81,7 +81,8 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         Assert.All(routes, static row =>
         {
             Assert.True(row.IsAuthoringAvailable);
-            Assert.True(row.HasBlocker);
+            // Profile promotion blockers stay in the profiles; the matrix lists only route blockers.
+            Assert.False(row.HasBlocker);
             Assert.Equal("Candidate", row.PublicationLabel);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, row.EvidenceStatus);
         });
