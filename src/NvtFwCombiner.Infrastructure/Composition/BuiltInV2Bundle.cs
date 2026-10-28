@@ -485,7 +485,8 @@ internal sealed class BuiltInV2Bundle
         long? requestedMapCapacity,
         TopologySelection? requestedTopology,
         IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
-        IReadOnlyCollection<string>? selectedInputSlotIds = null)
+        IReadOnlyCollection<string>? selectedInputSlotIds = null,
+        string? explicitMapId = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         try
@@ -498,7 +499,8 @@ internal sealed class BuiltInV2Bundle
                 requestedMapCapacity,
                 requestedTopology,
                 resolutionArtifacts,
-                selectedInputSlotIds);
+                selectedInputSlotIds,
+                explicitMapId);
         }
         catch (Exception exception) when (IsBundleLoadFailure(exception))
         {

@@ -18,6 +18,12 @@ public interface ICanonicalDynamicCompilationAdapter
         return null;
     }
 
+    /// <summary>Returns the fixed declared metadata layout for a map-selection prerequisite, when available.</summary>
+    MetadataPlanDefinition? GetDeclaredMapMetadataPlan(string icId, string workflowId)
+    {
+        return null;
+    }
+
     /// <summary>Reads the profile-declared route key for a captured source extent without compiling it.</summary>
     bool TryGetSourceEnvelopeMapVariant(
         string icId,
@@ -74,4 +80,27 @@ public interface ICanonicalDynamicCompilationAdapter
             "This dynamic compiler does not support captured source artifacts.")];
     }
 
+    /// <summary>Compiles an explicit declared layout for classification; adapters must opt in or fail closed.</summary>
+    void Compile(
+        CapabilityRouteIdentity identity,
+        long? requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        string? explicitMapId,
+        out CompiledComposition? composition,
+        out MetadataPlanDefinition? metadataPlan,
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
+    {
+        if (explicitMapId is null)
+        {
+            Compile(identity, requestedMapCapacity, capturedArtifacts, selectedInputSlotIds,
+                out composition, out metadataPlan, out issues, requestedTopology);
+            return;
+        }
+        composition = null;
+        metadataPlan = null;
+        issues = [new CompositionIssue("capability.dynamic.explicit-map-unsupported",
+            "This dynamic compiler does not support explicit classification maps.")];
+    }
 }

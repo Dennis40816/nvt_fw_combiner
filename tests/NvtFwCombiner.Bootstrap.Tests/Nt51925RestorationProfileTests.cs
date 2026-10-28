@@ -75,12 +75,30 @@ public sealed class Nt51925RestorationProfileTests
         CompiledComposition composition = Nt51925VersionSelectionTests.CompileStandard(Nt51925VersionSelectionTests.CreateTp(1, 4, 1));
         Assert.True(composition.IsV2StandardMergeOpenCandidate);
         Assert.Equal(2, declaration.CompilationContract.AllowedMapVariantIds.Count);
+        MetadataPlanResolutionResult metadata = Assert.IsType<MetadataPlanResolutionResult>(
+            ((IStandardMergeMetadataPlanQuery)BootstrapTestHost.Canonical.Compiler)
+                .ResolveSourceEnvelopeMetadataPlan("NT51925", 0x40000));
+        Assert.True(metadata.Succeeded);
+        Assert.NotNull(metadata.MetadataPlan);
+        Assert.Equal(declaration.ResolutionToken, metadata.MetadataPlan.ResolutionToken);
         Assert.True(existing.Capability!.ExecutionAdmitted);
         Assert.False(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.StandardMerge));
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);
         Assert.Equal(CompiledProfilePromotionStage.ExecutableCandidate, composition.V2Details.Provenance.Promotion.Stage);
         AssertUnchangedOperationContract(existing.Capability.CompiledComposition.Plan, composition.Plan);
         Assert.True(CapabilityPublicationCoherence.IsExecutionAdmitted(composition));
+    }
+
+    /// <summary>A Standard route without a version prerequisite retains its static metadata lookup.</summary>
+    [Fact]
+    public void StandardMetadataWithoutMapSelectionPrerequisiteKeepsItsExistingPlan()
+    {
+        Assert.Null(((IStandardMergeMetadataPlanQuery)BootstrapTestHost.Canonical.Compiler)
+            .ResolveSourceEnvelopeMetadataPlan("NT51926", 0x40000));
+        MetadataPlanResolutionResult metadata = BootstrapTestHost.Canonical.Catalog.ResolveUniqueMetadataPlan(
+            "NT51926", ExperienceIds.StandardMerge, "selector-free");
+        Assert.True(metadata.Succeeded);
+        Assert.NotNull(metadata.MetadataPlan);
     }
 
     /// <summary>Only the explicitly declared Standard candidate satisfies the unchanged execution rule.</summary>
