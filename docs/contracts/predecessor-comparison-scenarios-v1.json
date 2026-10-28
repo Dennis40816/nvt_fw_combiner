@@ -931,6 +931,105 @@
       "declarationEntryId": "RP-1.2.2-01"
     },
     {
+      "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k",
+      "approvedInVersion": "1.2.2",
+      "reason": "No earlier release can run this route: v1.2.1 and the v0.9.16 reference build have no NT51925 route, so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      },
+      "declarationEntryId": "RP-1.2.2-02"
+    },
+    {
       "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
       "approvedInVersion": "1.2.2",
       "reason": "No canonical input exists for this route (1.1.12 board decision 60), so no scenario compares it with the baseline. The owner accepts the gap for this release only.",
@@ -1033,17 +1132,7 @@
   "pendingAcceptedGaps": {
     "decision": "1.1.12 board decision 60",
     "status": "awaiting-owner-approval",
-    "routeIds": [
-      "route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k",
-      "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
-      "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
-      "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
-      "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
-      "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
-      "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
-      "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
-      "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k"
-    ]
+    "routeIds": []
   },
   "retiredScenarios": []
 }

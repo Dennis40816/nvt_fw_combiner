@@ -6,7 +6,7 @@
     "tag": "v1.2.1",
     "tagObject": "2a638546a072910a9ae94e2686e9231b155c0c90"
   },
-  "ledgerSha256": "5148b8249ab60a3a68b19c6fb5f0e356c88f5740f2fb0bfd282affbcf945d3f1",
+  "ledgerSha256": "6298c51a7b99b75d7a7599e38bf5037da8a3e742f013f74bd53630bc731beb7b",
   "entries": [
     {
       "id": "RP-1.2.2-01",
@@ -33,6 +33,31 @@
         "boardDecision": "1.2.2 board decision 346",
         "role": "firmware-owner",
         "date": "2026-10-10"
+      }
+    },
+    {
+      "id": "RP-1.2.2-02",
+      "kind": "accepted-gap",
+      "scenarioIds": [],
+      "routeIds": [
+        "route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k"
+      ],
+      "expected": null,
+      "differences": null,
+      "knownIssue": null,
+      "routeWithdrawal": false,
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
       }
     }
   ]
