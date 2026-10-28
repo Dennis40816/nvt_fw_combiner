@@ -224,14 +224,8 @@ is unchanged; the removed NT51926 Header Copy locator supplies no authority.
 The Standard Merge TP SVN binding stays unchanged. No `.data` or Project ID
 region is declared. The unknown 1.x Single `.data` position is not guessed.
 
-Pending owner script: the 11-byte range `[0x2EA80, 0x2EA8B)` of the FW 2.0.0
-output holds five non-blank bytes that an owner insertion script writes. The
-script is not yet in the private asset repository. Until the owner provides it,
-Standard Merge copies the range as is from the TP input and makes no output
-claim for it. A later Golden comparison declares it as a difference bound; the
-layout does not split a region for it. This is a pending item, not a missing
-layout region. Replace flows clone the reference image, so those bytes carry
-over unchanged.
+The TP prefix [0x0, 0x30000) is copied whole, including the content from
+0x2EA80. (owner 2026-10-14 20:58)
 
 CtrlRAM_S keeps the `explicit-range` physical constraint because the range
 exists in the TP overview. The FW 1.x cascade runtime profile makes it
@@ -274,6 +268,9 @@ Owner direction (relayed 2026-10-14 01:20): build NT51925 as far as the declared
 layout facts allow, and do not wait for independent Golden output. Correct it
 later if a fact turns out wrong. Tests and the remaining documents follow the
 construction.
+
+Owner 2026-10-14 16:47 confirmed: the TP Overview DIFF row applies to the
+Cascade layout only. The 2.0.0 Single layout has no DIFF CtrlRAM.
 
 Facts that exist today:
 
@@ -350,7 +347,6 @@ has no source.
 
 - The 1.x Single `.data` position. The layout leaves it unmapped and
   write-forbidden, and Replace carries it over from the reference.
-- The omission of DIFF in 2.0.0 Single. Only the postbuild flow says it.
 - Whether a two-chip 2.0.0 Cascade uses all declared DIFF bytes.
 - The 2.0.0 ranges `[0x2E660, 0x2E980)` and `[0x2EA80, 0x2F000)`. They hold no
   declared item, and Standard Merge copies them as they are.

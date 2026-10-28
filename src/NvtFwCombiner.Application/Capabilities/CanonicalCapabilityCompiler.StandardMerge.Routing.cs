@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -18,6 +19,38 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         {
             return MetadataFailure(CapabilityCatalogIssueCodes.CatalogUnavailable,
                 "No valid canonical capability catalog is loaded.");
+        }
+
+        if (GetStandardMapSelectionPrerequisite(normalizedIcId) is { } prerequisite)
+        {
+            if (dpInputLength != prerequisite.MapCapacity)
+            {
+                return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "The Standard DP length has no published exact metadata route.");
+            }
+            _ = TryGetPublishedStandardVersionRoute(normalizedIcId,
+                out ResolvedCapabilityRoute? versionRoute, out _, out _);
+            if (versionRoute is null)
+            {
+                return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "Version selection requires one published Standard metadata route.");
+            }
+            MetadataPlanDefinition? plan;
+            try
+            {
+                plan = _dynamicCompiler.GetDeclaredMapMetadataPlan(normalizedIcId, ExperienceIds.StandardMerge);
+            }
+            catch (InvalidDataException)
+            {
+                plan = null;
+            }
+            return !IsCurrentPublishedRoute(snapshot, versionRoute)
+                ? MetadataFailure(AuthoringSessionIssueCodes.StalePublication,
+                    "The canonical Standard publication changed during metadata lookup.")
+                : plan is not null
+                    ? new MetadataPlanResolutionResult(plan.Resolve(snapshot.ResolutionToken), null)
+                    : MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                        "The published Standard route did not supply its declared metadata plan.");
         }
 
         bool declared = TryGetStandardSourceEnvelopeRoutes(

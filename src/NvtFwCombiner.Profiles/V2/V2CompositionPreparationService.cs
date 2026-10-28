@@ -36,7 +36,8 @@ internal static class V2CompositionPreparationService
             FirmwareMapResolutionInputs resolutionInputs,
             [NotNullWhen(true)] out PreparedCompilation? preparation,
             out FirmwareMapResolutionResult? mapResolution,
-            out IReadOnlyList<CompositionIssue> issues)
+            out IReadOnlyList<CompositionIssue> issues,
+            string? explicitMapId = null)
         {
             ArgumentNullException.ThrowIfNull(catalog);
             ArgumentNullException.ThrowIfNull(selectedProfile);
@@ -95,7 +96,19 @@ internal static class V2CompositionPreparationService
                 boundSource is not null &&
                 boundSource.LengthBytes == resolutionInputs.CapacityBytes &&
                 !hasExactProfileMap;
-            if (hasNonstandardBoundSource)
+            if (explicitMapId is not null)
+            {
+                if (selectedProfile.Family.Family.CommonFirmwareVersionArtifactBindingId is null ||
+                    !profileMapIds.Contains(explicitMapId))
+                {
+                    issues = [new CompositionIssue("profile.v2.compile.map-selection-invalid",
+                        "Explicit classification maps require a declared version-selection prerequisite and map.")];
+                    return false;
+                }
+                mapResolution = selectedProfile.Family.Family.ResolveLayoutTemplateWithinForProfile(
+                    resolutionInputs, explicitMapId, profileMapIds, requiredMetadataStructureIds);
+            }
+            else if (hasNonstandardBoundSource)
             {
                 mapResolution = selectedProfile.Family.Family.ResolveLayoutTemplateWithinForProfile(
                     resolutionInputs,

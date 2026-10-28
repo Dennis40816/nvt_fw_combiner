@@ -367,7 +367,8 @@ internal sealed class BuiltInV2Registration
         IReadOnlyCollection<string>? selectedInputSlotIds,
         IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
         out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        string? explicitMapId = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (!TryAdmitCompileRequest(
@@ -386,7 +387,8 @@ internal sealed class BuiltInV2Registration
             requestedCapacity,
             effectiveTopology,
             selectedInputSlotIds,
-            resolutionArtifacts);
+            resolutionArtifacts,
+            explicitMapId);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -647,7 +649,8 @@ internal sealed class BuiltInV2Registration
         long? requestedMapCapacity,
         TopologySelection? requestedTopology = null,
         IReadOnlyCollection<string>? selectedInputSlotIds = null,
-        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null)
+        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null,
+        string? explicitMapId = null)
     {
         return IsAbMerge
             ? _bundle.CompileAbMergeFunctionOpen(
@@ -669,7 +672,8 @@ internal sealed class BuiltInV2Registration
                 requestedMapCapacity,
                 requestedTopology: null,
                 resolutionArtifacts ?? [],
-                selectedInputSlotIds);
+                selectedInputSlotIds,
+                explicitMapId);
     }
 
     private static TopologySelection CreateSummaryTopology()
