@@ -82,7 +82,7 @@ version source. `nt51925-standard-merge-256k` starts at `1.0.0` and
 `nt51925-standard-merge-fw2-256k` starts at `2.0.0`. Both reference the same
 region and metadata sets. They retain TP `[0, 0x30000)` and DP
 `[0x3E000, 0x40000)` copy operations, initialization, validation and naming.
-Authoring stays unavailable. See [ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+PR4b opens unverified candidate authoring; publication remains Candidate and evidence ContractOnly. See [ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
 
 ## Ownership
 

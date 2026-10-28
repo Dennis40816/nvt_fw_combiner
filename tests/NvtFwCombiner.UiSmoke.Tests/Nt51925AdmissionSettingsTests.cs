@@ -8,7 +8,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Settings uses the exact selector admission rather than counting disclosed candidate rows.</summary>
 public sealed class Nt51925AdmissionSettingsTests
 {
-    /// <summary>Adding or removing blocked declarations cannot inflate either available-IC count.</summary>
+    /// <summary>Disclosure rows cannot override the authorable selector's available-IC counts.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -27,14 +27,14 @@ public sealed class Nt51925AdmissionSettingsTests
         settings.Refresh(ShellTextResources.For(ShellLanguage.English));
 
         Assert.Equal(includeCandidate ? 9 : 0, rows.Count(static row => row.Identity.IcId == "NT51925"));
-        Assert.DoesNotContain("NT51925", selector.IcIds);
-        Assert.Equal(new CapabilityCatalogSummary(10, 10, 10), selector.GetCatalogSummary());
+        Assert.Contains("NT51925", selector.IcIds);
+        Assert.Equal(new CapabilityCatalogSummary(11, 11, 11), selector.GetCatalogSummary());
         Assert.Equal(selector.GetCatalogSummary(), matrix.AuthoringSummary);
-        Assert.Equal("10", settings.OverviewRows.Single(static row => row.Title == "IC catalog").Value);
-        Assert.Equal("10 ICs", settings.OverviewRows.Single(static row => row.Title == "Standard Merge").Value);
-        Assert.Equal("10 ICs", settings.CapabilityRows.Single().Value);
-        Assert.Equal(10, selector.IcIds.Count(ic => selector.IsWorkflowAuthorable(ic, ExperienceIds.StandardMerge)));
-        Assert.Equal(10, selector.IcIds.Count(ic => selector.IsWorkflowAuthorable(ic, ExperienceIds.CtrlRamReplace)));
+        Assert.Equal("11", settings.OverviewRows.Single(static row => row.Title == "IC catalog").Value);
+        Assert.Equal("11 ICs", settings.OverviewRows.Single(static row => row.Title == "Standard Merge").Value);
+        Assert.Equal("11 ICs", settings.CapabilityRows.Single().Value);
+        Assert.Equal(11, selector.IcIds.Count(ic => selector.IsWorkflowAuthorable(ic, ExperienceIds.StandardMerge)));
+        Assert.Equal(11, selector.IcIds.Count(ic => selector.IsWorkflowAuthorable(ic, ExperienceIds.CtrlRamReplace)));
     }
 
     private sealed class MatrixQuery(CanonicalSupportMatrixSnapshot matrix) : ICanonicalSupportMatrixQuery
@@ -48,20 +48,20 @@ public sealed class Nt51925AdmissionSettingsTests
 
 public sealed partial class ReplaceSurfaceCompatibilityTests
 {
-    /// <summary>Every declared FW/topology route stays visible as blocked and cannot enable Build.</summary>
+    /// <summary>Every FW/topology route is authorable, retains promotion blockers and needs inputs before Build.</summary>
     [Theory]
     [InlineData("141", IcNumberSelectionTokens.SingleChip, "1-ic")]
     [InlineData("141", IcNumberSelectionTokens.Cascade, "2-plus-ic")]
     [InlineData("200", IcNumberSelectionTokens.SingleChip, "1-ic")]
     [InlineData("200", IcNumberSelectionTokens.Cascade, "2-plus-ic")]
-    public void Nt51925CtrlRamReplaceSelectionAndEveryFwTopologyRemainBlocked(string fw, string number, string countVariant)
+    public void Nt51925CtrlRamReplaceSelectionIsAuthorableWithPromotionBlockers(string fw, string number, string countVariant)
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateProductViewModel();
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51925";
         viewModel.WorkflowSession.SelectedNumber = number;
 
-        Assert.DoesNotContain("NT51925", viewModel.WorkflowSession.IcChoices);
+        Assert.Contains("NT51925", viewModel.WorkflowSession.IcChoices);
         Assert.False(viewModel.Replace.CanBuildReplace);
         Assert.False(viewModel.Replace.BuildReplaceCommand.CanExecute(null));
         Assert.False(viewModel.Replace.BuildAvailability.IsAvailable);
@@ -72,7 +72,7 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         viewModel.OpenSettingsCommand.Execute(null);
         SupportMatrixIcRowViewModel candidate = Assert.Single(viewModel.Settings.SupportMatrix.IcRows,
             static row => row.IcId == "NT51925");
-        Assert.Equal(SupportMatrixCellStatus.Blocked,
+        Assert.Equal(SupportMatrixCellStatus.ContractOnly,
             candidate.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
         SupportMatrixRowViewModel[] routes = [.. viewModel.Settings.SupportMatrix.Rows.Where(row =>
             row.IcId == "NT51925" && row.WorkflowId == ExperienceIds.CtrlRamReplace &&
@@ -80,7 +80,7 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         Assert.Equal(2, routes.Length);
         Assert.All(routes, static row =>
         {
-            Assert.False(row.IsAuthoringAvailable);
+            Assert.True(row.IsAuthoringAvailable);
             Assert.True(row.HasBlocker);
             Assert.Equal("Candidate", row.PublicationLabel);
             Assert.Equal(CapabilityEvidenceStatus.ContractOnly, row.EvidenceStatus);

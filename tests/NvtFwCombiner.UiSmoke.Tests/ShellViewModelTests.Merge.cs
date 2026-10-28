@@ -49,11 +49,11 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("NT51950 / single: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
     }
 
-    /// <summary>Selecting NT51925 cannot open unadmitted Standard authoring or promote candidate evidence.</summary>
+    /// <summary>NT51925 opens Standard authoring while missing inputs and candidate evidence remain visible.</summary>
     [Theory]
     [InlineData("English")]
     [InlineData("ChineseTraditional")]
-    public void Nt51925StandardMergeSelectionRemainsBlocked(string language)
+    public void Nt51925StandardMergeSelectionOpensUnverifiedCandidate(string language)
     {
         MainWindowViewModel viewModel = PresentationTestHost.CreateViewModel(Enum.Parse<ShellLanguage>(language));
         viewModel.ShowMergeCommand.Execute(null);
@@ -61,25 +61,25 @@ public sealed partial class MergeWorkflowTests
         viewModel.WorkflowSession.SelectedIc = "NT51925";
 
         Assert.Equal("NT51925", viewModel.WorkflowSession.SelectedIc);
-        Assert.Empty(viewModel.Merge.SelectedMergeMode);
-        Assert.DoesNotContain("NT51925", viewModel.WorkflowSession.IcChoices);
-        Assert.NotEqual("NT51925",
+        Assert.Equal(ExperienceIds.StandardMerge, viewModel.Merge.SelectedMergeMode);
+        Assert.Contains("NT51925", viewModel.WorkflowSession.IcChoices);
+        Assert.Equal("NT51925",
             viewModel.WorkflowSession.GetWorkflowPageIc(WorkflowInspectionOwner.Merge));
         Assert.False(viewModel.Merge.CanBuildMerge);
         Assert.False(viewModel.Merge.BuildMergeCommand.CanExecute(null));
-        Assert.DoesNotContain(TestProjection.GetStandardMergeProfileSummaries(),
+        Assert.Contains(TestProjection.GetStandardMergeProfileSummaries(),
             static profile => profile.IcId == "NT51925");
         Assert.False(viewModel.WorkflowSession.IsNumberSelectorVisible);
         Assert.True(viewModel.WorkflowSession.IsNumberSelectorPlaceholderVisible);
-        Assert.False(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
+        Assert.True(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
             "NT51925", ExperienceIds.StandardMerge));
-        Assert.False(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
+        Assert.True(TestProjection.GetSelectorPublication().IsWorkflowAuthorable(
             "NT51925", ExperienceIds.CtrlRamReplace));
         viewModel.OpenSettingsCommand.Execute(null);
         viewModel.Settings.SelectSectionCommand.Execute(SettingsSection.SupportMatrix);
         SupportMatrixIcRowViewModel candidate = Assert.Single(
             viewModel.Settings.SupportMatrix.IcRows, static row => row.IcId == "NT51925");
-        Assert.Equal(SupportMatrixCellStatus.Blocked,
+        Assert.Equal(SupportMatrixCellStatus.ContractOnly,
             candidate.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").Status);
         SupportMatrixRowViewModel standard = Assert.Single(
             viewModel.Settings.SupportMatrix.Rows,
@@ -194,7 +194,7 @@ public sealed partial class MergeWorkflowTests
 
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
 
-        // NT51925 is blocked in both workflows and absent from ordinary authoring selectors.
+        // NT51925 participates in Standard and CtrlRAM selectors as an unverified candidate.
         Assert.Equal(TestProjection.GetIcIds(),
             viewModel.WorkflowSession.IcChoices);
     }

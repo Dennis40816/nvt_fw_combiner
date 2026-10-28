@@ -398,11 +398,11 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         {
             if (route.Identity.IcId == "NT51925")
             {
-                // Isolated NT51925 declarations remain blocked until owner evidence and approval.
-                Assert.EndsWith("-authoring-nt51925-isolation-v2", route.Authoring.DecisionId, StringComparison.Ordinal);
+                // PR4b opens isolated unverified candidates without support or evidence promotion.
+                Assert.EndsWith("-authoring-nt51925-open-authoring-v3", route.Authoring.DecisionId, StringComparison.Ordinal);
                 Assert.EndsWith("-publication-nt51925-isolation-v2", route.Publication.DecisionId, StringComparison.Ordinal);
                 Assert.EndsWith("-evidence-nt51925-isolation-v2", route.Evidence.DecisionId, StringComparison.Ordinal);
-                Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value);
+                Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
                 Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
                 Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
                 return;
@@ -430,7 +430,7 @@ public sealed partial class CanonicalCapabilityCatalogMigrationTests
         {
             if (route.Identity.IcId == "NT51925")
             {
-                Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value);
+                Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value);
                 Assert.Equal(CapabilityPublicationStatus.Candidate, route.Publication.Value);
                 Assert.Equal(CapabilityEvidenceStatus.ContractOnly, route.Evidence.Value);
                 return;

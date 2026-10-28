@@ -274,7 +274,7 @@
     {
       "regionId": "tp-code",
       "access": "whole",
-      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy the declared 0x30000-byte TP prefix. The 11-byte range [0x2EA80, 0x2EA8B) of FW 2.0.0 outputs (five non-blank bytes written by a pending owner script) is copied as is from the TP input and carries no output claim until the owner provides the script."
+      "reason": "The declared TP prefix [0x0, 0x30000) is copied whole, including the content from 0x2EA80 (owner 2026-10-14 20:58)."
     },
     {
       "regionId": "dp-code",

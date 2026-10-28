@@ -129,7 +129,7 @@ public sealed class StandardMergeCompilationTests
         {
             if (icId == "NT51925")
             {
-                Assert.False(BootstrapTestHost.Services.StandardMergeAuthoring.IsSupported(icId));
+                Assert.True(BootstrapTestHost.Services.StandardMergeAuthoring.IsSupported(icId));
                 _ = Assert.Throws<InvalidOperationException>(() => BootstrapTestHost.Services.GeneralAuthoring.GetDefaultOutputLength(icId));
                 continue;
             }

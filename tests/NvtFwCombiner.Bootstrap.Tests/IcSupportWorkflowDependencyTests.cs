@@ -15,15 +15,19 @@ public sealed class CanonicalCapabilityDependencyTests
     {
         foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds())
         {
-            Assert.True(
-                BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMapProfile),
-                $"Missing TP flash-map profile for canonical IC {icId}.");
-            Assert.NotNull(flashMapProfile);
-            Assert.NotEmpty(flashMapProfile.Regions);
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+            Assert.NotEmpty(profiles);
+            foreach (LegacyCombinerPostbuildProfile profile in profiles)
+            {
+                Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, profile.EffectiveCommonFwVersion.ToString(),
+                    out TpFlashMapProfile? flashMapProfile, out string? issue), issue);
+                Assert.NotNull(flashMapProfile);
+                Assert.NotEmpty(flashMapProfile.Regions);
+            }
         }
     }
 
-    /// <summary>Flash-map rows have canonical routes, including explicit blocked candidate routes.</summary>
+    /// <summary>Flash-map rows have canonical authorable routes, including unverified candidates.</summary>
     [Fact]
     public void FlashMapProfilesHaveCanonicalRows()
     {
@@ -34,14 +38,7 @@ public sealed class CanonicalCapabilityDependencyTests
         foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
             Assert.Contains(icId, declaredIcIds);
-            if (icId == "NT51925")
-            {
-                Assert.DoesNotContain(icId, supportedIcIds);
-            }
-            else
-            {
-                Assert.Contains(icId, supportedIcIds);
-            }
+            Assert.Contains(icId, supportedIcIds);
         }
     }
 
@@ -68,10 +65,10 @@ public sealed class CanonicalCapabilityDependencyTests
     }
 
     /// <summary>
-    /// Every production postbuild profile has an authorable or explicitly blocked CtrlRAM Replace route.
+    /// Every production postbuild profile has an authorable CtrlRAM Replace route.
     /// </summary>
     [Fact]
-    public void PostbuildProfilesHaveCtrlRamReplaceSupportOrExplicitBlockedRows()
+    public void PostbuildProfilesHaveAuthorableCtrlRamReplaceRows()
     {
         HashSet<string> ctrlRamReplaceIcIds =
         [
@@ -91,10 +88,10 @@ public sealed class CanonicalCapabilityDependencyTests
             Assert.Contains(icId, declaredIcIds);
         }
 
-        Assert.Equal(10, ctrlRamReplaceIcIds.Count);
-        Assert.DoesNotContain("NT51925", ctrlRamReplaceIcIds);
+        Assert.Equal(11, ctrlRamReplaceIcIds.Count);
+        Assert.Contains("NT51925", ctrlRamReplaceIcIds);
         Assert.All(declaredRoutes.Where(static route => route.Identity.IcId == "NT51925"),
-            static route => Assert.Equal(CapabilityAuthoringAvailability.Unavailable, route.Authoring.Value));
+            static route => Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value));
     }
 
     /// <summary>Retired DP Replace has no authorable member or exact route.</summary>
@@ -122,8 +119,8 @@ public sealed class CanonicalCapabilityDependencyTests
                 foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
                     LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
-                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
-                        profile.IcId,
+                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
+                        BuiltInCommonFwSelector.FindTpFlashMap(profile.IcId, profile.EffectiveCommonFwVersion.ToString()),
                         selection,
                         profile,
                         TpFlashMapRegionKind.CtrlRam);

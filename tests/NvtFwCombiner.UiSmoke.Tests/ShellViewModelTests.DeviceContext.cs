@@ -114,7 +114,7 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.IsMergeVisible);
         Assert.Equal(
-            TestProjection.GetIcIds().Where(static icId => icId != "NT51925"),
+            TestProjection.GetIcIds(),
             viewModel.WorkflowSession.IcChoices);
     }
 

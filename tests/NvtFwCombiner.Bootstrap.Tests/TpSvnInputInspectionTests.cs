@@ -91,7 +91,7 @@ public sealed class TpSvnInputInspectionTests
         Assert.Equal(before.FirmwareConfig?.IsFirmwareVersionBarValid, after.FirmwareConfig?.IsFirmwareVersionBarValid);
     }
 
-    /// <summary>T2: CtrlRAM Standard Bases publish their own main stamp (exact Standard plan or TP-only consensus).</summary>
+    /// <summary>T2: CtrlRAM Standard Bases publish their own main stamp (exact Standard plan or agreement across all declared maps).</summary>
     [Theory]
     [InlineData("NT51927", "NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin", "C28019C2", TpSvnAnomaly.UndefinedFlagBits, null)]
     [InlineData("NT51927", "NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin", "C0195992", TpSvnAnomaly.None, "195992")]

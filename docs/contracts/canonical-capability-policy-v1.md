@@ -2,62 +2,58 @@
 
 `canonical-capability-policy-v1.json` is the sole publication and evidence policy for exact compiled capability routes. Its normative structure is `canonical-capability-policy-v1.schema.json`.
 
-## NT51925 isolation amendment (catalog 1.25.0)
+## NT51925 unverified authoring (PR4b, 2026-10-28)
 
-Owner decision 334 (2026-10-07), recorded in Proposed ADR 0084,
-adds nine exact NT51925 Standard Merge/CtrlRAM Replace routes to the 85-route
-v1.2.1 catalog. All nine have `Unavailable` authoring, `Candidate`
-publication and `ContractOnly` evidence: one Standard route and eight CtrlRAM
-routes for two provisional FW contracts, Single/Cascade and TP-work/full-Flash
-capacities. The policy permits blocked declarations, but no authoring snapshot,
-exact executable route resolution or Build.
+Owner decision 334 (2026-10-07) isolated nine NT51925 Standard Merge/CtrlRAM
+Replace routes from the 85-route v1.2.1 catalog. PR4b opens all nine under
+[ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+Catalog `1.25.0` now has 94 routes, all 94 with `Available` authoring and zero
+`Unavailable` authoring decisions. NT51925 participates in both workflow
+selectors; the catalog, Standard Merge and CtrlRAM Replace available-IC
+counts are each 11. Publication and evidence remain independent of authoring.
 
-Owner decision (relayed 2026-10-14 01:20) opens compiler admission for the
-five NT51925 profiles through the `executable-candidate` promotion stage. The
-four CtrlRAM Replace profiles use the existing runtime-reference Replace
-admission rule. The Standard Merge profile uses one bounded resolved-map
-Standard Merge rule (`CompiledComposition.IsV2StandardMergeOpenCandidate`)
-that `CapabilityPublicationCoherence.IsExecutionAdmitted` shares with every
-other admission. All five plans remain `V2PlanCompiled` and retain all three
-`map`, `golden` and `human-review` blockers. All nine policy decisions remain
-`Unavailable/Candidate/ContractOnly`; NT51925 remains absent from every selector
-and all three available-IC counts remain 10. The declarations are unverified:
-this compiler admission makes no support, approval or Golden claim. The four
-Replace profiles declare the static output name
-`nt51925-ctrlram-replace_UNVERIFIED.bin` with `allowOverride: false`. Opening
-authoring is a later owner-authorized change.
+| NT51925 routes | Authoring | Publication | Evidence | Output name |
+| --- | --- | --- | --- | --- |
+| One Standard Merge map-set route | Available | Candidate | ContractOnly | Application adds `_UNVERIFIED` before `.bin`. |
+| Eight CtrlRAM Replace routes (two FW lines, Single/Cascade, TP-work/full-Flash) | Available | Candidate | ContractOnly | `nt51925-ctrlram-replace_UNVERIFIED.bin`, override forbidden. |
 
-NT51925 owns separate map, family and candidate bundles. No existing NT51923
-or NT51926 capability definition or decision is re-pinned; their v1.2.1
-identities and Saved Rules remain stable. Existing Golden cases, expected bytes
-and difference bounds are unchanged. The 94-route catalog has 85 Available and
-nine Unavailable authoring decisions; 63 Supported, 20 Candidate, ten Internal
-and one TestOnly publication decisions; and 26 DirectGolden, seven
-ApprovedAlias, four SyntheticOracle and 57 ContractOnly evidence decisions.
-NT51925 has no other workflow registration. Official NT51925 map/mmap,
-version-specific postbuild, declared versions/topologies, independent Golden
-and firmware-owner R3 approval remain pending. A later family join requires
-official proof of identical facts and separate owner approval. The dated
-catalog 1.17.0 admission below is historical.
-### Version-conditioned Standard map set (Task 925-F, 2026-10-14)
+The five profiles remain `executable-candidate` with all three `map`, `golden`
+and `human-review` promotion blockers. Standard uses the existing shared
+`CompiledComposition.IsV2StandardMergeOpenCandidate` execution admission;
+Replace uses the existing runtime-reference candidate admission. Authoring
+and execution require valid inputs and runtime dependencies. This grants no
+support upgrade, Golden certification or release approval. The 94-route
+publication counts remain 63 Supported, 20 Candidate, ten Internal and one
+TestOnly; evidence remains 26 DirectGolden, seven ApprovedAlias, four
+SyntheticOracle and 57 ContractOnly. No other IC's route or trust identity
+changes. No other NT51925 workflow is registered.
 
-The one NT51925 Standard route uses map variant `nt51925-common-fw-256k` and
-route id `route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k`.
-Its compilation contract allows `nt51925-standard-merge-256k` and
-`nt51925-standard-merge-fw2-256k`; the TP FWConfig version selects the exact map
-at compilation, with the interval contract in
+### Version-conditioned Standard map set
+
+The one Standard route retains map variant `nt51925-common-fw-256k` and route id
+`route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k`.
+Common FW below 2.0.0 uses `nt51925-standard-merge-256k` (the 1.x map, from
+1.0.0); from 2.0.0 it uses `nt51925-standard-merge-fw2-256k`. The TP FWConfig
+version selects the exact map under the shared interval contract in
 [firmware-family-v1](firmware-family-v1.md#common-fw-image-map-intervals).
-The original policy decision ids remain unchanged and are rebound to this one
-route. No second route or execution admission rule is introduced.
+Unreadable versions still fail with `profile.v2.compile.common-fw-version-required`.
+Both maps retain identical operations. PR4a read-only classification and
+metadata use agreement across all declared maps; an explicit classification
+map never substitutes for authoring version selection. Declared metadata must
+match the route's allowed map ids, profile id/version and trusted bundle hash;
+load failures return typed unavailable results.
 
-The Standard declaration is dynamic because exact map selection needs captured
-TP bytes. Swapping TP content invalidates retained exact selection and resolves
-the interval again. Both maps have identical operation lists. CtrlRAM report
-metadata keeps the original `nt51925-standard-merge-256k` layout anchor. Only
-NT51925 capability fingerprints that reference this isolated bundle are
-re-pinned; every other IC's bundle, route and policy row remains at the task
-base. All nine NT51925 policy values and the 94-route totals above are unchanged.
-Opening authoring remains a separate change.
+Changing TP content invalidates retained exact selection. CtrlRAM report
+metadata retains the `nt51925-standard-merge-256k` anchor. PR4b supersedes only
+the nine authoring decision ids with the `nt51925-open-authoring-v3` suffix;
+publication and evidence decision identities and values remain unchanged.
+The profile reason correction re-pins NT51925 profile/bundle and dependent
+capability identities; it changes no copy operation or expected output.
+
+Evidence scope and difference bounds are recorded in the
+[support matrix](../architecture/supported-ic-matrix.md). In particular,
+golden coverage: FW version less than or equal to 1.4.1. This is separate from
+the 2.0.0 map boundary and does not promote route evidence or support.
 
 ## Historical active admission (catalog 1.17.0)
 

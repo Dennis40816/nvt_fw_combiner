@@ -9,10 +9,10 @@ The four isolated provisional profiles are
 `nt51925-ctrlram-replace-fw200-runtime-cascade`, each version `0.1.0`.
 They belong to the NT51925-only `nt51925-ctrlram-replace-candidate` bundle.
 Geometry follows the owner TP overview and postbuild flow; it is not
-independent expected-output evidence or NT51926 shared authority. Policy is `Unavailable`/`Candidate`/`ContractOnly`.
-The profiles use the existing `compilable` stage; no authoring snapshot,
-exact executable resolution, execution or Build is admitted. The
-runtime-reference candidate exception used by other routes does not apply.
+independent expected-output evidence or NT51926 shared authority. Policy is `Available`/`Candidate`/`ContractOnly` under PR4b.
+The profiles retain `executable-candidate` and all promotion blockers. The
+existing runtime-reference candidate admission allows authoring and execution
+with valid inputs and dependencies; output is `nt51925-ctrlram-replace_UNVERIFIED.bin`.
 
 ## Required cases
 

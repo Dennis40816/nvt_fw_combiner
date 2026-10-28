@@ -157,14 +157,14 @@ public sealed class Nt51925VersionSelectionTests
         byte[] profileBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
             "testdata/profiles/nt51925-version-selection-base/profile.json"));
         const string familyHash = "8ea45c0eb951defaa4d4b4ee211a9d97cc814eeba7d39021cb622201d9d74440";
-        const string profileHash = "e8fc07076e6cefaae6584264a31d3a088bf086ac9afe46274a4b2601d039b2bc";
+        const string profileHash = "6c1696a9d8f516692d9130565dab733f772bed10ce12764e1384d24e4dbb7230";
         Assert.Equal(familyHash, Convert.ToHexStringLower(SHA256.HashData(familyBytes)));
         Assert.Equal(profileHash, Convert.ToHexStringLower(SHA256.HashData(profileBytes)));
         using JsonDocument family = JsonDocument.Parse(familyBytes);
         using JsonDocument profile = JsonDocument.Parse(profileBytes);
         TrustedProfileBundleCatalog catalog = TrustedProfileBundleCatalogFactory.Create(new string('a', 64),
             new ProfileBundleIdentity("nt51925-standard-merge-candidate", "1.2.2-nt51925.1",
-                "b2d8211d2f4b1d9eca4b2d3c4cde3d3d898567771f8274eca9430daa22f580af", "built-in-profile-bundle-v2"),
+                "ebe2209e708acbc91d57c886486f90e08e1cd86f67b93b74b6551940fecf900f", "built-in-profile-bundle-v2"),
             [(new("base-family", "families/base.json", "https://example.invalid/nfc/schemas/firmware-family-v1.schema.json", familyHash), family.RootElement)],
             [(new("base-profile", "profiles/base.json", "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json", profileHash), profile.RootElement)],
             BuiltInCanonicalMetadataDefinitionResolver.Instance);

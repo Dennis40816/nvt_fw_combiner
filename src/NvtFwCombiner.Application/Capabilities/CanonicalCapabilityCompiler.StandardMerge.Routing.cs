@@ -11,6 +11,21 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         string icId,
         long dpInputLength)
     {
+        try
+        {
+            return ResolveSourceEnvelopeMetadataPlanCore(icId, dpInputLength);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            return new(null, new CapabilityCatalogIssue("profile.v2.builtin-bundle-load-failed",
+                $"The declared Standard metadata could not be loaded: {exception.Message}", IcIdentifier.Normalize(icId)));
+        }
+    }
+
+    private MetadataPlanResolutionResult? ResolveSourceEnvelopeMetadataPlanCore(
+        string icId,
+        long dpInputLength)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentOutOfRangeException.ThrowIfNegative(dpInputLength);
         string normalizedIcId = IcIdentifier.Normalize(icId);
@@ -35,19 +50,11 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
                 return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
                     "Version selection requires one published Standard metadata route.");
             }
-            MetadataPlanDefinition? plan;
-            try
-            {
-                plan = _dynamicCompiler.GetDeclaredMapMetadataPlan(normalizedIcId, ExperienceIds.StandardMerge);
-            }
-            catch (InvalidDataException)
-            {
-                plan = null;
-            }
+            MetadataPlanDefinition? plan = _dynamicCompiler.GetDeclaredMapMetadataPlan(normalizedIcId, ExperienceIds.StandardMerge);
             return !IsCurrentPublishedRoute(snapshot, versionRoute)
                 ? MetadataFailure(AuthoringSessionIssueCodes.StalePublication,
                     "The canonical Standard publication changed during metadata lookup.")
-                : plan is not null
+                : plan is not null && versionRoute.CompilationContract.AdmitsDeclaredMetadataPlan(normalizedIcId, plan)
                     ? new MetadataPlanResolutionResult(plan.Resolve(snapshot.ResolutionToken), null)
                     : MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
                         "The published Standard route did not supply its declared metadata plan.");

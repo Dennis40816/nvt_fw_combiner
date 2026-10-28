@@ -575,7 +575,7 @@
       "bundleDirectory": "nt51925-standard-merge-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.2.2-nt51925.1",
-      "contentHash": "a838e6e3ae97e17eab81dafdb308a3caeb628cc71a82f41d9d0cdb62d00017ad",
+      "contentHash": "8906fedd20e05beffc619b392e6d7b665c9d50344c8ef80293c13a8e30db0a31",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.15.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1.3-common-fw-version.schema.json"

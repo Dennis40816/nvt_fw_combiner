@@ -31,9 +31,9 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(11, viewModel.Settings.SupportMatrix.IcRows.Count);
         SupportMatrixIcRowViewModel nt51925 = Assert.Single(
             viewModel.Settings.SupportMatrix.IcRows, static row => row.IcId == "NT51925");
-        Assert.Equal(SupportMatrixCellStatus.Blocked,
+        Assert.Equal(SupportMatrixCellStatus.ContractOnly,
             nt51925.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").Status);
-        Assert.Equal(SupportMatrixCellStatus.Blocked,
+        Assert.Equal(SupportMatrixCellStatus.ContractOnly,
             nt51925.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
         Assert.All(nt51925.Cells.Where(static cell => cell.WorkflowLabel is not ("Standard Merge" or "CtrlRAM Replace")),
             static cell => Assert.Equal(SupportMatrixCellStatus.NotDeclared, cell.Status));
