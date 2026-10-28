@@ -27,7 +27,7 @@ public sealed class Nt51925MapClassificationTests
 
         Assert.Equal(CompiledFirmwareArtifactKind.TpFirmware, classification?.Kind);
         Assert.Null(exactCapability);
-        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<ResolvedCapability>>(consensusCapabilities).Count);
+        Assert.Equal(2, Assert.IsType<IReadOnlyList<ResolvedCapability>>(consensusCapabilities, exactMatch: false).Count);
         var adapter = new BuiltInCtrlRamAuthoringAdapter(canonical.Catalog, canonical.Projection);
         CtrlRamBaseInspection inspection = resolver.ResolveCtrlRamBase("NT51925", null, tp, null, adapter);
         Assert.Equal(CtrlRamBaseKind.StandardTp, inspection.Kind);
@@ -91,7 +91,7 @@ public sealed class Nt51925MapClassificationTests
             IReadOnlyList<ResolvedCapability>? completeConsensus) = resolver.ResolveWithExactStandardCapability("NT51925", null, flash);
         Assert.Equal(CompiledFirmwareArtifactKind.FlashCode, completeClassification?.Kind);
         Assert.Null(completeExact);
-        Assert.Equal(2, Assert.IsAssignableFrom<IReadOnlyList<ResolvedCapability>>(completeConsensus).Count);
+        Assert.Equal(2, Assert.IsType<IReadOnlyList<ResolvedCapability>>(completeConsensus, exactMatch: false).Count);
 
         var agreeing = new FirmwareArtifactClassificationResolver(canonical.Catalog,
             new CanonicalCapabilityCompilerAdapter(canonical.Catalog, new ChangedPlausibilityAdapter(disagree: false)));

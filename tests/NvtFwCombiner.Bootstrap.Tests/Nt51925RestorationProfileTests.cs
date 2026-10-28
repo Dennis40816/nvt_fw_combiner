@@ -81,6 +81,11 @@ public sealed class Nt51925RestorationProfileTests
         Assert.True(metadata.Succeeded);
         Assert.NotNull(metadata.MetadataPlan);
         Assert.Equal(declaration.ResolutionToken, metadata.MetadataPlan.ResolutionToken);
+        MetadataPlanResolutionResult wrongLength = Assert.IsType<MetadataPlanResolutionResult>(
+            ((IStandardMergeMetadataPlanQuery)BootstrapTestHost.Canonical.Compiler)
+                .ResolveSourceEnvelopeMetadataPlan("NT51925", 0x30000));
+        Assert.False(wrongLength.Succeeded);
+        Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, wrongLength.Issue?.Code);
         Assert.True(existing.Capability!.ExecutionAdmitted);
         Assert.False(BootstrapTestHost.Canonical.Catalog.HasAuthorableCapability("NT51925", ExperienceIds.StandardMerge));
         Assert.Equal(CompiledCompositionEligibility.V2PlanCompiled, composition.Eligibility);

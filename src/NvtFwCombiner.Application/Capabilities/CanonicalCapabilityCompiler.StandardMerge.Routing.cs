@@ -21,8 +21,13 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
                 "No valid canonical capability catalog is loaded.");
         }
 
-        if (GetStandardMapSelectionPrerequisite(normalizedIcId) is not null)
+        if (GetStandardMapSelectionPrerequisite(normalizedIcId) is { } prerequisite)
         {
+            if (dpInputLength != prerequisite.MapCapacity)
+            {
+                return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "The Standard DP length has no published exact metadata route.");
+            }
             _ = TryGetPublishedStandardVersionRoute(normalizedIcId,
                 out ResolvedCapabilityRoute? versionRoute, out _, out _);
             if (versionRoute is null)
@@ -30,8 +35,15 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
                 return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
                     "Version selection requires one published Standard metadata route.");
             }
-            MetadataPlanDefinition? plan = _dynamicCompiler.GetDeclaredMapMetadataPlan(
-                normalizedIcId, ExperienceIds.StandardMerge);
+            MetadataPlanDefinition? plan;
+            try
+            {
+                plan = _dynamicCompiler.GetDeclaredMapMetadataPlan(normalizedIcId, ExperienceIds.StandardMerge);
+            }
+            catch (InvalidDataException)
+            {
+                plan = null;
+            }
             return !IsCurrentPublishedRoute(snapshot, versionRoute)
                 ? MetadataFailure(AuthoringSessionIssueCodes.StalePublication,
                     "The canonical Standard publication changed during metadata lookup.")
