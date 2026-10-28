@@ -428,8 +428,9 @@ The `1.4.1` in `nfc.nt51925.ctrlram-postbuild-fw1.4.1` and `...-fw141-...`
 profile ids is naming only and serves `[1.0.0, 2.0.0)`; no identifier changes.
 Separately, golden coverage: FW version less than or equal to 1.4.1.
 An owner-certified official output is an evidence level, not a support upgrade.
-For applicable certified no-op cases, the no-op scenario is byte-for-byte equal
-to the official output. Single-chip and 3-IC are unverified. The 256 KiB Replace
+A certified no-op case may be described as byte-for-byte equal to the official
+output only after its same-package check is recorded. No NT51925 no-op case is
+recorded yet; the private same-package checks are pending. Single-chip and 3-IC are unverified. The 256 KiB Replace
 input shape has no official before/after file.
 
 The 2.0.0 Single map has no DIFF CtrlRAM. `[0x27A00, 0x2A200)` in TP flash

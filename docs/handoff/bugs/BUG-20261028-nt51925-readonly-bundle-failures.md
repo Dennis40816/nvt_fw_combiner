@@ -1,6 +1,6 @@
 # BUG-20261028-nt51925-readonly-bundle-failures: Trusted-bundle failures escaped read-only classification and metadata
 
-Status: fixing
+Status: fixed (PR #657, pending merge into `1.2.2`)
 Severity: P3
 Found: 2026-10-28, Codex (gpt-6.1-sol, xhigh), PR4b static inspection, at feature/1.2.2/nt51925-pr4b-open-authoring@eac8ff16a
 Where: src/NvtFwCombiner.Application/InputInspection/CompiledFirmwareArtifactClassifier.cs; src/NvtFwCombiner.Application/Capabilities/CanonicalCapabilityCompiler.StandardMerge.Routing.cs

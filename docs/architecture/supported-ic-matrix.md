@@ -23,8 +23,10 @@ these ids are unchanged. Separately, golden coverage: FW version less than
 or equal to 1.4.1. This coverage statement is not the map boundary.
 
 An owner-certified official output is an evidence level, not a support
-upgrade. Where certified no-op evidence applies, the no-op scenario is
-byte-for-byte equal to the official output. Single-chip and 3-IC remain
+upgrade. A certified no-op case may be described as byte-for-byte equal to the
+official output only after its same-package check is recorded. No NT51925 no-op
+case is recorded yet; the private same-package checks are pending. Single-chip
+and 3-IC remain
 unverified. The 256 KiB Replace input shape has no official before/after file.
 These evidence distinctions do not change `Candidate/ContractOnly` policy.
 The 2.0.0 Single layout has no DIFF CtrlRAM; `[0x27A00, 0x2A200)` in TP flash
