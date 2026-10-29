@@ -314,6 +314,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                 Assert.False(IsRunning(failedRootId));
                 Assert.False(IsRunning(failedChildId));
                 Assert.True(IsRunning(acceptedChildId));
+                // A terminated tree can report its exit a few milliseconds before Windows closes its handle
+                // to the lifetime lock. Wait for the lock to be free before the workspace is deleted.
+                await WaitForBootstrapLifetimeExitAsync(Path.Combine(workspace.Root, "bootstrap-state.json"));
             }
         }
         finally
