@@ -5,6 +5,10 @@
     <RuntimeIdentifiers Condition="$([MSBuild]::IsOSPlatform('Windows'))">win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Child process for XunitAssemblyInfoOutputGuardProcessTests; delete with the guard at xunit.v3 4.0.0. -->
+    <Compile Include="..\Shared\XunitAssemblyInfoOutputGuard.cs" Link="XunitAssemblyInfoOutputGuard.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Application\NvtFwCombiner.VersionManagement.Application.csproj" />
     <ProjectReference Include="..\..\src\NvtFwCombiner.VersionManagement.Infrastructure\NvtFwCombiner.VersionManagement.Infrastructure.csproj" />
   </ItemGroup>

@@ -41,5 +41,8 @@
     <PackageReference Include="coverlet.collector" PrivateAssets="all" />
     <!-- Test processes must never resolve the developer's real local-state folder; see CompositionHostServices. -->
     <RuntimeHostConfigurationOption Include="NvtFwCombiner.LocalState.CurrentUserFolderForbidden" Value="true" />
+    <!-- Removes the xunit.v3 3.2.2 shutdown line from the assembly-info query until 4.0.0; see the file header. -->
+    <Compile Include="$(MSBuildThisFileDirectory)tests\Shared\XunitAssemblyInfoOutputGuard.cs"
+             Link="XunitAssemblyInfoOutputGuard.cs" />
   </ItemGroup>
 </Project>
