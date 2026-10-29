@@ -9,6 +9,123 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.2.2]
+
+### Summary
+
+1.2.2 adds NT51925 Standard Merge and CtrlRAM Replace as unverified candidates. You can select NT51925, preview it and build with it, but NT51925 is not a supported IC: no NFC output for it has an owner-approved reference result, and every NT51925 output file name ends with `_UNVERIFIED`. The ten supported ICs are unchanged: firmware output bytes, write ranges, CRC behavior and header behavior stay as in 1.2.1.
+
+- **NT51925 is an unverified candidate, not a supported IC:** Standard Merge and CtrlRAM Replace for NT51925 can run. Their output names carry `_UNVERIFIED` (see Product change 1).
+- **Routes without an independent reference result are labeled Unverified:** the Support Matrix, the Merge and Replace panels and the run report say so (see Product change 2).
+- **The TP flash map is chosen by Common FW version:** one shared rule now picks the TP flash map and the postbuild profile. NT51925 Standard Merge picks its image map by the same rule. Each of the ten supported ICs still has one map and uses it as before (see Product changes 3 and 4).
+- **Installed updaters accept a second license value:** this release still declares `MIT` (see Product change 5).
+- **Support Matrix tooltips no longer flicker** (see Product change 6).
+- **The package no longer contains the flash-map reference files** (see Product change 7).
+
+Internal and process changes:
+
+- Release comparison tooling (scripts, contracts and their tests) that compares a release candidate with the previous release and with an older reference build is now part of the 1.2.2 source. It is repository tooling. It reads release files, writes nothing to firmware and adds no product code. It adds one development-only Python package (`jsonschema` 4.25.1) for repository tests.
+- The release comparison does not compare 11 routes with 1.2.1, because no reference input exists for them. They are 10 CtrlRAM Replace routes that use an AB Merge image and one AB Merge Cascade route, of NT51919, NT51929, NT51932, NT51950 and NT51951. The owner accepted this gap for 1.2.2 only (declaration entry `RP-1.2.2-01`).
+- The release comparison does not compare the nine NT51925 routes either. Neither 1.2.1 nor the older reference build can run NT51925, so no earlier output exists to compare with. The owner accepted this gap for 1.2.2 only (declaration entry `RP-1.2.2-02`). This acceptance is not a support approval.
+- Two agent instruction files were added: one for taking a new IC from private owner data to a blocked candidate, one for changing the pinned legacy Combiner. They are instructions only.
+- The packaging script now treats NT51925 as a candidate without owner-approved reference files, and it refuses to publish reference files for it.
+- CI also runs on pushes to every minor-line trunk and release branch, so pushes to the 1.2.2 branch are checked.
+- The design record for NT51925 is accepted for unverified candidate authoring. Support and release promotion stay gated.
+- Repository checks keep the confidential reference files from returning to the source tree. The files stay in the private repository, and a public manifest identifies each one by size and SHA-256. Git history and earlier release packages are not changed.
+
+### Product changes
+
+#### 1. NT51925 Standard Merge and CtrlRAM Replace run as unverified candidates
+
+- Before → After: In 1.2.1 NT51925 was not in the Support Matrix and NFC could not write an NT51925 image. Now NT51925 has nine routes (one route is one IC, workflow and input-size combination): one Standard Merge route and eight CtrlRAM Replace routes. The CtrlRAM Replace routes cover Common FW 1.x and 2.0.0 and later, Single and Cascade, and a 192 KiB TP work image or a 256 KiB full flash image. The layouts follow the owner's TP overview and postbuild flow. Two or three chips use the one Cascade layout. NT51925 is offered in the IC lists of Merge and Replace, and you can start authoring, preview and build for all nine routes. Every NT51925 route shows Candidate and Unverified (contract only). Standard Merge names its output like `NT51925_FlashCode_D1234T5678_20261014_UNVERIFIED.bin`. CtrlRAM Replace names its output `nt51925-ctrlram-replace_UNVERIFIED.bin`. A custom file name cannot remove the `_UNVERIFIED` marker. The matrix grows from 85 to 94 routes and from 10 to 11 ICs, and all 94 routes can be authored.
+- Affected: Settings, Support Matrix; the IC lists of Merge and Replace; Standard Merge and CtrlRAM Replace for NT51925 only; the `standard-merge` command of the command-line tool. AB Merge, General Merge, General Replace and DP Replace are not declared for NT51925. NT51920, NT51930 and NT51931 stay retired. NT51925 was retired in earlier releases and is now listed again as a candidate.
+- Support status: unchanged/support-neutral. NT51925 is a candidate and is not promoted. Candidate means the declarations exist and can run, but no NFC output has been compared with an independent reference output and the owner has not approved support. Contract only means that no owner-approved reference output exists for the route. Each NT51925 profile keeps its three promotion blockers (map, reference result and human review).
+- Compatibility: The profiles, families and bundles of NT51923 and NT51926 are identical to 1.2.1. The shared postbuild list and flash-map list only gained NT51925 entries. The Settings overview now counts 11 ICs for the catalog, Standard Merge and CtrlRAM Replace. Saved Rules made with 1.2.1 for NT51923 and NT51926 General Merge and NT51926 General Replace are still accepted. The `standard-merge` command now reads the input that selects the map: the TP file for NT51925 and the DP file for every other IC, as before.
+- Verification: Automated tests check that all nine routes are Candidate and Unverified (contract only) and can be authored, that every NT51925 output name ends with `_UNVERIFIED` and cannot be overridden, that the IC lists include NT51925, and that the matrix shows 94 routes and 11 ICs. A command-line test previews NT51925 Standard Merge with a Common FW 1.x and a 2.0.0 TP file and checks the selected map. Other tests run literal 1.2.1 Saved Rule bindings. A `git diff` against 1.2.1 shows no change in any NT51923 or NT51926 definition file. On 2026-10-10 the host compared the 1.x Cascade and 2.0.0 Cascade layouts with private real firmware images. It checked the end flag position and where each declared region holds data. This is a layout check, not a byte-exact output comparison.
+- Limitations: No NT51925 output has an owner-approved reference result, so the outputs are unverified. The release comparison does not compare these nine routes, because no earlier release can run NT51925 (declaration entry `RP-1.2.2-02`). The two Single layouts have only the owner's postbuild flow and no real image. Still unknown: where `.data` lies in the 1.x Single layout, whether a two-chip 2.0.0 Cascade uses all declared DIFF bytes, and what the 2.0.0 ranges `[0x2E660, 0x2E980)` and `[0x2EA80, 0x2F000)` are used for. NFC declares no Project ID region for NT51925. Standard Merge copies the TP prefix `[0x0, 0x30000)` whole, including the content from 0x2EA80. In the 2.0.0 Single layout, `[0x27A00, 0x2A200)` stays unmapped and write-forbidden, because 2.0.0 Single has no DIFF CtrlRAM. The Common FW 1.x Cascade CtrlRAM_S ranges and the vector table have no replacement source in the postbuild flow, so they stay unchanged. A FW 2.0.0 CtrlRAM Replace output differs from the official postbuild output in four CRC words: `[0x1C, 0x20)`, `[0xFC, 0x100)`, `[0x2E99C, 0x2E9A0)` and `[0x2EA7C, 0x2EA80)`. The cause is known: the official postbuild runs the Combiner twice from zeroed CRC fields, and NFC starts from an already postbuilt TP firmware. This is a known difference, not a pass. Promotion still needs independent reference outputs for each Common FW line and topology, an exact write-range audit and the owner's approval.
+
+#### 2. Routes without an independent reference result are labeled Unverified
+
+- Before → After: Before, a route whose evidence was contract-only or missing showed "Defined only", "Needs review", "Contract only", "Missing", "Evidence open" or "Open". Now these routes show "Unverified" (「未驗證」). The Support Matrix status cell shows "Unverified" or "Some unverified". The evidence column shows "Unverified (contract only)" or "Unverified (missing evidence)". The Merge and Replace panels show "Unverified" and one sentence under the output: "This output has no independent Golden result." The run report records the route id, capability fingerprint, publication and evidence of the run, and the output name token `verification=unverified` when the name carries the marker.
+- Affected: Settings, Support Matrix; the Merge and Replace panels; the run report. This includes supported routes whose evidence is contract-only today, for example NT51928 Standard Merge. Verified routes keep their text.
+- Support status: unchanged/support-neutral. The label follows the declared evidence value. It changes no route's support or evidence.
+- Compatibility: Run reports from earlier releases still load. Their capability fields show "Not recorded". The report schema version is unchanged. The `_UNVERIFIED` output name marker applies only to executable candidates with a remaining reference-result blocker, so no supported route changes its output name.
+- Verification: Tests check the label for each evidence value, the output sentence in both languages, the report fields and the loading of old reports.
+- Limitations: The label does not say why a route has no reference result. See the Support Matrix evidence column and the release notes of the IC.
+
+#### 3. The TP flash map is selected by Common FW version through one selector
+
+- Before → After: Before, the catalog held one TP flash map per IC and found it by IC alone. Now each map entry carries the first Common FW version it applies to (default 1.0.0). The selector takes the entry with the highest version that is not above the input version. This is the interval rule that the postbuild profile already used. CtrlRAM Replace, General Replace and the Memory Layout display all ask the same selector, so they cannot disagree on the map. NT51925 has two entries, Common FW 1.x and 2.0.0 and later, and the chip count picks the layout inside an entry (1 chip: Single; 2 or 3 chips: Cascade). A version below 1.0.0 is refused. An IC with several entries and an unreadable version is refused. The selector never guesses. The NT51925 base firmware now reports its Common FW version because both candidate families declare the end flag. NT51925 Standard Merge uses the same interval rule for its two image maps: the TP Common FW version below 2.0.0 selects the 1.x map, and 2.0.0 or later selects the 2.0.0 map. Both maps have the same regions and operations. When you change the TP file to another Common FW line, NFC selects the map again.
+- Affected: CtrlRAM Replace, General Replace, Memory Layout display, NT51925 Standard Merge. The ten supported ICs each have one entry. Only NT51925 has two.
+- Support status: unchanged/support-neutral. The NT51925 layouts are candidate data and promote nothing.
+- Compatibility: For each of the ten supported ICs, the selector returns the same postbuild profile and the same map as 1.2.1 for Common FW versions 1.0.0 and later. Standard Merge of the ten supported ICs keeps its fixed image maps.
+- Verification: Tests cover the loading rules (a repeated version, a null or non-string version, and a lowest entry above 1.0.0 are rejected), the selection, the exact region list of each of the four NT51925 layouts, and the unchanged result for the other ICs. At the final map change the Infrastructure (1,808), ProfileContract (484) and Architecture (277) test projects passed in full. At the earlier selector change the full Application (1,661), Bootstrap (2,177) and UiSmoke (1,970) projects passed.
+- Limitations: A version from a later major line, for example 3.x, uses the newest entry. A warning for this is planned. When the selector refuses a map, the Memory Layout shows an empty layout and does not show the reason yet. NT51925 Standard Merge refuses a TP file whose Common FW version cannot be read.
+
+#### 4. General Replace stops when the TP map is refused
+
+- Before → After: Before, General Replace asked for the TP map by IC alone and went on when none applied. Now it asks the shared selector. If the selector refuses the map and the IC has map entries, General Replace stops with the selector's reason before it reuses any earlier compiled setup. Without a map NFC cannot see whether a mapping touches TP.
+- Affected: General Replace for an IC with several map entries. None of the ten supported ICs is affected, because each has one map and keeps it. NT51925 has no General Replace route.
+- Support status: unchanged/support-neutral.
+- Compatibility: General Replace for the supported ICs behaves as in 1.2.1. The 1.2.1 NT51926 General Replace Saved Rule is still accepted.
+- Verification: Tests check the selector refusal and the rule that decides when to stop. No test runs the planner's early return itself, because no shipped IC mixes a map with a missing map.
+- Limitations: When only the Base changes, General Replace keeps its compiled setup and does not check it again against the DP regions of a different map. No IC has two maps with different DP regions today.
+
+#### 5. Installed updaters accept `MIT` and `LicenseRef-Proprietary` in a release manifest
+
+- Before → After: Before, the license field of a release manifest had to be `MIT`, and every installed updater and launcher start check refused any other value. Now the field may be `MIT` or `LicenseRef-Proprietary`. The match is exact and case-sensitive. No other value is accepted. This release declares `MIT`, and the packager still writes `MIT`. The LICENSE file and the SBOM are unchanged.
+- Affected: Update verification, the launcher start check and the release manifest schema. No screen and no IC or workflow.
+- Support status: unchanged/support-neutral.
+- Compatibility: The start program that Setup installs first (the Root Bootstrap) accepts both values when it comes from 1.2.2 or later. When it comes from an earlier release, it accepts only `MIT`. An update never replaces it, so such an installation needs a reinstall to start a release that declares the other value. See Upgrade and rollback.
+- Verification: Tests cover both accepted values, rejected values and the installed-verifier path. The VersionManagement and ReleaseManifest tests passed (640 tests).
+- Limitations: This change does not alter the license of 1.2.2 or of any earlier release.
+
+#### 6. Support Matrix tooltips no longer flicker
+
+- Before → After: Before, a tall tooltip could open over the cell you pointed at. The window then lost the pointer, closed the tooltip, and opened it again at once, so it flickered. Now the tooltip opens below, above, to the right or to the left of the cell, in that order, on the first side where it fits. It never covers the cell.
+- Affected: Settings, Support Matrix cells, all ICs and workflows.
+- Support status: unchanged/support-neutral. This is a display change only.
+- Compatibility: No data, setting or saved file changes.
+- Verification: Tests check the chosen side for every cell position and tooltip size, check that a tooltip never lands on its cell, and check that each matrix cell uses the new placement.
+- Limitations: If the tooltip fits on no side, for example on a very small screen, it stays on the side with more room and the screen edge cuts it. It still does not cover the cell.
+
+#### 7. The package no longer contains the flash-map reference files
+
+- Before → After: Before, the portable package carried a flash-map reference tree and a spec workbook. Now the package does not contain them. The release smoke check fails if they return.
+- Affected: The portable package contents. No screen, IC or workflow.
+- Support status: unchanged/support-neutral.
+- Compatibility: NFC does not read these files at run time, so no feature changes. Earlier release packages are not changed and still contain them.
+- Verification: The packaging and smoke tests check that the files are absent. Repository checks keep them out of the source tree. When the private repository is not available, the checks compare only the public size and SHA-256 of each file.
+- Limitations: The files remain in git history until a separate history rewrite.
+
+### Security
+
+No new executable, update endpoint, network surface or permission is added. The license check accepts one more exact value and keeps every other manifest check. NT51925 routes run through the same planner, staging copies and write-range checks as the supported routes. No write path of a supported IC changes. The package no longer carries the confidential flash-map reference files. The added Python package is for repository tests only and is not part of the portable package. Release admission still requires the owner's approval and the protected `release` environment approval.
+
+### Known issues
+
+- NT51925 outputs are unverified. No NT51925 output has an owner-approved reference result (see Product change 1).
+- A FW 2.0.0 NT51925 CtrlRAM Replace output differs from the official postbuild output in four CRC words. The cause is known (see Product change 1).
+- When the TP map of an IC is refused, the Memory Layout shows an empty layout without the reason (see Product change 3).
+- A Common FW version from a later major line, for example 3.x, uses the newest map without a warning.
+- General Replace does not re-check a kept compiled setup against the DP regions of a different map when only the Base changes (see Product change 4).
+- Two update-manager tests each failed once on CI and passed on retry. `BlockedValidationExpiresBeforeProcessCreationAndCleansUp` once reported a failed second start (bug record `BUG-20261009-blocked-validation-expiry-rollback-start-flake`). `SequentialBootstrapFailurePreservesPriorAcceptedDescendant` once could not delete its test folder because the bootstrap lifetime lock file was still open (bug record `BUG-20261029-sequential-bootstrap-lifetime-lock-dispose-flake`). The causes are not proven and no product failure is known.
+- The known issues listed for 1.2.1 remain (see 1.2.1).
+
+### Upgrade and rollback
+
+Extract the portable package into a separate directory and preserve existing settings and outputs. Keep the prior stable package for rollback.
+
+- From 1.2.1: install 1.2.2 directly. The update from an installed 1.2.1 is checked before this release is published.
+- What changes for you when you update from 1.2.1: you can run NT51925 as an unverified candidate, routes without an independent reference result show Unverified, and the license field and tooltip behave as described above. Settings and saved sessions are unaffected. Saved Rules made with 1.2.1 for NT51923 and NT51926 General Merge and NT51926 General Replace are still accepted.
+- From 1.2.0: the CtrlRAM Replace Build Settings Cancel fix of 1.2.1 also applies.
+- From an earlier version: the Upgrade and rollback text of every entry in between applies.
+- If you first installed NFC with the Launcher published for 1.2.1, install again from the 1.2.2 package. The Setup of that 1.2.1 Launcher installs a start program that accepts only `MIT`, and an update does not replace it. This matters only for a later release that declares a license other than `MIT`. 1.2.2 itself declares `MIT`.
+
+### Downloads and integrity
+
+The Windows x64 portable package is `NvtFwCombiner-v1.2.2-win-x64.zip`. It is self-contained and carries the pre-built profile catalog. The coupled distribution Launcher is published as its separate five-asset set (EXE, manifest, SPDX, in-toto provenance and checksum). Publication requires exact-source protected CI, fresh execution of every applicable owner-certified reference output case against this candidate, package and smoke checks and the owner's approvals; use the published checksums, SBOM and provenance to verify downloads.
+
 ## [1.2.1]
 
 ### Summary

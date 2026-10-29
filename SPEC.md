@@ -1,7 +1,7 @@
 # NVT FW Combiner（NFC）實作規格
 
-> 文件狀態：`1.2.1 Release candidate; final release gates pending`
-> 文件版本：`1.2.1`
+> 文件狀態：`1.2.2 Release candidate; final release gates pending`
+> 文件版本：`1.2.2`
 > 文件基準日期：`2026-09-10`
 > 產品名稱：`NVT FW Combiner`
 > 短名：`NFC`
