@@ -13,6 +13,8 @@
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="JsonSchema.Net" Version="8.0.5" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <!-- At xunit.v3 4.0.0 or later, delete tests/Shared/XunitAssemblyInfoOutputGuard.cs, its two test classes,
+         its Directory.Build.props entry and its ReadyProbe entry and behavior (xUnit issue 3576). -->
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
   </ItemGroup>
