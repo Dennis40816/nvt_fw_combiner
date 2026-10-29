@@ -61,10 +61,40 @@ public sealed class XunitAssemblyInfoOutputGuardProcessTests
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         using Process process = Process.Start(start) ?? throw new InvalidOperationException("The probe did not start.");
-        string output = await process.StandardOutput.ReadToEndAsync(timeout.Token);
-        await process.WaitForExitAsync(timeout.Token);
+        try
+        {
+            string output = await process.StandardOutput.ReadToEndAsync(timeout.Token);
+            await process.WaitForExitAsync(timeout.Token);
 
-        Assert.Equal(0, process.ExitCode);
-        return output;
+            Assert.True(
+                process.ExitCode == 0,
+                $"The probe exited with code {process.ExitCode}. Output tail: {output[Math.Max(0, output.Length - 400)..]}");
+            return output;
+        }
+        finally
+        {
+            await ReapAsync(process);
+        }
+    }
+
+    // Disposing Process does not end the child, so a timeout or cancellation above still leaves no child running.
+    // Cleanup failures are swallowed to keep the original failure; the bounded wait uses its own token.
+    private static async Task ReapAsync(Process process)
+    {
+        if (process.HasExited)
+        {
+            return;
+        }
+
+        try
+        {
+            process.Kill(entireProcessTree: true);
+            using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await process.WaitForExitAsync(cleanup.Token);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or
+            System.ComponentModel.Win32Exception or OperationCanceledException)
+        {
+        }
     }
 }
