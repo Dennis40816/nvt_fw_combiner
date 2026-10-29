@@ -11,8 +11,8 @@ namespace NvtFwCombiner.TestSupport;
 // JSON, and VSTest discovery lists no tests. In that query only, this guard removes exactly that line and
 // forwards every other line unchanged, so any other unexpected output still fails the adapter's validation.
 // xunit.v3 4.0.0 suppresses the same message in assembly-info mode.
-// Delete this file, XunitAssemblyInfoOutputGuardTests and the Directory.Build.props entry when xunit.v3 is
-// 4.0.0 or later.
+// Delete this file, XunitAssemblyInfoOutputGuardTests, XunitAssemblyInfoOutputGuardProcessTests, the
+// Directory.Build.props entry and the ReadyProbe entry and behavior when xunit.v3 is 4.0.0 or later.
 [ExcludeFromCodeCoverage]
 internal static class XunitAssemblyInfoOutputGuard
 {
@@ -36,6 +36,10 @@ internal static class XunitAssemblyInfoOutputGuard
             AutoFlush = true,
         };
         Console.SetOut(new ShutdownMessageFilter(standardOutput));
+
+        // The runner never flushes or disposes Console.Out, so forward an unfinished last line at exit.
+        TextWriter installed = Console.Out;
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => installed.Flush();
     }
 
     // The out-of-process launcher passes "@@ <file>" and writes the real arguments one per line, which
@@ -63,7 +67,7 @@ internal static class XunitAssemblyInfoOutputGuard
     }
 
     // Holds each line until its line feed, then forwards it unless it is exactly ShutdownMessage.
-    // Flush and Dispose forward an unfinished line.
+    // Flush and Dispose forward an unfinished line; Install flushes at process exit.
     internal sealed class ShutdownMessageFilter(TextWriter inner) : TextWriter
     {
         private readonly StringBuilder _line = new();

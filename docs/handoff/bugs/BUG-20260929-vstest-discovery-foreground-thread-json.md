@@ -66,11 +66,16 @@ Fix, 2026-10-29: `tests/Shared/XunitAssemblyInfoOutputGuard.cs`, compiled into e
 `Directory.Build.props`. A module initializer detects the assembly-info query, including the `@@ <file>` response-file
 form that the xUnit out-of-process launcher uses. Only in that query, it removes the exact 3.2.2 line "Waiting 10
 seconds for foreground threads to exit..." and forwards every other line unchanged, so any other unexpected output
-still fails the adapter's JSON validation. The upstream fix has the same effect on this message. Discovery parsing, the retry policy and the decision 191/193
+still fails the adapter's JSON validation. An unfinished last line without a line feed is forwarded when the process
+exits, because the runner never flushes `Console.Out`. The upstream fix has the same effect on this message. Discovery parsing, the retry policy and the decision 191/193
 contract are unchanged. Evidence: a scratch xunit.v3 3.2.2 project with a 2.5-second foreground thread failed
 `dotnet vstest --ListTests` with this exact output without the guard and listed its test with the guard.
 `XunitAssemblyInfoOutputGuardTests` covers the exact-message filter, unexpected trailing output, near matches and the
-argument forms. Upgrading to xunit.v3 4.0.x was not
+argument forms. `XunitAssemblyInfoOutputGuardProcessTests` runs the guard in a child process (the ReadyProbe) that
+exits without flushing: an unfinished last line still reaches standard output, the shutdown message is removed, and
+other invocations keep their output. Non-draft CI on pull request 659 at `50d18e5a` (run `40798748675`) passed core
+discovery; that head lacked the exit flush. Upgrading to xunit.v3 4.0.x was not
 chosen for `1.2.2`: it is a major version, `Avalonia.Headless.XUnit` 12.0.5 is built on 3.2.2, and the related
-repositories pin 3.2.2. Delete the guard, its tests and its `Directory.Build.props` entry when xunit.v3 is 4.0.0 or
-later; the xunit.v3 pin in `Directory.Packages.props` carries the same reminder.
+repositories pin 3.2.2. Delete the guard, its two test classes, its `Directory.Build.props` entry and its ReadyProbe
+entry and behavior when xunit.v3 is 4.0.0 or later; the xunit.v3 pin in `Directory.Packages.props` carries the same
+reminder.
