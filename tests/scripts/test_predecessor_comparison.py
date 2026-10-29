@@ -937,6 +937,111 @@ class ComparisonTests(unittest.TestCase):
                 else:
                     self.assertEqual("build", host.calls[-1][0][1])
 
+    def compilation_rejection_capture(self, change=None, *, exit_code=1, stage="preview"):
+        work = self.root / f"compilation-rejection-{len(self.runner.captures)}"
+        work.mkdir()
+        payloads = {"normal": PAYLOAD, "vn": PAYLOAD, "diff": PAYLOAD}
+        authority = parity.MaterializedCanonicalAuthority(
+            self.root, "0" * 64, "golden/manifest.json",
+            {f"golden/{name}.bin": payload for name, payload in payloads.items()})
+        artifacts = {name: {"role": "input", "path": f"{name}.bin", "size": len(payload), "sha256": digest(payload)}
+                     for name, payload in payloads.items()}
+        rows = comparison.stage_case_inputs(authority, artifacts,
+            [("normal", "replace-ctrlram-normal"), ("vn", "replace-ctrlram-vn"), ("diff", "replace-ctrlram-diff")],
+            work / "inputs")
+        base = work / "inputs" / "precursor.bin"
+        base.write_bytes(b"B" * 524288)
+        rows.insert(0, {"slotId": "replace-base", "path": str(base), "size": 524288,
+                        "sha256": digest(base.read_bytes()), **comparison.validation.report_input_binding("replace-base")})
+        rows = comparison.validation.report_ordered_inputs("ctrlram-replace", rows)
+        raw = report(preview=True)
+        raw.update(ProfileId="nt51950-ctrlram-replace-workbench", IcId="NT51950", ModeId="ctrlram-replace",
+                   ExperienceId="ctrlram-replace", CompositionKind="Replace", CompilationFingerprint=None,
+                   Inputs=[{"AddressSpaceId": row["slotId"], "ArtifactId": Path(row["path"]).name,
+                            "Size": row["size"], "Sha256": row["sha256"]} for row in rows],
+                   Output={"FileName": "output.bin", "Size": 0, "Sha256": digest(b""), "Committed": False},
+                   Issues=[{"Code": "profile.v2.compile.map-selection-invalid", "Severity": "Error"}])
+        # v0.9.16 retains skipped planning operations when CtrlRAM compilation fails.
+        raw["Operations"][0].update(Status="Skipped", SourceSpaceId="replace-ctrlram-normal")
+        if change is not None:
+            change(raw)
+        report_path = work / "report.json"
+
+        def cli(argv, cwd):
+            report_path.write_text(json.dumps(raw), encoding="utf-8")
+            return subprocess.CompletedProcess(argv, exit_code, "", "")
+
+        self.runner.host = FakeProcessHost(cli)
+        return self.runner.run(stage=stage, argv=["synthetic"], staging_root=work, inputs=rows,
+                               report_path=report_path, report_version="v0916", expected_identity=request_identity_of(raw))
+
+    def test_uncompiled_ctrlram_rejection_accepts_staged_identities(self):
+        for planned in (True, False):
+            with self.subTest(planned=planned):
+                capture = self.compilation_rejection_capture(None if planned else lambda raw: raw.update(Operations=[]))
+                result = comparison.assemble_side_result([capture], capacities={}, v0916_executor=True)
+                self.assertEqual(("rejected", "preview", []), (result.side["status"], result.side["stoppedAt"], result.failures))
+                self.assertEqual((524288, "reference-base", "reference-base"),
+                                 (capture.inputs[0]["size"], capture.inputs[0]["expectedReportArtifactId"],
+                                  capture.inputs[0]["expectedReportAddressSpaceId"]))
+                self.assertEqual(("precursor.bin", "replace-base"),
+                                 (capture.report.context["orderedInputs"][0]["artifactId"],
+                                  capture.report.context["orderedInputs"][0]["addressSpaceId"]))
+
+    def test_uncompiled_ctrlram_input_tampering_is_report_invalid(self):
+        changes = {
+            "size": lambda raw: raw["Inputs"][0].update(Size=524287),
+            "sha256": lambda raw: raw["Inputs"][0].update(Sha256="0" * 64),
+            "missing": lambda raw: raw["Inputs"].pop(),
+            "swapped-order": lambda raw: raw["Inputs"].__setitem__(slice(1, 3), raw["Inputs"][1:3][::-1]),
+            "artifact": lambda raw: raw["Inputs"][1].update(ArtifactId="other.bin"),
+            "address-space": lambda raw: raw["Inputs"][1].update(AddressSpaceId="other-slot"),
+        }
+        for scenario, change in changes.items():
+            with self.subTest(scenario=scenario):
+                capture = self.compilation_rejection_capture(change)
+                result = comparison.assemble_side_result([capture], capacities={}, v0916_executor=True)
+                self.assertEqual("invalid", result.side["status"])
+                self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+                detail = ("report input identities differ from capture" if scenario in {"size", "sha256", "missing"} else
+                          "report input binding differs from capture")
+                self.assertEqual(detail, result.failures[0].detail)
+
+    def test_reports_outside_uncompiled_ctrlram_rejection_keep_strict_bindings(self):
+        cases = (
+            ("compiled", lambda raw: raw.update(CompilationFingerprint="c" * 64), 1, True),
+            ("other-executor", None, 1, False),
+            ("successful", lambda raw: raw.update(Operations=[], Issues=[]), 0, True),
+            ("missing-error", lambda raw: raw.update(Operations=[], Issues=[]), 1, True),
+            ("standard-merge", lambda raw: raw.update(ModeId="standard-merge", ExperienceId="standard-merge",
+                                                      CompositionKind="Merge"), 1, True),
+            ("mixed-binding-shapes", lambda raw: raw["Inputs"][0].update(
+                AddressSpaceId="reference-base", ArtifactId="reference-base"), 1, True),
+            ("precursor-preview", None, 1, True),
+        )
+        for scenario, change, exit_code, baseline in cases:
+            with self.subTest(scenario=scenario):
+                stage = "precursor-preview" if scenario == "precursor-preview" else "preview"
+                capture = self.compilation_rejection_capture(change, exit_code=exit_code, stage=stage)
+                result = comparison.assemble_side_result([capture], capacities={}, v0916_executor=baseline)
+                self.assertEqual("invalid", result.side["status"])
+                self.assertEqual("PREDECESSOR_REPORT_INVALID", result.failures[0].code)
+                self.assertEqual("report input binding differs from capture", result.failures[0].detail)
+
+    def test_unrecorded_v0916_compilation_rejection_is_unapproved_difference(self):
+        capture = self.compilation_rejection_capture()
+        baseline = comparison.assemble_side_result([capture], capacities={}, v0916_executor=True)
+        candidate = {**baseline.side, "status": "output", "stoppedAt": None, "issues": [],
+                     "output": {"size": 524288, "sha256": "c" * 64}, "processes": []}
+        disposition = comparison.validation.RouteDisposition(
+            "unrecorded-ctrlram", "a" * 64, "exact-output", None, None, None)
+        route = {"planRouteId": disposition.route_id, "baseline": baseline.side, "candidate": candidate,
+                 "comparison": None, "transitive": None}
+        verdict = comparison.validation.v0916_route_verdict(
+            route, disposition, comparison.validation.V0916RouteEvidence({}), {}, baseline.failures)
+        self.assertEqual("rejected", baseline.side["status"])
+        self.assertEqual(("inconsistent", "PREDECESSOR_UNAPPROVED_DIFFERENCE"), (verdict.result, verdict.failure_code))
+
     def test_report_binding_ids_are_unconditional_and_independent_of_golden_ids(self):
         authority = parity.MaterializedCanonicalAuthority(self.root, "0" * 64, "golden/manifest.json", {"golden/input.bin": PAYLOAD})
         artifacts = {"golden-input": {"role": "input", "path": "input.bin", "size": 8, "sha256": digest(PAYLOAD)}}

@@ -2,7 +2,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Architecture.Tests;
 
-/// <summary>Tests the workaround that keeps the xUnit assembly-info query to one JSON line.</summary>
+/// <summary>Tests the workaround that removes the xUnit 3.2.2 shutdown message from the assembly-info query.</summary>
 public sealed class XunitAssemblyInfoOutputGuardTests
 {
     private const string AssemblyInfoJson =
@@ -13,31 +13,65 @@ public sealed class XunitAssemblyInfoOutputGuardTests
     /// follows the assembly-info JSON.
     /// </summary>
     [Fact]
-    public void AssemblyInfoOutputKeepsOnlyTheJsonLineWhenTheRunnerWritesItsShutdownMessage()
+    public void AssemblyInfoOutputDropsTheExactRunnerShutdownMessage()
     {
-        using var captured = new StringWriter();
-        using var guard = new XunitAssemblyInfoOutputGuard.FirstLineOnlyWriter(captured);
+        string output = Filter(writer =>
+        {
+            writer.WriteLine(AssemblyInfoJson);
+            writer.WriteLine(XunitAssemblyInfoOutputGuard.ShutdownMessage);
+        });
 
-        guard.WriteLine(AssemblyInfoJson);
-        guard.WriteLine("Waiting 10 seconds for foreground threads to exit...");
-        guard.Flush();
-
-        Assert.Equal(AssemblyInfoJson + Environment.NewLine, captured.ToString());
+        Assert.Equal(AssemblyInfoJson + Environment.NewLine, output);
     }
 
-    /// <summary>Verifies that a JSON line written in parts is forwarded whole.</summary>
+    /// <summary>Verifies that unexpected trailing output stays visible, so the adapter still rejects it.</summary>
     [Fact]
-    public void AssemblyInfoOutputForwardsTheFirstLineWrittenInParts()
+    public void AssemblyInfoOutputKeepsUnexpectedTrailingOutput()
     {
-        using var captured = new StringWriter();
-        using var guard = new XunitAssemblyInfoOutputGuard.FirstLineOnlyWriter(captured);
+        string output = Filter(writer =>
+        {
+            writer.WriteLine(AssemblyInfoJson);
+            writer.WriteLine("Unhandled exception. System.InvalidOperationException: boom");
+            writer.WriteLine(XunitAssemblyInfoOutputGuard.ShutdownMessage);
+        });
 
-        guard.Write(AssemblyInfoJson[..10]);
-        guard.Write(AssemblyInfoJson[10..]);
-        guard.Write('\n');
-        guard.Write("late");
+        Assert.Equal(
+            AssemblyInfoJson + Environment.NewLine +
+            "Unhandled exception. System.InvalidOperationException: boom" + Environment.NewLine,
+            output);
+    }
 
-        Assert.Equal(AssemblyInfoJson + "\n", captured.ToString());
+    /// <summary>Verifies that only the exact message is removed; a near match is forwarded.</summary>
+    [Theory]
+    [InlineData("Waiting 10 seconds for foreground threads to exit")]
+    [InlineData("Waiting 11 seconds for foreground threads to exit...")]
+    [InlineData(" Waiting 10 seconds for foreground threads to exit...")]
+    [InlineData("Waiting 10 seconds for foreground threads to exit... ")]
+    [InlineData("waiting 10 seconds for foreground threads to exit...")]
+    public void AssemblyInfoOutputForwardsANearMatchOfTheShutdownMessage(string nearMatch)
+    {
+        string output = Filter(writer =>
+        {
+            writer.WriteLine(AssemblyInfoJson);
+            writer.WriteLine(nearMatch);
+        });
+
+        Assert.Equal(AssemblyInfoJson + Environment.NewLine + nearMatch + Environment.NewLine, output);
+    }
+
+    /// <summary>Verifies that a line written in parts is forwarded whole and a line without a line feed is kept.</summary>
+    [Fact]
+    public void AssemblyInfoOutputForwardsPartialWritesAndAnUnfinishedLine()
+    {
+        string output = Filter(writer =>
+        {
+            writer.Write(AssemblyInfoJson[..10]);
+            writer.Write(AssemblyInfoJson[10..]);
+            writer.Write('\n');
+            writer.Write("unfinished");
+        });
+
+        Assert.Equal(AssemblyInfoJson + "\nunfinished", output);
     }
 
     /// <summary>Verifies that only the assembly-info query installs the guard, in any letter case.</summary>
@@ -73,6 +107,17 @@ public sealed class XunitAssemblyInfoOutputGuardTests
             ["@@", "missing.txt"],
             _ => false,
             _ => throw new InvalidOperationException("A missing file must not be read.")));
+    }
+
+    private static string Filter(Action<TextWriter> write)
+    {
+        using var captured = new StringWriter();
+        using (var filter = new XunitAssemblyInfoOutputGuard.ShutdownMessageFilter(captured))
+        {
+            write(filter);
+        }
+
+        return captured.ToString();
     }
 
     private static bool IsAssemblyInfoQuery(string[] arguments, string[] responseLines)

@@ -1,6 +1,6 @@
 # BUG-20260929-vstest-discovery-foreground-thread-json: an extra xUnit runner line empties the Domain test discovery and fails the core shard
 
-Status: fixed on `feature/1.2.2/ci-xunit-assemblyinfo-guard` by a test-only workaround for xUnit issue 3576; delete the workaround when xunit.v3 is 4.0.0 or later
+Status: fixing; workaround implemented in pull request 659, non-draft CI pending
 Severity: P2
 Found: 2026-09-29, Claude Code commander (Claude Opus 5.5), while checking CI on pull request #487 (run
 `36562321491`), at `feature/1.1.15/records`@`247473864`
@@ -18,12 +18,13 @@ Expected: discovery lists the project's tests on every run, so a shard whose tes
 discovery step (the CI failure-evidence contract, ADR 0079).
 Evidence: `shards/core/results/NvtFwCombiner.Domain.Tests/discovered-tests.txt` and `shards/core/shard.log` in the
 run's `dotnet-test-core-evidence-attempt-1` artifact; `scripts/verify.py` `parse_vstest_discovery`.
-Owner: unassigned. First observation, cause unknown. Candidates to check: which foreground thread outlives the
+Owner: NFC session (pull request 659) since 2026-10-29. Note from the first observation, when the cause was unknown: Candidates to check: which foreground thread outlives the
 xUnit v3 assembly-info query in `NvtFwCombiner.Domain.Tests`, for example a module initializer or a static
 resource, and whether discovery should be retried or its runner output parsed more tolerantly. That choice
 belongs to the decision 191 work and its ADR 0079 amendment. Update, 2026-09-30: #489 delivered that work without
 changing discovery handling; this record is bug work of the `1.2.1` decision 191 residual (decision 214).
-Resolution: not fixed. On `feature/1.1.15/flaky-fixes`, the unchanged Release
+Resolution: workaround implemented on 2026-10-29 (see Fix below); not closed until non-draft CI on pull request 659
+has passed. Earlier, on `feature/1.1.15/flaky-fixes`, the unchanged Release
 `NvtFwCombiner.Domain.Tests.dll` completed 30 consecutive `dotnet vstest
 <dll> --ListTests` discoveries: exit 0, 475 listed tests, and no foreground-thread
 wait or invalid-JSON message in every run. One complete `dotnet test
@@ -56,16 +57,20 @@ Root cause, 2026-10-29: the defect is in xUnit, not in an NFC thread. In xunit.v
 thread-pool item after `Main` returns. If the process is still alive one second later, the item writes the waiting
 message to standard output. No live foreground thread is needed: a slow process exit on a loaded runner is enough.
 During the `-assemblyInfo` query, `TestProcessLauncherAdapter.GetAssemblyInfo` reads all standard output and requires
-one JSON object, so the extra line makes discovery list no tests. This explains why 30 local discoveries passed and
-why the core and UI shards were both affected. Upstream issue https://github.com/xunit/xunit/issues/3576 reports the
+one JSON object, so the extra line makes discovery list no tests. This explains why 30 local discoveries passed. The
+second observation (UiSmoke.Tests, #493) may have the same cause, but its artifact was never inspected, so that link
+is a hypothesis. Upstream issue https://github.com/xunit/xunit/issues/3576 reports the
 same output. Commit `8b317b7523` (2026-05-12) fixed it by suppressing the message in assembly-info mode. The first
 release with the fix is xunit.v3 4.0.0. No 3.2.x release has it.
 Fix, 2026-10-29: `tests/Shared/XunitAssemblyInfoOutputGuard.cs`, compiled into every `IsTestProject` through
 `Directory.Build.props`. A module initializer detects the assembly-info query, including the `@@ <file>` response-file
-form that the xUnit out-of-process launcher uses. Only in that query, it forwards the first standard-output line and
-drops later output, the same effect as the upstream fix. Discovery parsing, the retry policy and the decision 191/193
+form that the xUnit out-of-process launcher uses. Only in that query, it removes the exact 3.2.2 line "Waiting 10
+seconds for foreground threads to exit..." and forwards every other line unchanged, so any other unexpected output
+still fails the adapter's JSON validation. The upstream fix has the same effect on this message. Discovery parsing, the retry policy and the decision 191/193
 contract are unchanged. Evidence: a scratch xunit.v3 3.2.2 project with a 2.5-second foreground thread failed
 `dotnet vstest --ListTests` with this exact output without the guard and listed its test with the guard.
-`XunitAssemblyInfoOutputGuardTests` covers the line filter and the argument forms. Upgrading to xunit.v3 4.0.x was not
+`XunitAssemblyInfoOutputGuardTests` covers the exact-message filter, unexpected trailing output, near matches and the
+argument forms. Upgrading to xunit.v3 4.0.x was not
 chosen for `1.2.2`: it is a major version, `Avalonia.Headless.XUnit` 12.0.5 is built on 3.2.2, and the related
-repositories pin 3.2.2. Delete the guard and its `Directory.Build.props` entry when xunit.v3 is 4.0.0 or later.
+repositories pin 3.2.2. Delete the guard, its tests and its `Directory.Build.props` entry when xunit.v3 is 4.0.0 or
+later; the xunit.v3 pin in `Directory.Packages.props` carries the same reminder.
