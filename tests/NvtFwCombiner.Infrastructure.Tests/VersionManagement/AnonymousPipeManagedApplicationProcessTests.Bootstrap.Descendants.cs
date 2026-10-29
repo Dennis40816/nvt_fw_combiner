@@ -1,5 +1,6 @@
 using System.IO.Pipes;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
@@ -261,8 +262,9 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
     [Fact]
     public async Task SequentialBootstrapFailurePreservesPriorAcceptedDescendant()
     {
-        using var workspace = TempWorkspace.Create();
+        var workspace = TempWorkspace.Create();
         int acceptedChildId = 0;
+        ExceptionDispatchInfo? failure = null;
         try
         {
             string acceptedMarker = workspace.PathFor("bootstrap-first-accepted/grandchild.txt");
@@ -314,11 +316,39 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
                 Assert.False(IsRunning(failedRootId));
                 Assert.False(IsRunning(failedChildId));
                 Assert.True(IsRunning(acceptedChildId));
+                // A terminated tree can report its exit a few milliseconds before Windows closes its handle
+                // to the lifetime lock. Wait for the lock to be free before the workspace is deleted.
+                await WaitForBootstrapLifetimeExitAsync(Path.Combine(workspace.Root, "bootstrap-state.json"));
             }
+        }
+        catch (Exception exception)
+        {
+            failure = ExceptionDispatchInfo.Capture(exception);
         }
         finally
         {
             TerminateProcess(acceptedChildId);
         }
+        DisposeWorkspaceAfter(workspace, failure);
+    }
+
+    /// <summary>A workspace cleanup failure keeps the test's own failure visible.</summary>
+    [Fact]
+    public void WorkspaceCleanupFailureKeepsTheEarlierTestFailure()
+    {
+        var workspace = TempWorkspace.Create();
+        string lockPath = workspace.Write("held.lock", [1]);
+        var assertion = new Xunit.Sdk.XunitException("lease still active");
+        using (new FileStream(lockPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            AggregateException reported = Assert.Throws<AggregateException>(
+                () => DisposeWorkspaceAfter(workspace, ExceptionDispatchInfo.Capture(assertion)));
+
+            Assert.Same(assertion, reported.InnerExceptions[0]);
+            _ = Assert.IsType<IOException>(reported.InnerExceptions[1]);
+            _ = Assert.Throws<IOException>(() => DisposeWorkspaceAfter(workspace, failure: null));
+        }
+        DisposeWorkspaceAfter(workspace, failure: null);
+        Assert.False(Directory.Exists(workspace.Root));
     }
 }

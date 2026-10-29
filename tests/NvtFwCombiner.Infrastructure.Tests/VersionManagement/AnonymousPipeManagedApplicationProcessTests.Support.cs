@@ -1,10 +1,12 @@
 using System.IO.Pipes;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Diagnostics.CodeAnalysis;
 using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Infrastructure.VersionManagement;
 using NvtFwCombiner.Platform.Processes;
+using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.Infrastructure.Tests.VersionManagement;
 
@@ -199,6 +201,26 @@ public sealed partial class AnonymousPipeManagedApplicationProcessTests
         Assert.Equal(
             ManagedProcessLifetimeStatus.Exited,
             ManagedProcessLifetimeLease.GetStatus(statePath, ManagedProcessLifetimeKind.Bootstrap));
+    }
+
+    // Deletes the workspace. When the test already failed and deletion also fails, both are reported, so a
+    // cleanup IOException does not hide the test's own assertion; with no earlier failure, a cleanup failure is
+    // reported as is.
+    private static void DisposeWorkspaceAfter(TempWorkspace workspace, ExceptionDispatchInfo? failure)
+    {
+        try
+        {
+            workspace.Dispose();
+        }
+        catch (Exception cleanup) when (
+            failure is not null && cleanup is IOException or UnauthorizedAccessException)
+        {
+            throw new AggregateException(
+                "The test failed, and deleting its workspace also failed.",
+                failure.SourceException,
+                cleanup);
+        }
+        failure?.Throw();
     }
 
     private static async Task WaitForProcessExitAsync(int processId)
