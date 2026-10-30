@@ -8,7 +8,8 @@ no version-management code in that pull request's own diff). The test failed on 
 retry, so the decision 193 gate marked it flaky and `dotnet / build-test` failed with "flaky test has no bug record".
 Where: `NvtFwCombiner.Infrastructure.Tests.VersionManagement.AnonymousPipeManagedApplicationProcessTests.SequentialBootstrapFailurePreservesPriorAcceptedDescendant`,
 `tests/NvtFwCombiner.Infrastructure.Tests/VersionManagement/AnonymousPipeManagedApplicationProcessTests.Bootstrap.Descendants.cs`
-(at `b28d80f8` the test starts at line 262, and the failure is at line 321, the end of the test's `TempWorkspace` scope).
+(at `b28d80f8` the test starts at line 262, and the stack trace names line 321, the last statement in the test's
+`finally` block. The test's `TempWorkspace` scope, `using var workspace` at line 264, ends at line 323).
 Observed: on attempt 1 the test body finished, then `TempWorkspace.Dispose()`
 (`tests/NvtFwCombiner.TestSupport/TempWorkspace.cs`, line 61) failed to delete the workspace with
 `System.IO.IOException: The process cannot access the file 'bootstrap-state.json.bootstrap-lifetime.v1.lock'
