@@ -369,7 +369,7 @@ jobs:
           ref: ${{ needs.candidate.outputs.workflow-sha }}
           persist-credentials: false
       - name: Setup pinned Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - name: Require release eligibility
@@ -405,7 +405,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Setup pinned Python for release policy
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
@@ -848,7 +848,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.workflow_sha }}
       - name: Setup pinned Python for parity verification
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
@@ -890,7 +890,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.workflow_sha }}
       - name: Setup pinned Python for parity verification
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
@@ -959,7 +959,7 @@ jobs:
           persist-credentials: false
           ref: ${{ github.workflow_sha }}
       - name: Setup pinned Python for parity verification
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
       - name: Install parity verification dependency
