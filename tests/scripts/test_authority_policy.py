@@ -1,6 +1,7 @@
 """Coverage, consistency and dependency tests for the authority policy (ADR 0080 item 4).
 
-They bind the policy to the current tree: every tracked path is classified, every default exclusion is covered, the script table of item 4 holds,
+They bind the policy to the current tree: every tracked path is classified,
+every default exclusion is covered, the owner decision of 2026-11-26 holds,
 the checker reads only governance-R3 files, CODEOWNERS gives every role path to
 its principals, prose is read by no topic test, and the workflow keeps its
 fail-closed shape.
@@ -40,7 +41,7 @@ TRACKED = sorted(
     ).stdout.split(b"\0")
     if value
 )
-# ADR 0080 item 4, the script table (the current R3 scripts and three raised from R2).
+# Script floors and roles after the owner decision of 2026-11-26.
 SCRIPT_ROLES = {
     **dict.fromkeys(
         [
@@ -50,16 +51,15 @@ SCRIPT_ROLES = {
             "diagnostic_golden_validation.py",
             "intake_ic_reference.py",
         ],
-        {"firmware-owner"},
+        set(),
     ),
     **dict.fromkeys(
         [
-            "canonical_golden_validation.py",
             "external_tool_policy.py",
             "v0916_parity_certification.py",
             "release_source_pins.py",
         ],
-        {"firmware-owner", "release-owner"},
+        set(),
     ),
     **dict.fromkeys(
         [
@@ -80,8 +80,9 @@ SCRIPT_ROLES = {
         ],
         {"release-owner"},
     ),
-    "release_promotion_policy.py": {"release-owner", "governance-owner"},
-    "fetch_core_packages.py": {"release-owner", "governance-owner"},
+    "canonical_golden_validation.py": {"firmware-owner"},
+    "release_promotion_policy.py": {"release-owner"},
+    "fetch_core_packages.py": {"release-owner"},
     **dict.fromkeys(
         [
             "verify.py",
@@ -94,7 +95,7 @@ SCRIPT_ROLES = {
             "skill_metadata_validation.py",
             "sync_derived.py",
         ],
-        {"governance-owner"},
+        set(),
     ),
 }
 CI_VERDICT_OWNERS = {
@@ -170,12 +171,12 @@ def codeowner_pattern_errors(content: str, policy_bytes: bytes) -> list[str]:
 
 
 class AuthorityPolicyTests(unittest.TestCase):
-    def test_core_package_delivery_requires_release_and_governance_owners(self) -> None:
+    def test_core_package_delivery_keeps_release_owner(self) -> None:
         for path in ("core-packages.json", "scripts/fetch_core_packages.py"):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
                 self.assertEqual(result.floor, "R3")
-                self.assertEqual(result.roles, {"release-owner", "governance-owner"})
+                self.assertEqual(result.roles, frozenset({"release-owner"}))
                 self.assertFalse(result.unclassified)
 
         matches = {
@@ -212,10 +213,10 @@ class AuthorityPolicyTests(unittest.TestCase):
                 }
                 self.assertEqual(owners, {entry_id})
 
-        # Source intake must not relax executable packages or unknown root files.
+        # Executable packages rewrite output bytes; unknown root files still fail closed.
         executable = POLICY.classify("external-tools/nvt_combiner")
         self.assertEqual(executable.floor, "R3")
-        self.assertEqual(executable.roles, {"firmware-owner", "release-owner"})
+        self.assertEqual(executable.roles, frozenset({"firmware-owner"}))
         unknown = POLICY.classify(".gitmodules-extra")
         self.assertEqual(unknown.floor, "R3")
         self.assertEqual(unknown.roles, {"governance-owner"})
@@ -232,8 +233,8 @@ class AuthorityPolicyTests(unittest.TestCase):
         for path in planned:
             with self.subTest(path=path):
                 result = POLICY.classify(path)
-                self.assertEqual((result.floor, result.unclassified), ("R3", False))
-                self.assertIn("governance-owner", result.roles)
+                self.assertEqual((result.floor, result.unclassified), ("R2", False))
+                self.assertEqual(result.roles, frozenset())
 
     def test_every_default_exclusion_is_matched_by_another_entry(self) -> None:
         for default in (entry for entry in POLICY.entries if entry.default):
@@ -251,11 +252,11 @@ class AuthorityPolicyTests(unittest.TestCase):
                         f"{path} is excluded from {default.id} and matched by no other entry",
                     )
 
-    def test_script_table_of_item_4(self) -> None:
+    def test_script_table_follows_owner_decision_of_2026_11_26(self) -> None:
         for name, roles in SCRIPT_ROLES.items():
             with self.subTest(script=name):
                 result = POLICY.classify(f"scripts/{name}")
-                self.assertEqual((result.floor, set(result.roles)), ("R3", roles))
+                self.assertEqual((result.floor, set(result.roles)), ("R3" if roles else "R2", roles))
         for path in TRACKED:
             if (
                 path.startswith("scripts/")
@@ -298,7 +299,10 @@ class AuthorityPolicyTests(unittest.TestCase):
             with self.subTest(path=path):
                 result = POLICY.classify(path)
                 self.assertEqual(result.floor, "R3")
-                self.assertIn("governance-owner", result.roles)
+                self.assertEqual(
+                    result.roles,
+                    {"release-owner"} if path == check.WORKFLOW_PATH else {"governance-owner"},
+                )
 
     def test_codeowners_exactly_matches_r3_patterns(self) -> None:
         content = (ROOT / ".github/CODEOWNERS").read_text(encoding="utf-8")
@@ -330,6 +334,14 @@ class AuthorityPolicyTests(unittest.TestCase):
             "scripts/install-dotnet.sh",
             "scripts/bootstrap.ps1",
             "scripts/bootstrap.sh",
+            "src/NvtFwCombiner.Domain/Ranges/Range.cs",
+            "src/NvtFwCombiner.Application/Composition/Planner.cs",
+            "src/NvtFwCombiner.Cli/ReplaceCliCommandHandler.cs",
+            "tools/crc-worker/worker.py",
+            "docs/contracts/example.md",
+            "AGENTS.md",
+            "VERSION",
+            "CHANGELOG.md",
         ):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
@@ -373,14 +385,47 @@ class AuthorityPolicyTests(unittest.TestCase):
                     f"{path} is not code-owned",
                 )
 
-    def test_governance_and_ci_verdict_owners_are_a_closed_r3_set(self) -> None:
+    def test_r3_is_limited_to_owner_approved_groups_and_ci_is_r2(self) -> None:
         policy = json.loads((ROOT / check.POLICY_PATH).read_bytes())
+        r3 = {
+            entry["id"]: (set(entry["patterns"]), set(entry["roles"]))
+            for entry in policy["entries"] if entry["floor"] == "R3"
+        }
+        self.assertEqual(r3, {
+            "output-byte-data": ({
+                "profiles/**", "testdata/**", "refcode/**",
+                "tests/NvtFwCombiner.GoldenRegression.Tests/**",
+                "scripts/canonical_golden_validation.py",
+            }, {"firmware-owner"}),
+            "approval-gate": ({
+                check.POLICY_PATH, check.SCHEMA_PATH, check.CHECKER_PATH,
+                "tests/scripts/test_authority_check.py",
+                "tests/scripts/test_authority_policy.py", ".github/CODEOWNERS",
+            }, {"governance-owner"}),
+            "agent-runtime-permissions": (AGENT_RUNTIME_PERMISSION_PATTERNS, {"governance-owner"}),
+            "workflows-and-actions": (
+                {".github/workflows/**", ".github/actions/**"}, {"release-owner"},
+            ),
+            "external-tools": ({"external-tools/**"}, {"firmware-owner"}),
+            "release-scripts": (
+                {f"scripts/{name}" for name, roles in SCRIPT_ROLES.items()
+                 if roles == {"release-owner"}
+                 and name not in ("release_promotion_policy.py", "fetch_core_packages.py")},
+                {"release-owner"},
+            ),
+            "core-packages": (
+                {"core-packages.json", "scripts/fetch_core_packages.py"}, {"release-owner"},
+            ),
+            "release-approval-policy": (
+                {"scripts/release_promotion_policy.py"}, {"release-owner"},
+            ),
+        })
         ci = next(entry for entry in policy["entries"] if entry["id"] == "ci-verdict-authority")
         self.assertEqual(set(ci["patterns"]), CI_VERDICT_OWNERS)
         for path in CI_VERDICT_OWNERS | GOVERNANCE_DOCUMENTS:
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
-                self.assertEqual((result.floor, result.roles), ("R3", {"governance-owner"}))
+                self.assertEqual((result.floor, result.roles), ("R2", frozenset()))
         for owner in sorted(CI_VERDICT_OWNERS):
             tree = ast.parse((ROOT / owner).read_text(encoding="utf-8"))
             modules = {
@@ -405,8 +450,11 @@ class AuthorityPolicyTests(unittest.TestCase):
                 if (ROOT / path).is_file():
                     with self.subTest(owner=owner, dependency=path):
                         result = POLICY.classify(path, case_sensitive=True)
-                        self.assertEqual(result.floor, "R3")
-                        self.assertTrue(result.roles)
+                        roles = SCRIPT_ROLES.get(Path(path).name, set())
+                        self.assertEqual(
+                            (result.floor, result.roles),
+                            ("R3" if roles else "R2", frozenset(roles)),
+                        )
                         self.assertFalse(result.unclassified)
 
         spec = importlib.util.spec_from_file_location(
@@ -433,8 +481,8 @@ class AuthorityPolicyTests(unittest.TestCase):
         for path in verdict_scripts:
             with self.subTest(subprocess=path):
                 result = POLICY.classify(path, case_sensitive=True)
-                self.assertEqual(result.floor, "R3")
-                self.assertTrue(result.roles)
+                self.assertEqual(result.floor, "R2")
+                self.assertEqual(result.roles, frozenset())
                 self.assertFalse(result.unclassified)
 
     def test_codeowners_mismatch_with_policy_fails(self) -> None:
@@ -444,7 +492,8 @@ class AuthorityPolicyTests(unittest.TestCase):
             codeowner_pattern_errors(content + "\n/README.md @Dennis40816\n", policy_bytes)
         )
         changed = json.loads(policy_bytes)
-        changed["entries"][0]["patterns"].append("new-risk/**")
+        r3_entry = next(entry for entry in changed["entries"] if entry["floor"] == "R3")
+        r3_entry["patterns"].append("new-risk/**")
         self.assertTrue(codeowner_pattern_errors(content, json.dumps(changed).encode()))
 
     def test_prose_is_read_by_no_topic_test_or_verification(self) -> None:

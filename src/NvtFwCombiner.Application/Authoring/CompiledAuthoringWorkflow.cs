@@ -149,7 +149,9 @@ public sealed partial class CompiledAuthoringWorkflowService
                         .Select(static binding => new CompiledAuthoringInputBinding(
                             binding.SlotId, binding.AddressSpaceId)),
                 ]);
-        if (!retainedSourceEnvelope && retainedCapability is not null &&
+        bool retainedVersionSelection = retainedCapability?.CompiledComposition.V2Details
+            .Provenance.Context is ResolvedMapV2CompilationContext { ResolvedMap.CommonFirmwareVersion: not null };
+        if (!retainedSourceEnvelope && !retainedVersionSelection && retainedCapability is not null &&
             CanInspectRetainedExactCapability(
                 retainedCapability,
                 icId,

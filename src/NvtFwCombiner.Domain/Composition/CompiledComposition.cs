@@ -63,6 +63,28 @@ public sealed partial class CompiledComposition
                 CompiledProfilePromotionBlockerKind.HumanReview);
 
     /// <summary>
+    /// Whether this profile-bundle candidate is the deliberately narrow Standard
+    /// Merge candidate: a normal FlashCode route that is executable as an
+    /// unverified candidate while only map, golden or firmware-owner
+    /// certification debt remains.
+    /// </summary>
+    public bool IsV2StandardMergeOpenCandidate =>
+        Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
+        V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
+        V2Details.Provenance.Context is ResolvedMapV2CompilationContext &&
+        V2Details.CompositionKind == CompositionKind.Merge &&
+        V2Details.ExperienceId == ExperienceIds.StandardMerge &&
+        V2Details.OutputNamingRequirement.RendererKind == CompiledOutputNameRendererKind.NormalFlashCodeV1 &&
+        V2Details.Provenance.Promotion.Blockers.Any(static blocker =>
+            blocker.Kind == CompiledProfilePromotionBlockerKind.Golden) &&
+        V2Details.Provenance.Promotion.Blockers.Any(static blocker =>
+            blocker.Kind == CompiledProfilePromotionBlockerKind.HumanReview) &&
+        V2Details.Provenance.Promotion.Blockers.All(static blocker =>
+            blocker.Kind is CompiledProfilePromotionBlockerKind.Map or
+                CompiledProfilePromotionBlockerKind.Golden or
+                CompiledProfilePromotionBlockerKind.HumanReview);
+
+    /// <summary>
     /// Whether this trusted V2 artifact is an AB Merge route executable by the
     /// current runtime, either as the narrow function-open candidate or as a
     /// fully supported profile.

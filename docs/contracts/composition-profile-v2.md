@@ -564,6 +564,15 @@ requires the `reject` invalid-character policy. Older schema snapshots may
 retain `replace-underscore` only as non-executable legacy policy; schema 2.15
 rejects it. Output names still follow `output.fileNameTemplate`.
 
+One exception exists for an unverified candidate (ADR 0084, amendment
+2026-10-14): an `executable-candidate` profile that still has a `golden`
+blocker and whose renderer is `normal-flashcode-v1` or `tp-firmware-v1`. For
+that profile, Application inserts `_UNVERIFIED` before `.bin` in the automatic
+name and rejects a custom filename, even when `allowOverride` is true. The
+run report records the token `verification=unverified`. Static, AB Code and
+logical-output names are unchanged. A static-name candidate declares its marked
+name and `allowOverride: false` in profile data.
+
 ## Metadata and validation
 
 Metadata bindings attach canonical family structures to named input/output spaces. They support

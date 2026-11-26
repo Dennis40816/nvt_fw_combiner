@@ -131,13 +131,14 @@ public sealed class ReportInputFeedbackTests
     }
 
     internal static CompositionRunReport Report(IReadOnlyList<CompositionIssue> issues,
-        IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null)
+        IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null,
+        CapabilityRunSummary? capability = null)
     {
         DateTimeOffset timestamp = new(2026, 9, 6, 0, 0, 0, TimeSpan.Zero);
         return new CompositionRunReport("feedback-test", "test-profile", "1.0.0", "NT51929",
             "standard-merge", "standard-merge", CompositionKind.Merge, timestamp, timestamp,
             [], [], [], issues, new OutputArtifactSummary("preview.bin", 0, new string('a', 64), committed: false),
-            inputDiagnostics: inputDiagnostics);
+            inputDiagnostics: inputDiagnostics, capability: capability);
     }
 
     internal static string Json(CompositionRunReport report)

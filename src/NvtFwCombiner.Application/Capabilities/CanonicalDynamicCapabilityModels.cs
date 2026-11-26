@@ -101,6 +101,17 @@ public sealed record CanonicalCapabilityCompilationContract
     /// <summary>Whether the contract admits the closed logical-output compiler context.</summary>
     public bool AllowsLogicalOutput { get; }
 
+    internal bool AdmitsDeclaredMetadataPlan(string memberId, MetadataPlanDefinition plan)
+    {
+        return plan.SourceIdentity is { } source &&
+            StringComparer.Ordinal.Equals(ProfileId, source.ProfileId) &&
+            StringComparer.Ordinal.Equals(ProfileVersion, source.ProfileVersion) &&
+            StringComparer.Ordinal.Equals(TrustedDefinitionSha256, source.TrustedDefinitionSha256) &&
+            plan.Entries.Count != 0 &&
+            plan.Entries.All(entry => StringComparer.Ordinal.Equals(memberId, entry.MemberId) &&
+                _allowedMapVariantIds.Contains(entry.ImageMap.MapId, StringComparer.Ordinal));
+    }
+
     internal void ValidateCompilation(
         CapabilityRouteIdentity identity,
         CompiledComposition composition,

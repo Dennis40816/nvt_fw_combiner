@@ -7,28 +7,24 @@ namespace NvtFwCombiner.Infrastructure.Composition;
 
 internal static class BuiltInPostbuildProfileResolver
 {
-    internal static bool TryGetPostbuildProfile(
+    internal static bool TryGetSelection(
         ICompositionCapabilityExperience projection,
         string icId,
         string basePath,
-        out LegacyCombinerPostbuildProfile? postbuildProfile,
+        out BuiltInCommonFwSelection? selection,
         out CompositionIssue? issue,
         byte[]? baseImage = null)
     {
-        IReadOnlyList<LegacyCombinerPostbuildProfile> profiles =
-            BuiltInPostbuildProfileCatalog.GetProfiles(
-                IcIdentifier.Normalize(icId));
         string? commonFwVersion = null;
         bool hasCommonFwVersion = baseImage is null
             ? BuiltInFirmwareInspection.TryReadBaseCommonFwVersion(projection, icId, basePath, out commonFwVersion)
             : BuiltInFirmwareInspection.TryReadFirmwareConfigBackupMetadata(projection, icId, baseImage, out FirmwareConfigMetadata metadata) &&
                 (commonFwVersion = metadata.CommonFwVersion) is not null;
-        return TryResolvePostbuildProfile(
+        return BuiltInCommonFwSelector.TrySelect(
             icId,
-            profiles,
             hasCommonFwVersion,
             commonFwVersion,
-            out postbuildProfile,
+            out selection,
             out issue);
     }
 

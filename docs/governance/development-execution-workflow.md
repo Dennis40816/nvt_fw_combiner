@@ -74,6 +74,18 @@ owner has made the context required on that branch's ruleset.
 Decisions 225 W1 and 233 make owner approval R3-only after each target's
 trial/cutover: the target base must contain the amended policy, CODEOWNERS,
 checker and workflow, and the owner must verify its effective rulesets.
+On 2026-11-26, the owner decided: 「只有畫面修改和重要演算法改再叫我 approve」
+("Ask me to approve only screen changes and important algorithm changes"),
+where an "important algorithm" change alters the bytes produced by Merge or Replace.
+The R3 path gate retains only output-byte data (profiles, fixtures, reference code,
+Golden tests and canonical validation), the approval gate itself, agent runtime
+permissions (decision 244), and workflows/actions. As supply-chain inputs,
+external tools (they rewrite output bytes), the release packaging, signing,
+publication and promotion scripts, and the Core package manifest and download
+script also stay R3 (Commander choice A, 2026-11-26 21:33).
+Screen changes go to the owner through the Commander procedure without a path
+gate because refactors and visible changes share paths; other changes outside
+the retained groups merge after Commander checks without owner approval.
 Unswitched targets retain their live protections, including `main` or a
 release branch not yet switched. R2 keeps architecture/contract review,
 relevant tests, scoped Polytail and an independent exact-head record.

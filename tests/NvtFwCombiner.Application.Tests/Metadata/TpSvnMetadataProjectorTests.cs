@@ -97,7 +97,7 @@ public sealed class TpSvnMetadataProjectorTests
         Assert.Null(TpSvnMetadataProjector.Read(CreatePlan(0x24), SpaceId, new byte[0x26]));
     }
 
-    /// <summary>TP-only consensus publishes a stamp only when every candidate resolves the same bytes and range.</summary>
+    /// <summary>Agreement-based consensus publishes a stamp only when every candidate resolves the same bytes and range.</summary>
     [Fact]
     public void ConsensusRequiresIdenticalStamps()
     {

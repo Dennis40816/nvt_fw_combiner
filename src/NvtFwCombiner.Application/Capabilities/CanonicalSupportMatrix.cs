@@ -108,12 +108,14 @@ public sealed record CanonicalSupportMatrixSnapshot
         string catalogVersion,
         string sourceSha256,
         ResolutionToken resolutionToken,
-        IEnumerable<CanonicalSupportMatrixRow> rows)
+        IEnumerable<CanonicalSupportMatrixRow> rows,
+        CapabilityCatalogSummary authoringSummary)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogId);
         ArgumentException.ThrowIfNullOrWhiteSpace(catalogVersion);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceSha256);
         ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(authoringSummary);
         resolutionToken.EnsureValid(nameof(resolutionToken));
 
         CatalogId = catalogId;
@@ -121,6 +123,7 @@ public sealed record CanonicalSupportMatrixSnapshot
         SourceSha256 = sourceSha256;
         ResolutionToken = resolutionToken;
         Rows = Array.AsReadOnly([.. rows]);
+        AuthoringSummary = authoringSummary;
     }
 
     /// <summary>Stable catalog id.</summary>
@@ -137,6 +140,9 @@ public sealed record CanonicalSupportMatrixSnapshot
 
     /// <summary>Exact routes in stable route-id order.</summary>
     public IReadOnlyList<CanonicalSupportMatrixRow> Rows { get; }
+
+    /// <summary>IC availability from the selector in this exact publication.</summary>
+    public CapabilityCatalogSummary AuthoringSummary { get; }
 }
 
 /// <summary>One query result that keeps catalog lifecycle separate from route facts.</summary>
@@ -238,7 +244,8 @@ public static class CanonicalSupportMatrixQuery
             snapshot.CatalogVersion,
             snapshot.SourceSha256,
             snapshot.ResolutionToken,
-            rows.OrderBy(static row => row.Identity.RouteId, StringComparer.Ordinal));
+            rows.OrderBy(static row => row.Identity.RouteId, StringComparer.Ordinal),
+            snapshot.SelectorPublication.GetCatalogSummary());
     }
 
     private static CanonicalSupportMatrixRow Row(

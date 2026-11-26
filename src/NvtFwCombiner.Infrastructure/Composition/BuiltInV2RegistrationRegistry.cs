@@ -196,11 +196,24 @@ internal sealed class BuiltInV2Registration
     internal IReadOnlyList<string> InputSelectionGroupMemberSlotIds =>
         _bundle.GetInputSelectionGroupMemberSlotIds(ProfileId, ProfileVersion);
 
+    internal CanonicalMapSelectionPrerequisite? MapSelectionPrerequisite
+    {
+        get
+        {
+            string? artifact = GetFirmwareFamily().CommonFirmwareVersionArtifactBindingId;
+            if (artifact is null) { return null; }
+            IReadOnlyList<long> capacities = GetMapCapacities(out IReadOnlyList<CompositionIssue> issues);
+            return issues.Count == 0 && capacities.Count == 1
+                ? new CanonicalMapSelectionPrerequisite(artifact, capacities[0])
+                : throw new InvalidDataException("Version map selection requires one declared capacity.");
+        }
+    }
+
     internal string? SelectionGroupMapVariantSetId
     {
         get
         {
-            bool hasSelectionGroup = InputSelectionGroupMemberSlotIds.Count != 0;
+            bool hasSelectionGroup = InputSelectionGroupMemberSlotIds.Count != 0 || MapSelectionPrerequisite is not null;
             return hasSelectionGroup == (MapVariantSetId is not null)
                 ? MapVariantSetId
                 : throw new InvalidDataException(
@@ -230,7 +243,7 @@ internal sealed class BuiltInV2Registration
     internal MetadataPlanDefinition CreateExactMapMetadataPlan(string mapId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mapId);
-        if (SourceEnvelopeBinding is not null)
+        if (SourceEnvelopeBinding is not null || MapSelectionPrerequisite is not null)
         {
             return _bundle.CreateDeclaredMetadataPlan(
                 ProfileId, ProfileVersion, IcId, WorkflowId, mapId);
@@ -354,7 +367,8 @@ internal sealed class BuiltInV2Registration
         IReadOnlyCollection<string>? selectedInputSlotIds,
         IReadOnlyList<FirmwareArtifactPayload> resolutionArtifacts,
         out CompiledComposition? composition,
-        out IReadOnlyList<CompositionIssue> issues)
+        out IReadOnlyList<CompositionIssue> issues,
+        string? explicitMapId = null)
     {
         ArgumentNullException.ThrowIfNull(resolutionArtifacts);
         if (!TryAdmitCompileRequest(
@@ -369,11 +383,12 @@ internal sealed class BuiltInV2Registration
             return;
         }
 
-        V2CompositionPlanCompileResult compilation = CompileExecutable(
+        V2CompositionPlanCompileResult compilation = CompileDeclaration(
             requestedCapacity,
             effectiveTopology,
             selectedInputSlotIds,
-            resolutionArtifacts);
+            resolutionArtifacts,
+            explicitMapId);
         composition = compilation.CompiledComposition;
         issues = compilation.Issues;
     }
@@ -423,7 +438,7 @@ internal sealed class BuiltInV2Registration
                         : null;
                 compilation = summary?.CompiledComposition is not null
                     ? summary
-                    : CompileExecutable(requestedCapacity, effectiveTopology, null, []);
+                    : CompileDeclaration(requestedCapacity, effectiveTopology, null, []);
                 if (effectiveTopology is null && compilation.CompiledComposition is not null)
                 {
                     compiled.Add((requestedCapacity, compilation));
@@ -530,10 +545,19 @@ internal sealed class BuiltInV2Registration
 
     internal CapabilityProfileSummary CreateProfileSummary()
     {
-        if (SourceEnvelopeBinding is { } envelope)
+        string? declarationMap = SourceEnvelopeBinding?.LayoutTemplateMapId;
+        if (declarationMap is null && MapSelectionPrerequisite is not null)
         {
-            TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(
-                envelope.LayoutTemplateMapId);
+            IReadOnlyList<FirmwareImageMap> declaredMaps = GetMapVariants(
+                out _, out IReadOnlyList<CompositionIssue> declaredMapIssues);
+            declarationMap = declaredMapIssues.Count == 0 && declaredMaps.Count != 0
+                ? declaredMaps[0].MapId
+                : throw new InvalidDataException("Version map selection requires declared maps.");
+        }
+
+        if (declarationMap is not null)
+        {
+            TrustedMapBoundProfileDeclaration declaration = GetMapBoundDeclaration(declarationMap);
             CompositionProfileDefinition profile = declaration.ProfileEntry.Profile;
             string[] requiredSpaces =
             [
@@ -585,11 +609,11 @@ internal sealed class BuiltInV2Registration
             return representative is null
                 ? V2CompositionPlanCompileResult.Failed([new CompositionIssue(BuiltInV2Bundle.CompilationFailed,
                     $"The built-in V2 {ProfileLabel} for {IcId} has no declared maps.")])
-                : CompileExecutable(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
+                : CompileDeclaration(representative.CapacityBytes, HeadlessRouteSelection.CreateTopologySelection(
                     representative.Applicability.TopologyRequirement, representative.MapId));
         }
         return TryAdmitStandardSummaryRequest(out long? mapCapacity, out IReadOnlyList<CompositionIssue> issues)
-            ? CompileExecutable(mapCapacity)
+            ? CompileDeclaration(mapCapacity)
             : V2CompositionPlanCompileResult.Failed(issues);
     }
 
@@ -621,11 +645,12 @@ internal sealed class BuiltInV2Registration
             summaryCapacity == mapCapacity;
     }
 
-    private V2CompositionPlanCompileResult CompileExecutable(
+    private V2CompositionPlanCompileResult CompileDeclaration(
         long? requestedMapCapacity,
         TopologySelection? requestedTopology = null,
         IReadOnlyCollection<string>? selectedInputSlotIds = null,
-        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null)
+        IReadOnlyList<FirmwareArtifactPayload>? resolutionArtifacts = null,
+        string? explicitMapId = null)
     {
         return IsAbMerge
             ? _bundle.CompileAbMergeFunctionOpen(
@@ -637,15 +662,18 @@ internal sealed class BuiltInV2Registration
                 $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
                 selectedInputSlotIds,
                 resolutionArtifacts)
-            : _bundle.CompileExecutable(
+            // Authoring and metadata retain the compiler's candidate artifact unchanged.
+            // Application owns execution admission; this projection never promotes eligibility.
+            : _bundle.Compile(
                 ProfileId,
                 ProfileVersion,
                 IcId,
                 WorkflowId,
                 requestedMapCapacity,
-                $"The built-in V2 {ProfileLabel} for {IcId} did not produce an executable composition.",
+                requestedTopology: null,
                 resolutionArtifacts ?? [],
-                selectedInputSlotIds);
+                selectedInputSlotIds,
+                explicitMapId);
     }
 
     private static TopologySelection CreateSummaryTopology()

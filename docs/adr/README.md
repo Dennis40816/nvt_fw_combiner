@@ -35,3 +35,11 @@ Toolchain configuration publication is recorded in
 [ADR 0073](0073-toolchain-runtime-selection.md); its separately admitted
 executable-trust and deployment work must not be mistaken for completed
 configuration-only evidence.
+
+The NT51925-only restoration of Standard Merge and CtrlRAM Replace is recorded
+in [ADR 0084](0084-restore-nt51925-standard-merge-and-ctrlram-replace.md).
+The owner accepted isolated NT51925 map, family and candidate bundles. Following
+the owner direction of 2026-10-14 01:20, PR4b opens the nine routes for
+unverified candidate authoring through the owner's R3 approval; every output
+name keeps `_UNVERIFIED`. Support promotion and independent firmware/Golden
+evidence remain pending.

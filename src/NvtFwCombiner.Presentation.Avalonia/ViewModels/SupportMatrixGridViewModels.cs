@@ -113,7 +113,7 @@ internal sealed class SupportMatrixCellViewModel
                 CapabilityEvidenceStatus.SyntheticOracle)
             ? SupportMatrixCellStatus.ReviewedEvidence
             : routes.All(static route =>
-                route.EvidenceStatus == CapabilityEvidenceStatus.ContractOnly)
+                CapabilityWorkflowReadinessProjector.IsUnverified(route.EvidenceStatus))
             ? SupportMatrixCellStatus.ContractOnly
             : SupportMatrixCellStatus.ReviewRequired;
     }

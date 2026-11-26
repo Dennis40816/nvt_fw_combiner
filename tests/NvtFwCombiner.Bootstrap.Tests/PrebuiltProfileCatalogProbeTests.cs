@@ -215,7 +215,7 @@ public sealed class PrebuiltProfileCatalogProbeTests
         public CanonicalSupportMatrixQueryResult Query()
         {
             return new(succeeds ? CanonicalSupportMatrixCatalogState.Current : CanonicalSupportMatrixCatalogState.ColdStartBlocked,
-                succeeds ? new("test", "1", new string('a', 64), new ResolutionToken("test"), []) : null, []);
+                succeeds ? new("test", "1", new string('a', 64), new ResolutionToken("test"), [], new CapabilityCatalogSummary(0, 0, 0)) : null, []);
         }
     }
 }

@@ -189,7 +189,7 @@ public static class TpSvnMetadataProjector
 
     /// <summary>
     /// Returns the stamp only when every candidate plan resolves the same structure, range and bytes
-    /// from the same capture (TP-only consensus); any missing or disagreeing candidate yields null.
+    /// from the same capture (agreement across all declared maps); any missing or disagreeing candidate yields null.
     /// </summary>
     internal static TpSvnObservation? ReadConsensus(
         IReadOnlyList<ResolvedMetadataPlan> plans, string spaceId, ReadOnlyMemory<byte> image)

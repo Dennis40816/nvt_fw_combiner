@@ -313,6 +313,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
                 icId,
                 request.NumberToken,
                 postbuildProfile,
+                firmwareConfig?.CommonFwVersion,
                 hasReadableBase: true)
             : null;
         (DpVersionMetadata? Version,
@@ -397,6 +398,7 @@ internal sealed partial class BuiltInFirmwareInspection : IFirmwareInspection
             icId,
             number,
             postbuildProfile,
+            firmwareConfig?.CommonFwVersion,
             hasReadableBase: true);
     }
 

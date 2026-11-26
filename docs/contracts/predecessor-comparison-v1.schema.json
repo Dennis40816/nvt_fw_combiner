@@ -51,13 +51,14 @@
             "baseline": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["kind", "tagPattern", "annotatedTagRequired", "peeledCommitAncestorOfCandidate", "publishedReleaseVerifiedBy"],
+              "required": ["kind", "tagPattern", "annotatedTagRequired", "peeledCommitAncestorOfCandidate", "publishedReleaseVerifiedBy", "inventorySchema"],
               "properties": {
                 "kind": { "const": "previous-published-stable-release" },
                 "tagPattern": { "const": "^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$" },
                 "annotatedTagRequired": { "const": true },
                 "peeledCommitAncestorOfCandidate": { "const": true },
-                "publishedReleaseVerifiedBy": { "const": "release-workflow" }
+                "publishedReleaseVerifiedBy": { "const": "commander-github-app-inventory" },
+                "inventorySchema": { "const": "docs/contracts/predecessor-published-release-inventory-v1.schema.json" }
               }
             },
             "inputAuthority": {
@@ -140,6 +141,7 @@
         "materialization",
         "cleanTreeRequired",
         "forbiddenPreRestorePathSegments",
+        "restorePackageFolder",
         "sdkSource",
         "restore",
         "build",
@@ -149,24 +151,21 @@
         "lockFilesMustNotChange",
         "lockFileSet",
         "identityPinnedInAdvance",
+        "baselineIdentityComparison",
         "authorityTrees",
+        "externalToolStaging",
         "recordedIdentity"
       ],
       "properties": {
         "materialization": { "const": "fresh-detached-git-worktree" },
         "cleanTreeRequired": { "const": true },
         "forbiddenPreRestorePathSegments": { "const": ["bin", "obj"] },
+        "restorePackageFolder": { "const": ".packages" },
         "sdkSource": { "const": "global.json" },
         "restore": { "$ref": "#/$defs/command" },
         "build": { "$ref": "#/$defs/command" },
         "compilerHost": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["status", "boardDecisions"],
-          "properties": {
-            "status": { "enum": ["pending-executor-record"] },
-            "boardDecisions": { "const": ["1.1.12 board decision 79"] }
-          }
+          "$ref": "#/$defs/compilerHost"
         },
         "cliAssembly": { "type": "string", "pattern": "^src/NvtFwCombiner\\.Cli/bin/Release/[a-z0-9.]+/win-x64/NvtFwCombiner\\.Cli\\.exe$" },
         "runtimeClosureRoot": { "type": "string", "pattern": "^src/NvtFwCombiner\\.Cli/bin/Release/[a-z0-9.]+/win-x64$" },
@@ -185,9 +184,34 @@
           }
         },
         "identityPinnedInAdvance": { "const": false },
+        "baselineIdentityComparison": {
+          "const": {
+            "status": "opt-in",
+            "mode": "rolling",
+            "option": "--baseline-report",
+            "recordedIdentityPath": "/candidate/executor",
+            "comparedMembers": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tree"],
+            "tagObjectRule": "null-or-rebuilt-tag-object",
+            "missing": "PREDECESSOR_BASELINE_IDENTITY_MISSING",
+            "mismatch": "PREDECESSOR_BASELINE_IDENTITY_MISMATCH",
+            "v0916": {
+              "status": "not-implemented",
+              "reason": "The v0.9.16 CLI report records no program identity also produced by its rebuild; executor v2 pins are not that program's own report."
+            }
+          }
+        },
         "authorityTrees": { "const": ["external-tools", "profiles", "src", "tools/crc-worker"] },
+        "externalToolStaging": {
+          "const": {
+            "tree": "external-tools",
+            "bytes": "git-blob-at-executor-commit",
+            "destination": "beside-staged-runtime-closure",
+            "custody": "execution-closure",
+            "directoryAlwaysCreated": true
+          }
+        },
         "recordedIdentity": {
-          "const": ["authorityTrees", "cliSha256", "commit", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
+          "const": ["authorityTrees", "cliSha256", "commit", "compilerHost", "lockFileSetSha256", "resolvedSdkVersion", "runtimeClosureSha256", "tagObject", "tree"]
         }
       }
     },
@@ -216,25 +240,67 @@
     "perSideSafety": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["owner", "authorityProducer", "checks", "readerMayRelaxChecks"],
+      "required": ["owner", "authorityProducer", "checks", "readerMayRelaxChecks", "writtenReportRules"],
       "properties": {
-        "owner": { "const": "scripts/v0916_parity_certification.py" },
+        "owner": { "const": ["scripts/v0916_parity_certification.py", "scripts/predecessor_validation.py"] },
         "authorityProducer": { "const": "typed-preview-of-the-same-executor-and-staged-inputs" },
         "checks": {
-          "const": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges"]
+          "const": ["validate_report_sequence", "validate_report_projection_against_compiled_authority", "validate_semantic_report_ranges", "_executed_command_failures", "_processor_write_audit_failures"]
         },
-        "readerMayRelaxChecks": { "const": false }
+        "readerMayRelaxChecks": { "const": false },
+        "writtenReportRules": {
+          "const": {
+            "boardDecision": "1.2.x board decision 261",
+            "executedCommands": {
+              "executable": "staged-hash-checked-external-tool",
+              "workingDirectory": "below-process-temporary-directory",
+              "fileArguments": "working-directory-or-below",
+              "repeatedCommand": "kept-in-order"
+            },
+            "workAddressSpaces": ["ab-combiner-work", "tp-b-work"],
+            "v0916ExecutorWorkAddressSpaces": ["a-bank-work", "b-bank-work"],
+            "v0916ExecutorWorkAddressSpacesDecision": "1.2.x board decision 273",
+            "workAddressSpaceRanges": "inside-same-side-preview-declared-ranges",
+            "processorWriteAudit": {
+              "source": "output-difference-ranges",
+              "contentPreviewsRead": false,
+              "addressSpace": "output-image",
+              "rule": "each-range-inside-one-preview-allowed-write-range",
+              "changedProcessorWithoutListedRange": "refused",
+              "workAddressSpaceAudit": {
+                "boardDecision": "1.2.x board decision 271",
+                "source": "compiled-operations-in-preview-order",
+                "laterReads": "each-range-inside-one-processor-allowed-write-range",
+                "laterWrites": "refused",
+                "unclassifiableOperation": "refused"
+              }
+            },
+            "previewBuildOutput": {
+              "boardDecision": "1.2.x board decision 274",
+              "when": "both-preview-and-build-describe-output",
+              "rule": "same-size-and-sha256-on-the-same-side",
+              "mismatch": "PREDECESSOR_REPORT_INVALID"
+            }
+          }
+        }
       }
     },
     "typedRejection": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["reportRequired", "nonzeroExitRequired", "errorIssueRequired", "processFailureIssueCodes"],
+      "required": ["reportRequired", "nonzeroExitRequired", "errorIssueRequired", "processFailureIssueCodes", "skippedOperations"],
       "properties": {
         "reportRequired": { "const": true },
         "nonzeroExitRequired": { "const": true },
         "errorIssueRequired": { "const": true },
-        "processFailureIssueCodes": { "const": ["external-tool.process.failed", "external-tool.process.start-failed"] }
+        "processFailureIssueCodes": { "const": ["external-tool.process.failed", "external-tool.process.start-failed"] },
+        "skippedOperations": {
+          "const": {
+            "boardDecision": "1.2.x board decision 272",
+            "conditions": ["nonzero-exit", "report-error-issue", "all-operations-skipped", "no-mutation-command-or-output-difference", "no-output-file"],
+            "operationThatRan": "invalid"
+          }
+        }
       }
     },
     "interfaces": {
@@ -281,13 +347,14 @@
     "comparison": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outputAddressSpace", "rangeNotation", "sizeMismatch", "reportedRangeLimit", "rangeListDigest", "precursorBaseCompared"],
+      "required": ["outputAddressSpace", "rangeNotation", "sizeMismatch", "reportedRangeLimit", "rangeListDigest", "deterministicDigestExcludedPaths", "precursorBaseCompared"],
       "properties": {
         "outputAddressSpace": { "const": "output-file-offset" },
         "rangeNotation": { "const": "half-open" },
         "sizeMismatch": { "const": "bytes-beyond-the-shorter-output-differ" },
         "reportedRangeLimit": { "const": 32 },
         "rangeListDigest": { "const": "jcs-sha256" },
+        "deterministicDigestExcludedPaths": { "const": ["/deterministicSha256", "/environment/temporaryRootLength", "/scenarios/*/baseline/processes/*/stdoutSha256", "/scenarios/*/baseline/processes/*/stderrSha256", "/scenarios/*/baseline/processes/*/report/size", "/scenarios/*/baseline/processes/*/report/sha256", "/scenarios/*/candidate/processes/*/stdoutSha256", "/scenarios/*/candidate/processes/*/stderrSha256", "/scenarios/*/candidate/processes/*/report/size", "/scenarios/*/candidate/processes/*/report/sha256", "/routes/*/baseline/processes/*/stdoutSha256", "/routes/*/baseline/processes/*/stderrSha256", "/routes/*/baseline/processes/*/report/size", "/routes/*/baseline/processes/*/report/sha256", "/routes/*/candidate/processes/*/stdoutSha256", "/routes/*/candidate/processes/*/stderrSha256", "/routes/*/candidate/processes/*/report/size", "/routes/*/candidate/processes/*/report/sha256", "/gate/failures/*/detail", "/failures/*/detail", "/publishedInventory/rawSha256"] },
         "precursorBaseCompared": { "const": true }
       }
     },
@@ -331,6 +398,117 @@
           "items": { "type": "string", "minLength": 1 }
         }
       }
+    },
+    "compilerHost": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "boardDecisions"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "pending-executor-record"
+              ]
+            },
+            "boardDecisions": {
+              "const": [
+                "1.1.12 board decision 79"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "boardDecisions",
+            "requiredRuntime",
+            "environmentVariables",
+            "extraBuildArguments",
+            "missingRuntimePolicy",
+            "verification"
+          ],
+          "properties": {
+            "status": {
+              "const": "in-effect"
+            },
+            "boardDecisions": {
+              "const": [
+                "1.1.12 board decision 79",
+                "1.2.x board decision 275",
+                "1.2.x board decision 277"
+              ]
+            },
+            "requiredRuntime": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "framework",
+                "version",
+                "architecture"
+              ],
+              "properties": {
+                "framework": {
+                  "const": "Microsoft.NETCore.App"
+                },
+                "version": {
+                  "const": "10.0.11"
+                },
+                "architecture": {
+                  "const": "x64"
+                }
+              }
+            },
+            "environmentVariables": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "DOTNET_ROLL_FORWARD"
+              ],
+              "properties": {
+                "DOTNET_ROLL_FORWARD": {
+                  "const": "Disable"
+                }
+              }
+            },
+            "extraBuildArguments": {
+              "const": [
+                "-p:UseSharedCompilation=false",
+                "-nodeReuse:false",
+                "-p:RuntimeFrameworkVersion=10.0.11"
+              ]
+            },
+            "missingRuntimePolicy": {
+              "const": "refuse"
+            },
+            "verification": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "scope",
+                "runtimeVersion"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "embedded-portable-pdb"
+                },
+                "scope": {
+                  "const": "first-party-cli-project-graph"
+                },
+                "runtimeVersion": {
+                  "const": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

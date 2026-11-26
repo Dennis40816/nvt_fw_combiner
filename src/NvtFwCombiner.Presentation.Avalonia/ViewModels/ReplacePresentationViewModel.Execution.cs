@@ -188,10 +188,7 @@ internal sealed partial class ReplacePresentationViewModel
     private Task PreviewReplaceAsync()
     {
         return RunReplaceAsync(
-            build: false,
-            outputPath: null,
-            ctrlRamFirmwareVersionEdit: null,
-            outputPathUsesAutomaticName: false);
+            build: false, outputPath: null, ctrlRamFirmwareVersionEdit: null, outputPathUsesAutomaticName: false);
     }
 
     private Task RunBuildReplaceAsync(
@@ -199,10 +196,7 @@ internal sealed partial class ReplacePresentationViewModel
         CtrlRamAuthoringDraftState? ctrlRamFirmwareVersionEdit)
     {
         return RunReplaceAsync(
-            build: true,
-            outputPath,
-            ctrlRamFirmwareVersionEdit,
-            outputPathUsesAutomaticName: false);
+            build: true, outputPath, ctrlRamFirmwareVersionEdit, outputPathUsesAutomaticName: false);
     }
 
     private bool CanRunReplace()

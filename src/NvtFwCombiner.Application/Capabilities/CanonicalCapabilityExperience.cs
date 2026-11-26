@@ -51,12 +51,7 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
     /// <inheritdoc />
     public CapabilityCatalogSummary GetCatalogSummary()
     {
-        CanonicalCapabilityCatalogSnapshot snapshot = _catalog.GetCurrentSnapshot();
-        CapabilitySelectorPublication selector = snapshot.SelectorPublication;
-        return new CapabilityCatalogSummary(
-            selector.IcIds.Count,
-            GetProfileSummaries(snapshot, ExperienceIds.StandardMerge).Count,
-            CountAuthorableIcs(selector, ExperienceIds.CtrlRamReplace));
+        return GetSelectorPublication().GetCatalogSummary();
     }
 
     /// <inheritdoc />
@@ -101,6 +96,25 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
                 workflowId),
             unsupportedReason,
             openCondition);
+    }
+
+    /// <inheritdoc />
+    public CapabilityWorkflowReadiness GetWorkflowReadiness(
+        string icId,
+        string workflowId,
+        string? routeId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(icId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(workflowId);
+        string normalizedIcId = IcIdentifier.Normalize(icId);
+        return CapabilityWorkflowReadinessProjector.Project(
+            _supportMatrix.Query().Matrix,
+            normalizedIcId,
+            workflowId,
+            _catalog.HasAuthorableCapability(normalizedIcId, workflowId),
+            "No owner-approved executable and safety contract is registered for this IC and workflow.",
+            "Owner must reactivate the scope with a safe executable contract, direct evidence, and firmware-owner review.",
+            routeId);
     }
 
     /// <inheritdoc />
@@ -169,11 +183,4 @@ public sealed class CanonicalCapabilityExperience : ICompositionCapabilityExperi
         ]);
     }
 
-    private static int CountAuthorableIcs(
-        CapabilitySelectorPublication selector,
-        string workflowId)
-    {
-        return selector.IcIds.Count(icId =>
-            selector.IsWorkflowAuthorable(icId, workflowId));
-    }
 }

@@ -152,7 +152,7 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         Assert.True(viewModel.Replace.IsSelectedReplaceModeEvidenceGated);
         Assert.True(viewModel.Replace.IsCtrlRamReplaceModeSelected);
         Assert.NotEmpty(viewModel.Replace.ReplaceSlots);
-        Assert.Equal("Evidence open", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
+        Assert.Equal("Unverified", viewModel.Replace.SelectedReplaceModeEvidenceLabel);
         Assert.Contains("does not ban authoring", viewModel.Replace.SelectedReplaceModeEvidenceTooltip, StringComparison.Ordinal);
     }
 
