@@ -66,9 +66,9 @@
     },
     {
       "id": "external-tools",
-      "description": "External processors and their packaged allowlist are R2 without owner approval under the owner decision of 2026-11-26.",
-      "floor": "R2",
-      "roles": [],
+      "description": "External processors and their packaged allowlist rewrite output bytes, so they keep firmware-owner approval under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
+      "floor": "R3",
+      "roles": ["firmware-owner"],
       "patterns": ["external-tools/**"]
     },
     {
@@ -120,9 +120,9 @@
     },
     {
       "id": "release-scripts",
-      "description": "Packaging, publication, signing, update-source and release smoke scripts are R2 without owner approval under the owner decision of 2026-11-26.",
-      "floor": "R2",
-      "roles": [],
+      "description": "Packaging, publication, signing, update-source and release smoke scripts keep release-owner approval as supply-chain inputs under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
+      "floor": "R3",
+      "roles": ["release-owner"],
       "patterns": [
         "scripts/create_update_catalog.py",
         "scripts/update_source_registry_policy.py",
@@ -142,16 +142,16 @@
     },
     {
       "id": "core-packages",
-      "description": "The Core package manifest and shared download script are R2 without owner approval under the owner decision of 2026-11-26, superseding the R3 classification of board decisions 328 and 330.",
-      "floor": "R2",
-      "roles": [],
+      "description": "The Core package manifest and shared download script choose the shipped Core binaries, so they keep release-owner approval under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
+      "floor": "R3",
+      "roles": ["release-owner"],
       "patterns": ["core-packages.json", "scripts/fetch_core_packages.py"]
     },
     {
       "id": "release-approval-policy",
-      "description": "The release promotion and approval policy script is R2 without owner approval under the owner decision of 2026-11-26.",
-      "floor": "R2",
-      "roles": [],
+      "description": "The release promotion and approval policy script keeps release-owner approval under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
+      "floor": "R3",
+      "roles": ["release-owner"],
       "patterns": ["scripts/release_promotion_policy.py"]
     },
     {

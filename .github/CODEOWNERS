@@ -7,9 +7,31 @@
 /refcode/** @Dennis40816
 /tests/NvtFwCombiner.GoldenRegression.Tests/** @Dennis40816
 /scripts/canonical_golden_validation.py @Dennis40816
+# external-tools (R3)
+/external-tools/** @Dennis40816
 # workflows-and-actions (R3)
 /.github/workflows/** @Dennis40816
 /.github/actions/** @Dennis40816
+# release-scripts (R3)
+/scripts/create_update_catalog.py @Dennis40816
+/scripts/update_source_registry_policy.py @Dennis40816
+/scripts/edit_update_source_registry.py @Dennis40816
+/scripts/package.ps1 @Dennis40816
+/scripts/package-distribution-launcher.ps1 @Dennis40816
+/scripts/publish-github.ps1 @Dennis40816
+/scripts/publish-github.sh @Dennis40816
+/scripts/render_release_notes.py @Dennis40816
+/scripts/sign-release.ps1 @Dennis40816
+/scripts/sign-release.sh @Dennis40816
+/scripts/sign_release.py @Dennis40816
+/scripts/signing_policy.py @Dennis40816
+/scripts/smoke-release.ps1 @Dennis40816
+/scripts/deploy-update-source.ps1 @Dennis40816
+# core-packages (R3)
+/core-packages.json @Dennis40816
+/scripts/fetch_core_packages.py @Dennis40816
+# release-approval-policy (R3)
+/scripts/release_promotion_policy.py @Dennis40816
 # approval-gate (R3)
 /docs/governance/authority-policy.json @Dennis40816
 /docs/governance/authority-policy.schema.json @Dennis40816

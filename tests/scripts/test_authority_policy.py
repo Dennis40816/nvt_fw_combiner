@@ -78,11 +78,11 @@ SCRIPT_ROLES = {
             "smoke-release.ps1",
             "deploy-update-source.ps1",
         ],
-        set(),
+        {"release-owner"},
     ),
     "canonical_golden_validation.py": {"firmware-owner"},
-    "release_promotion_policy.py": set(),
-    "fetch_core_packages.py": set(),
+    "release_promotion_policy.py": {"release-owner"},
+    "fetch_core_packages.py": {"release-owner"},
     **dict.fromkeys(
         [
             "verify.py",
@@ -171,12 +171,12 @@ def codeowner_pattern_errors(content: str, policy_bytes: bytes) -> list[str]:
 
 
 class AuthorityPolicyTests(unittest.TestCase):
-    def test_core_package_delivery_is_r2_without_owner_roles(self) -> None:
+    def test_core_package_delivery_keeps_release_owner(self) -> None:
         for path in ("core-packages.json", "scripts/fetch_core_packages.py"):
             with self.subTest(path=path):
                 result = POLICY.classify(path, case_sensitive=True)
-                self.assertEqual(result.floor, "R2")
-                self.assertEqual(result.roles, frozenset())
+                self.assertEqual(result.floor, "R3")
+                self.assertEqual(result.roles, frozenset({"release-owner"}))
                 self.assertFalse(result.unclassified)
 
         matches = {
@@ -213,10 +213,10 @@ class AuthorityPolicyTests(unittest.TestCase):
                 }
                 self.assertEqual(owners, {entry_id})
 
-        # Executable packages are R2; unknown root files still fail closed.
+        # Executable packages rewrite output bytes; unknown root files still fail closed.
         executable = POLICY.classify("external-tools/nvt_combiner")
-        self.assertEqual(executable.floor, "R2")
-        self.assertEqual(executable.roles, frozenset())
+        self.assertEqual(executable.floor, "R3")
+        self.assertEqual(executable.roles, frozenset({"firmware-owner"}))
         unknown = POLICY.classify(".gitmodules-extra")
         self.assertEqual(unknown.floor, "R3")
         self.assertEqual(unknown.roles, {"governance-owner"})
@@ -406,6 +406,19 @@ class AuthorityPolicyTests(unittest.TestCase):
             "workflows-and-actions": (
                 {".github/workflows/**", ".github/actions/**"}, {"release-owner"},
             ),
+            "external-tools": ({"external-tools/**"}, {"firmware-owner"}),
+            "release-scripts": (
+                {f"scripts/{name}" for name, roles in SCRIPT_ROLES.items()
+                 if roles == {"release-owner"}
+                 and name not in ("release_promotion_policy.py", "fetch_core_packages.py")},
+                {"release-owner"},
+            ),
+            "core-packages": (
+                {"core-packages.json", "scripts/fetch_core_packages.py"}, {"release-owner"},
+            ),
+            "release-approval-policy": (
+                {"scripts/release_promotion_policy.py"}, {"release-owner"},
+            ),
         })
         ci = next(entry for entry in policy["entries"] if entry["id"] == "ci-verdict-authority")
         self.assertEqual(set(ci["patterns"]), CI_VERDICT_OWNERS)
@@ -437,11 +450,10 @@ class AuthorityPolicyTests(unittest.TestCase):
                 if (ROOT / path).is_file():
                     with self.subTest(owner=owner, dependency=path):
                         result = POLICY.classify(path, case_sensitive=True)
+                        roles = SCRIPT_ROLES.get(Path(path).name, set())
                         self.assertEqual(
                             (result.floor, result.roles),
-                            ("R3", {"firmware-owner"})
-                            if path == "scripts/canonical_golden_validation.py"
-                            else ("R2", frozenset()),
+                            ("R3" if roles else "R2", frozenset(roles)),
                         )
                         self.assertFalse(result.unclassified)
 
