@@ -13,15 +13,11 @@
   "entries": [
     {
       "id": "firmware",
-      "description": "Profiles, every fixture and Golden file, reference code, the CRC worker, the Golden tests, the firmware-semantic source owners confirmed by the firmware owner (board decision 111) the command-line handlers that forward output-deciding choices (board decision 245) and the General authoring session state that adopts an accepted mapping (owner decision of 2026-10-05 for R02 slice P2).",
-      "floor": "R3",
-      "roles": ["firmware-owner"],
+      "description": "Firmware source, the CRC worker, CLI handlers and authoring state are R2 without owner approval under the owner decision of 2026-11-26; output-byte data remains separately protected as R3.",
+      "floor": "R2",
+      "roles": [],
       "patterns": [
-        "profiles/**",
-        "testdata/**",
-        "refcode/**",
         "tools/crc-worker/**",
-        "tests/NvtFwCombiner.GoldenRegression.Tests/**",
         "src/NvtFwCombiner.Domain/**",
         "src/NvtFwCombiner.Profiles/**",
         "src/NvtFwCombiner.Contracts/**",
@@ -49,27 +45,38 @@
       ]
     },
     {
-      "id": "contracts",
-      "description": "Every contract takes the firmware and release roles until the owner names files individually.",
+      "id": "output-byte-data",
+      "description": "Output-byte data and canonical Golden validation retain firmware-owner approval as the mechanical backstop for Merge or Replace byte changes under the owner decision of 2026-11-26.",
       "floor": "R3",
-      "roles": ["firmware-owner", "release-owner"],
+      "roles": ["firmware-owner"],
+      "patterns": [
+        "profiles/**",
+        "testdata/**",
+        "refcode/**",
+        "tests/NvtFwCombiner.GoldenRegression.Tests/**",
+        "scripts/canonical_golden_validation.py"
+      ]
+    },
+    {
+      "id": "contracts",
+      "description": "Contracts are R2 without owner approval under the owner decision of 2026-11-26.",
+      "floor": "R2",
+      "roles": [],
       "patterns": ["docs/contracts/**"]
     },
     {
       "id": "external-tools",
-      "description": "External processors and their packaged allowlist.",
+      "description": "External processors and their packaged allowlist rewrite output bytes, so they keep firmware-owner approval under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
       "floor": "R3",
-      "roles": ["firmware-owner", "release-owner"],
+      "roles": ["firmware-owner"],
       "patterns": ["external-tools/**"]
     },
     {
       "id": "release",
-      "description": "Workflows, actions, the version, the release contract and the package inputs.",
-      "floor": "R3",
-      "roles": ["release-owner"],
+      "description": "The version, release contract and package inputs are R2 without owner approval under the owner decision of 2026-11-26; workflows and actions remain separately protected as R3.",
+      "floor": "R2",
+      "roles": [],
       "patterns": [
-        ".github/workflows/**",
-        ".github/actions/**",
         "VERSION",
         "docs/ci/release-package.md",
         "CHANGELOG.md",
@@ -78,10 +85,20 @@
       ]
     },
     {
-      "id": "firmware-scripts",
-      "description": "Scripts that create or validate firmware fixtures, Golden data or IC intake.",
+      "id": "workflows-and-actions",
+      "description": "Workflows and actions retain release-owner approval under the owner decision of 2026-11-26 because the App cannot write them and the owner pushes them.",
       "floor": "R3",
-      "roles": ["firmware-owner"],
+      "roles": ["release-owner"],
+      "patterns": [
+        ".github/workflows/**",
+        ".github/actions/**"
+      ]
+    },
+    {
+      "id": "firmware-scripts",
+      "description": "Fixture, diagnostic Golden and IC intake scripts are R2 without owner approval under the owner decision of 2026-11-26.",
+      "floor": "R2",
+      "roles": [],
       "patterns": [
         "scripts/ab_merge_fixture_validation.py",
         "scripts/create_candidate_ic_intake.py",
@@ -92,11 +109,10 @@
     },
     {
       "id": "firmware-release-scripts",
-      "description": "Golden expectations, processor policy, terminal parity certification and the release source pins.",
-      "floor": "R3",
-      "roles": ["firmware-owner", "release-owner"],
+      "description": "Processor policy, terminal parity certification and release source pins are R2 without owner approval under the owner decision of 2026-11-26; canonical Golden validation remains separately protected as R3.",
+      "floor": "R2",
+      "roles": [],
       "patterns": [
-        "scripts/canonical_golden_validation.py",
         "scripts/external_tool_policy.py",
         "scripts/v0916_parity_certification.py",
         "scripts/release_source_pins.py"
@@ -104,7 +120,7 @@
     },
     {
       "id": "release-scripts",
-      "description": "Packaging, publication, signing, update-source and release smoke scripts.",
+      "description": "Packaging, publication, signing, update-source and release smoke scripts keep release-owner approval as supply-chain inputs under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
       "floor": "R3",
       "roles": ["release-owner"],
       "patterns": [
@@ -126,31 +142,24 @@
     },
     {
       "id": "core-packages",
-      "description": "The Core package manifest and Core's shared download script are the highest authority level (board decisions 328 and 330).",
+      "description": "The Core package manifest and shared download script choose the shipped Core binaries, so they keep release-owner approval under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
       "floor": "R3",
-      "roles": ["release-owner", "governance-owner"],
+      "roles": ["release-owner"],
       "patterns": ["core-packages.json", "scripts/fetch_core_packages.py"]
     },
     {
       "id": "release-approval-policy",
-      "description": "The release promotion policy, which also encodes the release approval policy (board decision 102).",
+      "description": "The release promotion and approval policy script keeps release-owner approval under the owner decision of 2026-11-26 (Commander choice A, 21:33).",
       "floor": "R3",
-      "roles": ["release-owner", "governance-owner"],
+      "roles": ["release-owner"],
       "patterns": ["scripts/release_promotion_policy.py"]
     },
     {
       "id": "approval-authority",
-      "description": "Approval rules and their authority documents (ADR 0080, decisions 225 W1 and 233), this policy and schema, the checker and its tests/workflow, CODEOWNERS, waivers, frozen evidence and the G0 ruleset procedures and bodies.",
-      "floor": "R3",
-      "roles": ["governance-owner"],
+      "description": "Approval prose, governance documents, policies, waivers, frozen evidence and G0 procedures are R2 without owner approval under the owner decision of 2026-11-26; the executable approval gate remains separately protected as R3.",
+      "floor": "R2",
+      "roles": [],
       "patterns": [
-        "docs/governance/authority-policy.json",
-        "docs/governance/authority-policy.schema.json",
-        "scripts/authority_check.py",
-        "tests/scripts/test_authority_check.py",
-        "tests/scripts/test_authority_policy.py",
-        ".github/workflows/authority.yml",
-        ".github/CODEOWNERS",
         "AGENTS.md",
         "docs/adr/0080-governance-reset.md",
         "docs/governance/agent-issue-tracker.md",
@@ -169,10 +178,24 @@
       ]
     },
     {
-      "id": "ci-verdict-authority",
-      "description": "Closed set of CI verdict owners and the otherwise-R2 rule modules imported by validate_repository.py. Ordinary tooling remains R2; dependencies already classified as firmware/release R3 keep their existing roles.",
+      "id": "approval-gate",
+      "description": "The authority policy and schema, checker and its tests, and CODEOWNERS retain governance-owner approval to prevent unilateral lowering of the gate under the owner decision of 2026-11-26.",
       "floor": "R3",
       "roles": ["governance-owner"],
+      "patterns": [
+        "docs/governance/authority-policy.json",
+        "docs/governance/authority-policy.schema.json",
+        "scripts/authority_check.py",
+        "tests/scripts/test_authority_check.py",
+        "tests/scripts/test_authority_policy.py",
+        ".github/CODEOWNERS"
+      ]
+    },
+    {
+      "id": "ci-verdict-authority",
+      "description": "CI verdict owners and rule modules are R2 without owner approval under the owner decision of 2026-11-26.",
+      "floor": "R2",
+      "roles": [],
       "patterns": [
         "scripts/verify.py",
         "scripts/validate_repository.py",
