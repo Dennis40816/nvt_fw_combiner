@@ -25,8 +25,9 @@ public sealed class CliWorkflowListingTests
         Assert.Equal(0, result.ExitCode);
         Assert.Empty(result.Error);
         Assert.Equal(
-            ["profile=NT51917", "profile=NT51919", "profile=NT51923", "profile=NT51926", "profile=NT51927",
-                "profile=NT51928", "profile=NT51929", "profile=NT51932", "profile=NT51950", "profile=NT51951"],
+            ["profile=NT51917", "profile=NT51919", "profile=NT51923", "profile=NT51925", "profile=NT51926",
+                "profile=NT51927", "profile=NT51928", "profile=NT51929", "profile=NT51932", "profile=NT51950",
+                "profile=NT51951"],
             Lines(result.Output));
     }
 

@@ -23,6 +23,15 @@
       "replaces": []
     },
     {
+      "name": "nfc-change-legacy-combiner",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "legacy-combiner",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
       "name": "nfc-composition-experience-change",
       "status": "active",
       "scope": "repo",
@@ -113,6 +122,15 @@
       "scope": "repo",
       "invocation": "implicit",
       "authority": "golden-lookup",
+      "owner": "repository",
+      "replaces": []
+    },
+    {
+      "name": "nfc-onboard-new-ic",
+      "status": "active",
+      "scope": "repo",
+      "invocation": "implicit",
+      "authority": "ic-onboarding",
       "owner": "repository",
       "replaces": []
     },

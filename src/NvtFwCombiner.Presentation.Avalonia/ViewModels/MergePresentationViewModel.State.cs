@@ -79,6 +79,19 @@ internal sealed partial class MergePresentationViewModel
         return state;
     }
 
+    private CapabilityWorkflowReadiness? SelectedMergeWorkflowReadiness =>
+        HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedMergeMode)
+            ? _compositionServices.Capabilities.GetWorkflowReadiness(SelectedIc, SelectedMergeMode,
+                (SelectedMergeMode == AbCodeMergeMode ? _abMergeSession
+                    : SelectedMergeMode == GeneralMergeMode ? _generalMergeSession : _standardMergeSession)
+                    .CurrentSnapshot?.SelectedRouteId)
+            : null;
+
+    /// <summary>Whether the selected Merge route has no independent Golden evidence.</summary>
+    public bool IsSelectedMergeUnverified => VerificationText.IsUnverified(SelectedMergeWorkflowReadiness);
+
+    public string OutputVerificationNotice => VerificationText.OutputNotice(Text, SelectedMergeWorkflowReadiness);
+
     internal CompositionRunContext CaptureRunContext(string mode, bool build = false)
     {
         AuthoringSessionState? session = mode switch
@@ -414,6 +427,8 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(IsNormalMergeModeSelected));
         OnPropertyChanged(nameof(IsGeneralMergeModeSelected));
         OnPropertyChanged(nameof(IsAbCodeMergeModeSelected));
+        OnPropertyChanged(nameof(IsSelectedMergeUnverified));
+        OnPropertyChanged(nameof(OutputVerificationNotice));
         OnPropertyChanged(nameof(StandardMergeSupportSummary));
         OnPropertyChanged(nameof(MergePreview));
         OnPropertyChanged(nameof(StandardMergeOutputFileName));

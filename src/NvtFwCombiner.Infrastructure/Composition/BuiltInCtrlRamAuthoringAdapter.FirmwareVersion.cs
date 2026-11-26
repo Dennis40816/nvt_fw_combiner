@@ -12,6 +12,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
     private static bool TryCreateCtrlRamFirmwareVersionWritePlan(
         FirmwareConfigMetadata backupMetadata,
         LegacyCombinerPostbuildProfile postbuildProfile,
+        TpFlashMapProfile? tpFlashMap,
         LegacyCombinerPostbuildCommandPlan commandPlan,
         CtrlRamFirmwareVersionDraftState edit,
         ReadOnlySpan<byte> baseBytes,
@@ -56,7 +57,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
                 when sourceBlocks.Length == 1 => sourceBlocks[0].SourceOffset,
             LegacyCombinerFirmwareConfigWriteRoute.PrimaryToCanonicalBackup
                 when sourceBlocks.Length == 0 && TryResolveImplicitFirmwareConfigSource(
-                    postbuildProfile,
+                    tpFlashMap,
                     baseBytes,
                     backupMetadata,
                     out long implicitSourceStart) => implicitSourceStart,
@@ -93,16 +94,16 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
     }
 
     private static bool TryResolveImplicitFirmwareConfigSource(
-        LegacyCombinerPostbuildProfile postbuildProfile,
+        TpFlashMapProfile? flashMap,
         ReadOnlySpan<byte> baseBytes,
         FirmwareConfigMetadata backupMetadata,
         out long sourceStart)
     {
         sourceStart = 0;
-        if (!BuiltInTpFlashMapCatalog.TryFind(postbuildProfile.IcId, out TpFlashMapProfile? flashMap) ||
+        if (flashMap is null ||
             !FirmwareConfigMetadataReader.TryReadAtAbsoluteAddress(
                 baseBytes,
-                flashMap!.FirmwareConfigPrimaryStart,
+                flashMap.FirmwareConfigPrimaryStart,
                 out FirmwareConfigMetadata primaryMetadata) ||
             primaryMetadata with { StructureStart = backupMetadata.StructureStart } != backupMetadata)
         {

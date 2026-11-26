@@ -202,11 +202,18 @@ internal sealed partial class ReplacePresentationViewModel
     /// null when no IC is selected.
     /// </summary>
     public CapabilityWorkflowReadiness? SelectedReplaceWorkflowReadiness =>
-        HasSelectedIc
+        HasSelectedIc && !string.IsNullOrWhiteSpace(SelectedReplaceMode)
             ? SelectedReplaceMode == CtrlRamReplaceMode && IsAbCtrlRamReference
                 ? AbCtrlRamReadiness
-                : _compositionServices.Capabilities.GetReplaceWorkflowReadiness(SelectedIc, SelectedReplaceMode)
+                : _compositionServices.Capabilities.GetWorkflowReadiness(SelectedIc, SelectedReplaceMode,
+                    (SelectedReplaceMode == CtrlRamReplaceMode ? _ctrlRamReplaceSession
+                        : SelectedReplaceMode == GeneralReplaceMode ? _generalReplaceSession : null)
+                        ?.CurrentSnapshot?.SelectedRouteId)
             : null;
+
+    public bool IsSelectedReplaceUnverified => VerificationText.IsUnverified(SelectedReplaceWorkflowReadiness);
+
+    public string OutputVerificationNotice => VerificationText.OutputNotice(Text, SelectedReplaceWorkflowReadiness);
 
     /// <summary>Localized evidence badge for the selected Replace workflow.</summary>
     public string SelectedReplaceModeEvidenceLabel =>
@@ -242,6 +249,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     public CapabilityActionAvailability BuildAvailability => SelectedReplaceMode switch
     {
+        "" => ActiveSessionBuildBlockerResolver.ResolveWorkflowSelectionPending(),
         CtrlRamReplaceMode => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
             _ctrlRamReplaceSession.CurrentSnapshot,
             CtrlRamReplaceMode,
@@ -250,9 +258,7 @@ internal sealed partial class ReplacePresentationViewModel
             _generalReplaceSession.CurrentSnapshot,
             GeneralReplaceMode,
             _generalReplaceActionReadiness),
-        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(
-            null,
-            SelectedReplaceMode),
+        _ => ActiveSessionBuildBlockerResolver.ResolveBuildAvailability(null, SelectedReplaceMode),
     };
 
     public IRelayCommand AddGeneralReplaceMappingCommand { get; }
@@ -280,6 +286,7 @@ internal sealed partial class ReplacePresentationViewModel
 
     private bool IsSelectedReplaceModeSupported =>
         HasSelectedIc &&
+        !string.IsNullOrWhiteSpace(SelectedReplaceMode) &&
         _stateBindings.IsWorkflowAuthorable(SelectedIc, SelectedReplaceMode);
 
     private Task RunCompositionAsync(
@@ -411,6 +418,8 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(ReplacePreview));
         OnPropertyChanged(nameof(SelectedReplaceModeDescription));
         OnPropertyChanged(nameof(SelectedReplaceWorkflowReadiness));
+        OnPropertyChanged(nameof(IsSelectedReplaceUnverified));
+        OnPropertyChanged(nameof(OutputVerificationNotice));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceLabel));
         OnPropertyChanged(nameof(SelectedReplaceModeEvidenceTooltip));
         OnPropertyChanged(nameof(IsSelectedReplaceModeGoldenVerified));

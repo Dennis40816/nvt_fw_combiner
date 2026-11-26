@@ -15,11 +15,23 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach (LegacyCombinerPostbuildProfile profile in LegacyCombinerPostbuildCatalog.All)
         {
-            Assert.True(
-                BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMapProfile),
-                $"Missing flash-map profile for {profile.IcId}.");
-            Assert.NotNull(flashMapProfile);
+            Assert.Contains(profile.IcId, BuiltInTpFlashMapCatalog.IcIds);
+            _ = SelectMap(profile);
         }
+    }
+
+    /// <summary>Checks selected maps; provisional NT51925 command geometry is outside catalog parity checks.</summary>
+    private static TpFlashMapProfile? SelectMap(LegacyCombinerPostbuildProfile profile)
+    {
+        Assert.True(BuiltInTpFlashMapCatalog.TrySelect(profile.IcId,
+            profile.EffectiveCommonFwVersion.ToString(), out TpFlashMapProfile? map, out string? issue), issue);
+        Assert.Null(issue);
+        if (profile.IcId == "NT51925")
+        {
+            Assert.True(map!.UseDeclaredRegionRanges);
+            return null;
+        }
+        return map;
     }
 
     /// <summary>NT51927 numeric selections expose the expected master/right/left CtrlRAM rows.</summary>
@@ -100,6 +112,12 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
+            TpFlashMapProfile? flashMap = SelectMap(profile);
+            if (flashMap is null)
+            {
+                continue;
+            }
+
             LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             LegacyCombinerDiffDlmPolicy? maskedDiffDlm =
                 plan.Branch == LegacyCombinerPostbuildBranch.Cascade
@@ -114,8 +132,8 @@ public sealed class BuiltInTpFlashMapCatalogTests
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
             ];
-            IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
-                profile.IcId,
+            IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSourcesOf(
+                flashMap,
                 selection,
                 profile);
 
@@ -129,14 +147,20 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
+            TpFlashMapProfile? flashMap = SelectMap(profile);
+            if (flashMap is null)
+            {
+                continue;
+            }
+
             LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
-            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
-                profile.IcId,
+            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
+                flashMap,
                 selection,
                 profile,
                 TpFlashMapRegionKind.CtrlRam);
-            IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
-                profile.IcId,
+            IReadOnlyList<TpCtrlRamPostbuildSource> sources = BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSourcesOf(
+                flashMap,
                 selection,
                 profile);
             CtrlRamInspectionDisplay display = MemoryLayoutProjector.ProjectCtrlRamDiscovery(
@@ -246,7 +270,12 @@ public sealed class BuiltInTpFlashMapCatalogTests
 
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
-            Assert.True(BuiltInTpFlashMapCatalog.TryFind(profile.IcId, out TpFlashMapProfile? flashMap));
+            TpFlashMapProfile? flashMap = SelectMap(profile);
+            if (flashMap is null)
+            {
+                continue;
+            }
+
             LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
             LegacyCombinerBlockArgument[] sourceBlocks =
             [
@@ -261,7 +290,7 @@ public sealed class BuiltInTpFlashMapCatalogTests
                 LegacyCombinerFirmwareConfigWriteRoute.CommandSourceToCanonicalBackup)
             {
                 LegacyCombinerBlockArgument sourceBlock = Assert.Single(sourceBlocks);
-                Assert.Equal(flashMap!.FirmwareConfigPrimaryStart, sourceBlock.SourceOffset);
+                Assert.Equal(flashMap.FirmwareConfigPrimaryStart, sourceBlock.SourceOffset);
                 Assert.True(sourceBlock.FirmwareRange.Length >= FirmwareConfigLayout.RequiredLength);
             }
             else
@@ -333,9 +362,15 @@ public sealed class BuiltInTpFlashMapCatalogTests
     {
         foreach ((LegacyCombinerPostbuildProfile profile, IcNumberSelection selection) in AllPostbuildSelections())
         {
+            TpFlashMapProfile? flashMap = SelectMap(profile);
+            if (flashMap is null)
+            {
+                continue;
+            }
+
             LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
-            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
-                profile.IcId,
+            IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
+                flashMap,
                 selection,
                 null,
                 TpFlashMapRegionKind.CtrlRam);

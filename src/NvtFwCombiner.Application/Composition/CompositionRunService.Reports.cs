@@ -104,7 +104,7 @@ public sealed partial class CompositionRunService
                 RuntimeReferenceReplaceV2CompilationContext { SourceEnvelope: { } envelope } =>
                     new SourceEnvelopeRunSummary(envelope),
                 _ => null,
-            });
+            }, capability: CapabilityRunSummary.FromResolvedCapability(request.ResolvedCapability));
     }
 
     private static ReadOnlyCollection<InputDiagnosticSummary>? CreateInputDiagnostics(

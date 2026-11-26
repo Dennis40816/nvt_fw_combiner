@@ -1,6 +1,6 @@
 """Semantic contract tests for the rolling predecessor comparison.
 
-The tests read only JSON: the predecessor-comparison contract and ledger, the
+The tests read canonical contracts and JSON: the predecessor-comparison contract and ledger, the
 report schema, the active capability policy and canonical Golden manifest with
 their case manifests, the ADR 0057 plan, and the plan's pinned policy and
 manifest from Git objects. They never read firmware payloads.
@@ -19,6 +19,7 @@ rule, including declaration reproduction.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import subprocess
 import unittest
@@ -160,16 +161,32 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         self.assertEqual(candidate["runtimeClosure"]["root"], executor["runtimeClosureRoot"])
         self.assertEqual(sorted(candidate["source"]["authorityTrees"]), executor["authorityTrees"])
         self.assertTrue(all(item["path"].endswith("/packages.lock.json") for item in candidate["lockFiles"]))
-        self.assertEqual("pending-executor-record", executor["compilerHost"]["status"])
+        self.assertEqual("in-effect", executor["compilerHost"]["status"])
 
     def test_per_side_safety_names_the_shared_owners(self) -> None:
         safety = self.contract["perSideSafety"]
-        self.assertEqual("scripts/v0916_parity_certification.py", safety["owner"])
+        owners = {"scripts/v0916_parity_certification.py": MODULE,
+                  "scripts/predecessor_validation.py": validation}
+        self.assertEqual(list(owners), safety["owner"])
         self.assertIn("validate_report_projection_against_compiled_authority", safety["checks"])
         for name in safety["checks"]:
             with self.subTest(check=name):
-                self.assertTrue(callable(getattr(MODULE, name, None)))
+                owner = validation if name in ("_executed_command_failures", "_processor_write_audit_failures") else MODULE
+                self.assertTrue(callable(getattr(owner, name, None)))
+        self.assertIn("_executed_command_failures", safety["checks"])
+        self.assertIn("_processor_write_audit_failures", safety["checks"])
         self.assertFalse(safety["readerMayRelaxChecks"])
+        rules = safety["writtenReportRules"]
+        self.assertEqual(sorted(validation.WORK_ADDRESS_SPACES), rules["workAddressSpaces"])
+        self.assertEqual(sorted(validation.V0916_WORK_ADDRESS_SPACES), rules["v0916ExecutorWorkAddressSpaces"])
+        self.assertEqual(validation.OUTPUT_ADDRESS_SPACE, rules["processorWriteAudit"]["addressSpace"])
+        self.assertIs(False, rules["processorWriteAudit"]["contentPreviewsRead"])
+        schema = load_json(CONTRACTS / "predecessor-comparison-v1.schema.json")
+        for member in ("owner", "checks"):
+            self.assertEqual(safety[member], schema["properties"]["perSideSafety"]["properties"][member]["const"])
+        self.assertEqual(rules, schema["properties"]["perSideSafety"]["properties"]["writtenReportRules"]["const"])
+        self.assertEqual(self.contract["typedRejection"]["skippedOperations"],
+                         schema["properties"]["typedRejection"]["properties"]["skippedOperations"]["const"])
         for name in ("declarationSchema", "reportSchema", "reportReader"):
             self.assertEqual("in-effect", self.contract["interfaces"][name]["status"])
         self.assertEqual(sorted(reader.READER_VERSIONS.values()), self.contract["interfaces"]["reportReader"]["readerVersions"])
@@ -182,10 +199,38 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         declaration_schema = load_json(CONTRACTS / "predecessor-comparison-declaration-v1.schema.json")
         self.assertEqual(self.contract["typedRejection"]["processFailureIssueCodes"], declaration_schema["$defs"]["processFailureIssueCode"]["enum"])
 
-    def test_reader_activation_leaves_formal_execution_records_pending(self) -> None:
-        self.assertEqual("pending-executor-record", self.contract["executor"]["compilerHost"]["status"])
+    def test_decision_278_contract_does_not_reclassify_saved_invalid_results(self) -> None:
+        contract = (CONTRACTS / "predecessor-comparison-v1.md").read_text(encoding="utf-8")
+        decision = contract.split("**Owner decision 278 (2026-10-03):", 1)[1].split("\n\n", 1)[0]
+        for member in ("ab-combiner-work", "[262144, 524288)", "v0.9.16", "273"):
+            self.assertIn(member, decision)
+        self.assertIn('report_version="v0916"', decision)
+        self.assertIn("Later writes", decision)
+
+        report = load_json(ROOT / "tests/scripts/fixtures/predecessor-comparison/v0916-consistent.json")
+        route = next(row for row in report["routes"] if row["result"] == "consistent")
+        route.update(result="invalid", failureCode="PREDECESSOR_REPORT_INVALID")
+        report["result"] = "invalid"
+        report["summary"] = validation.v0916_summary([row["result"] for row in report["routes"]])
+        report["failures"] = [{"code": "PREDECESSOR_REPORT_INVALID", "subject": route["planRouteId"],
+                               "detail": "saved audit refusal"}]
+        report["deterministicSha256"] = validation.deterministic_report_sha256(report)
+        saved = copy.deepcopy(report)
+        projected = reader.render_owner_list(report)
+        self.assertIn("result: invalid.", projected)
+        self.assertIn("PREDECESSOR_REPORT_INVALID", projected)
+        self.assertEqual(saved, report)
+
+        reclassified = copy.deepcopy(saved)
+        reclassified["result"] = "consistent"
+        reclassified["deterministicSha256"] = validation.deterministic_report_sha256(reclassified)
+        with self.assertRaises(reader.ReportReaderError):
+            reader.render_owner_list(reclassified)
+
+    def test_all_execution_interfaces_are_in_effect(self) -> None:
+        self.assertEqual("in-effect", self.contract["executor"]["compilerHost"]["status"])
         amendment = load_json(CONTRACTS / "v0916-parity-1x-amendment-v1.json")
-        self.assertEqual("pending-executor-record", amendment["baselineExecutor"]["status"])
+        self.assertEqual("in-effect", amendment["baselineExecutor"]["status"])
         pending = next(row for row in self.contract["failureCodes"] if row["code"] == "PREDECESSOR_CONTRACT_PENDING")
         self.assertIn("compiler-host pinning", pending["meaning"])
         self.assertIn("v0.9.16 baseline executor", pending["meaning"])
@@ -341,18 +386,41 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         covered = {row["routeId"] for row in self.ledger["scenarios"]}
         debt = set(self.ledger["debtSet"]["routeIds"])
         pending = set(self.ledger["pendingAcceptedGaps"]["routeIds"])
-        self.assertEqual(74, len(self.universe))
+        accepted = {row["routeId"] for row in self.ledger["acceptedGaps"]}
+        self.assertEqual(83, len(self.universe))
         self.assertEqual(37, len(covered))
         self.assertEqual(26, len(debt & self.universe))
-        self.assertEqual([], self.ledger["acceptedGaps"])
-        self.assertEqual(11, len(pending))
+        self.assertEqual(20, len(accepted))
+        self.assertEqual(set(), pending)
+        self.assertEqual({"1.2.2"}, {row["approvedInVersion"] for row in self.ledger["acceptedGaps"]})
+        self.assertEqual(
+            {route for route in accepted if route.startswith("route-7-nt51925-")},
+            {row["routeId"] for row in self.ledger["acceptedGaps"] if row["declarationEntryId"] == "RP-1.2.2-02"})
+        self.assertEqual({"RP-1.2.2-01", "RP-1.2.2-02"}, {row["declarationEntryId"] for row in self.ledger["acceptedGaps"]})
         self.assertEqual("awaiting-owner-approval", self.ledger["pendingAcceptedGaps"]["status"])
+
+    def test_declaration_binds_this_ledger_and_its_accepted_gaps(self) -> None:
+        declaration = load_json(CONTRACTS / "predecessor-comparison-declarations" / "1.2.2.json")
+        ledger_bytes = (CONTRACTS / "predecessor-comparison-scenarios-v1.json").read_bytes()
+        self.assertEqual(hashlib.sha256(ledger_bytes).hexdigest(), declaration["ledgerSha256"])
+        entries = [row for row in declaration["entries"] if row["kind"] == "accepted-gap"]
+        self.assertEqual(["RP-1.2.2-01", "RP-1.2.2-02"], [entry["id"] for entry in entries])
+        notes = validation.render_release_notes((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), "1.2.2")
+        for entry in entries:
+            with self.subTest(entry=entry["id"]):
+                gaps = [row for row in self.ledger["acceptedGaps"] if row["declarationEntryId"] == entry["id"]]
+                self.assertEqual([], entry["scenarioIds"])
+                self.assertEqual(sorted(entry["routeIds"]), sorted(row["routeId"] for row in gaps))
+                self.assertEqual(len(entry["routeIds"]), len(set(entry["routeIds"])))
+                self.assertEqual([entry["approval"]], [dict(approval) for approval in {
+                    tuple(sorted(row["approval"].items())) for row in gaps}])
+                self.assertRegex(notes, rf"(?<![0-9A-Za-z.-]){entry['id'].replace('.', r'\.')}(?![0-9])")
 
     def test_debt_exemption_is_not_inherited_by_successor_routes(self) -> None:
         debt = set(self.ledger["debtSet"]["routeIds"])
-        pending = set(self.ledger["pendingAcceptedGaps"]["routeIds"])
+        accepted = {row["routeId"] for row in self.ledger["acceptedGaps"]}
         self.assertNotIn(SUCCESSOR_ROUTE, debt)
-        self.assertIn(SUCCESSOR_ROUTE, pending)
+        self.assertIn(SUCCESSOR_ROUTE, accepted)
         self.assertNotIn("route-7-nt51950-8-ab-merge-9-2-plus-ic-22-nt51950-ab-merge-1024k", self.universe)
 
     def test_a_dropped_scenario_cannot_become_silently_uncovered(self) -> None:
@@ -383,10 +451,11 @@ class PredecessorComparisonContractTests(unittest.TestCase):
             self.assertNotEqual([], validation.report_of_record_blockers(ledger))
 
     def test_pending_gap_approvals_block_every_report_of_record(self) -> None:
-        self.assertEqual(11, len(validation.report_of_record_blockers(self.ledger)))
-        approved = copy.deepcopy(self.ledger)
-        approved["pendingAcceptedGaps"]["routeIds"] = []
-        self.assertEqual([], validation.report_of_record_blockers(approved))
+        self.assertEqual([], validation.report_of_record_blockers(self.ledger))
+        unapproved = copy.deepcopy(self.ledger)
+        unapproved["pendingAcceptedGaps"]["routeIds"] = [row["routeId"] for row in unapproved["acceptedGaps"]]
+        unapproved["acceptedGaps"] = []
+        self.assertEqual(20, len(validation.report_of_record_blockers(unapproved)))
 
 
 if __name__ == "__main__":

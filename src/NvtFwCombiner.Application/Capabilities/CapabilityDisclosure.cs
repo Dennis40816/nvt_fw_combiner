@@ -9,10 +9,10 @@ public sealed record CapabilityWorkflowReadiness(
     string OpenCondition)
 {
     /// <summary>True when the exact route has reviewed golden, alias, or synthetic evidence.</summary>
-    public bool HasReviewedEvidence => EvidenceStatus is
-        CapabilityEvidenceStatus.DirectGolden or
-        CapabilityEvidenceStatus.ApprovedAlias or
-        CapabilityEvidenceStatus.SyntheticOracle;
+    public bool HasReviewedEvidence => !IsUnverified;
+
+    /// <summary>Derived verification fact; it never changes authoring or execution admission.</summary>
+    public bool IsUnverified => CapabilityWorkflowReadinessProjector.IsUnverified(EvidenceStatus);
 
     /// <summary>True when authoring is available while its reviewed evidence remains open.</summary>
     public bool IsEvidencePending => IsAvailable && !HasReviewedEvidence;
@@ -21,6 +21,24 @@ public sealed record CapabilityWorkflowReadiness(
 /// <summary>Projects one workflow disclosure from the canonical Support Matrix contract.</summary>
 public static class CapabilityWorkflowReadinessProjector
 {
+    /// <summary>Classifies the resolved policy evidence without storing a second state.</summary>
+    public static bool IsUnverified(CapabilityEvidenceStatus evidenceStatus)
+    {
+        return evidenceStatus switch
+        {
+            CapabilityEvidenceStatus.ContractOnly or CapabilityEvidenceStatus.Missing => true,
+            CapabilityEvidenceStatus.DirectGolden or CapabilityEvidenceStatus.ApprovedAlias or
+                CapabilityEvidenceStatus.SyntheticOracle => false,
+            _ => throw new ArgumentOutOfRangeException(nameof(evidenceStatus), evidenceStatus, null),
+        };
+    }
+
+    /// <summary>Stable report token; verified retains its exact evidence class separately.</summary>
+    public static string GetVerificationStatus(CapabilityEvidenceStatus evidenceStatus)
+    {
+        return IsUnverified(evidenceStatus) ? "unverified" : "verified";
+    }
+
     /// <summary>Discloses only one exact route, without inheriting evidence from sibling routes.</summary>
     public static CapabilityWorkflowReadiness Project(CapabilityRouteResolutionResult resolution)
     {
@@ -42,7 +60,8 @@ public static class CapabilityWorkflowReadinessProjector
         string? workflowId,
         bool authoringExposed,
         string unsupportedReason,
-        string openCondition)
+        string openCondition,
+        string? routeId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(unsupportedReason);
@@ -56,7 +75,8 @@ public static class CapabilityWorkflowReadinessProjector
         [
             .. matrix.Rows.Where(row =>
                 StringComparer.Ordinal.Equals(row.Identity.IcId, icId) &&
-                StringComparer.Ordinal.Equals(row.Identity.WorkflowId, workflowId)),
+                StringComparer.Ordinal.Equals(row.Identity.WorkflowId, workflowId) &&
+                (routeId is null || StringComparer.Ordinal.Equals(row.Identity.RouteId, routeId))),
         ];
         if (!authoringExposed)
         {
@@ -89,10 +109,7 @@ public static class CapabilityWorkflowReadinessProjector
         }
 
         CapabilityEvidenceStatus evidenceStatus = SummarizeEvidence(availableEvidence);
-        bool reviewed = evidenceStatus is
-            CapabilityEvidenceStatus.DirectGolden or
-            CapabilityEvidenceStatus.ApprovedAlias or
-            CapabilityEvidenceStatus.SyntheticOracle;
+        bool reviewed = !IsUnverified(evidenceStatus);
         return new CapabilityWorkflowReadiness(
             true,
             true,

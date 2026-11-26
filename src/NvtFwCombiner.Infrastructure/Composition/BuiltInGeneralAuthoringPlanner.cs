@@ -3,7 +3,6 @@ using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
-using NvtFwCombiner.Infrastructure.ExternalTools;
 
 namespace NvtFwCombiner.Infrastructure.Composition;
 
@@ -191,8 +190,29 @@ internal sealed partial class BuiltInGeneralAuthoringPlanner(
         }
 
         var selection = IcNumberSelection.FromToken(number);
-        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
+        FirmwareConfigMetadataSnapshot? baseFirmware =
+            BuiltInFirmwareInspection.ReadFirmwareConfigMetadata(
+                _projection,
+                icId,
+                referenceBytes.Span);
+        bool profileResolved = BuiltInCommonFwSelector.TrySelect(
             icId,
+            baseFirmware is not null,
+            baseFirmware?.CommonFwVersion,
+            out BuiltInCommonFwSelection? commonFwSelection,
+            out CompositionIssue? profileIssue);
+        TpFlashMapProfile? tpFlashMap = profileResolved
+            ? commonFwSelection!.TpFlashMap
+            : BuiltInCommonFwSelector.FindTpFlashMap(icId, baseFirmware?.CommonFwVersion);
+        if (BuiltInCommonFwSelector.MustRefuseWithoutTpRegions(icId, profileResolved, tpFlashMap))
+        {
+            // No map means no TP regions, so a TP-touching mapping would pass unseen. Refuse before any retained
+            // capability is reused, and keep the issue of the selection.
+            return new GeneralReplaceAuthoringPlanResult(null, admission, [profileIssue!]);
+        }
+
+        IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
+            tpFlashMap,
             selection,
             postbuildProfile: null);
         ResolvedCapability? capability = retainedCapability;
@@ -224,20 +244,9 @@ internal sealed partial class BuiltInGeneralAuthoringPlanner(
                     selection))
             : capability;
 
-        FirmwareConfigMetadataSnapshot? baseFirmware =
-            BuiltInFirmwareInspection.ReadFirmwareConfigMetadata(
-                _projection,
-                icId,
-                referenceBytes.Span);
-        bool profileResolved = BuiltInPostbuildProfileResolver.TryResolvePostbuildProfile(
-            icId,
-            BuiltInPostbuildProfileCatalog.GetProfiles(IcIdentifier.Normalize(icId)),
-            baseFirmware is not null,
-            baseFirmware?.CommonFwVersion,
-            out LegacyCombinerPostbuildProfile? profile,
-            out CompositionIssue? profileIssue);
-        regions = BuiltInTpFlashMapCatalog.GetRegions(
-            icId,
+        LegacyCombinerPostbuildProfile? profile = commonFwSelection?.PostbuildProfile;
+        regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
+            tpFlashMap,
             selection,
             profileResolved ? profile : null);
         _ = TryPlanGeneralReplacePostbuild(

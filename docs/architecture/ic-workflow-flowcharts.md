@@ -18,6 +18,16 @@ This document is an index for the current Merge and Replace flows by IC. It is n
 > #221 removes their selectable and executable flow rows. Retaining a diagram
 > until that removal lands does not preserve runtime or publication authority.
 
+> **NT51925 unverified authoring (owner direction 2026-10-14 01:20; PR4b, 2026-10-28):**
+> [ADR 0084](../adr/0084-restore-nt51925-standard-merge-and-ctrlram-replace.md)
+> opens Standard Merge and CtrlRAM Replace as Available/Candidate/ContractOnly.
+> Every output retains `_UNVERIFIED`; all promotion blockers remain.
+> Common FW below 2.0.0 uses the 1.x map; from 2.0.0 it uses the 2.0.0 map.
+> Separately, golden coverage: FW version less than or equal to 1.4.1.
+> NT51923/NT51926 identities remain stable. NT51920, NT51930 and NT51931 remain
+> retired. See the [support matrix](supported-ic-matrix.md) for evidence scope,
+> unmapped ranges and the known FW 2.0.0 CRC difference bound.
+
 ## Update rule
 
 Update this document in the same change when any of these sources change:
@@ -88,6 +98,7 @@ convergence.
 | NT51917 | `SM-GENFLASH-V2-ALIAS`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor; map-bound alias of NT51927. | `R-CTRLRAM-927-V2-ALIAS`: one `[1.0.0, infinity)` runtime profile exposes single, exact 2-chip, and exact 3-chip V2 plans. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | Exact FW/PID/SHA values identify regression cases only. The NT51917 staged identity and 7/10/13-command plans remain support-neutral. |
 | NT51919 | `SM-GENFLASH-V2-ALIAS`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor; map-bound alias of NT51929. | `R-CTRLRAM-51929-ALIAS`: the `[1.0.0, infinity)` single and bounded `2–8 IC` cascade plans are V2-routed; cascade authorizes DLM CRC 1–7 at `[0x7128,0x7144)`. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | `AB-51929-FAMILY-PILOT` is runtime/CLI routed through the approved NT51929 fact scope; UI and release gates remain open. |
 | NT51923 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-CTRLRAM-LEGACY-NORMAL`: one `[1.0.0, infinity)` profile; single and generic cascade are V2-routed, with DiffDLM only in cascade. | `R-GENERAL-POSTBUILD`: explicit mappings use protected-range gates; TP/CtrlRAM mappings run selected postbuild when available. | Golden values are regression evidence; firmware-owner review remains required before support promotion. |
+| NT51925 | `SM-GENFLASH-V2-CANDIDATE`: authorable unverified candidate; exact map selected by TP Common FW version. | `R-CTRLRAM-LEGACY-NORMAL-CANDIDATE`: authorable unverified 1.x/2.0.0 Single/Cascade candidates. | Not declared. | Available/Candidate/ContractOnly under ADR 0084. `_UNVERIFIED` names and all promotion blockers remain; no support or release promotion. See the support matrix for evidence limits. |
 | NT51926 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-CTRLRAM-LEGACY-NORMAL`: `[1.0.0,2.0.0)` uses the 1.4.1-sourced profile and `[2.0.0,infinity)` uses the 2.0.0-sourced profile; both expose single and generic cascade V2 plans. | `R-GENERAL-V2-DP-SLICE`: single/full-Flash/file-backed DP-only mappings use V2; TP/CtrlRAM, patches/fills, other counts and shapes fail closed. | Missing Common FW blocks only because two runtime intervals exist. Exact golden versions do not narrow either interval; support remains neutral. |
 | NT51927 | `SM-GENFLASH-V2`: packaged canonical V2 bundle is selected by Bootstrap UI/CLI through its content-hash anchor. | `R-CTRLRAM-927`: one `[1.0.0, infinity)` profile exposes single, exact 2-chip, and exact 3-chip V2 plans. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | PID, exact Common FW, and whole-reference SHA are evidence only; command-plan distinctions come from owner-provided single/2/3 plans. |
 | NT51928 | `SM-GENFLASH-LDC-VARIANT`: one capability; absent LDC selects the shared NT51927-compatible `0x40000` candidate, while supplied structurally valid LDC selects `0x80000`; invalid supplied LDC blocks without fallback. | `R-CTRLRAM-927-PARTIAL`: separately declared owner-approved non-NB single, exact 2-chip, and exact 3-chip profiles reference their matching TP/postbuild facts inside the NT51928 container; this authority is not inherited from the Initial Code/TP shared-fact relationship. | `R-GENERAL-POSTBUILD`: non-exact General Replace shapes fail closed. | NT51928 NB remains excluded; #239 owns the dual-capacity headless migration, while existing CtrlRAM evidence and support gates remain separate. |

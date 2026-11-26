@@ -17,8 +17,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.True(viewModel.Settings.IsSupportMatrixOpen);
         Assert.False(viewModel.Settings.IsOverviewSelected);
-        Assert.Equal(85, viewModel.Settings.SupportMatrix.Rows.Count);
-        Assert.Equal("85 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
+        Assert.Equal(94, viewModel.Settings.SupportMatrix.Rows.Count);
+        Assert.Equal("94 routes", viewModel.Settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("Current", viewModel.Settings.SupportMatrix.CatalogStateLabel);
         Assert.False(viewModel.Settings.SupportMatrix.HasStatusNotice);
         Assert.Equal(5, viewModel.Settings.SupportMatrix.WorkflowColumns.Count);
@@ -28,7 +28,15 @@ public sealed partial class ShellNavigationSystemTests
         Assert.DoesNotContain(
             viewModel.Settings.SupportMatrix.Rows,
             static row => row.WorkflowId == ExperienceIds.DpReplace);
-        Assert.Equal(10, viewModel.Settings.SupportMatrix.IcRows.Count);
+        Assert.Equal(11, viewModel.Settings.SupportMatrix.IcRows.Count);
+        SupportMatrixIcRowViewModel nt51925 = Assert.Single(
+            viewModel.Settings.SupportMatrix.IcRows, static row => row.IcId == "NT51925");
+        Assert.Equal(SupportMatrixCellStatus.ContractOnly,
+            nt51925.Cells.Single(static cell => cell.WorkflowLabel == "Standard Merge").Status);
+        Assert.Equal(SupportMatrixCellStatus.ContractOnly,
+            nt51925.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
+        Assert.All(nt51925.Cells.Where(static cell => cell.WorkflowLabel is not ("Standard Merge" or "CtrlRAM Replace")),
+            static cell => Assert.Equal(SupportMatrixCellStatus.NotDeclared, cell.Status));
         SupportMatrixIcRowViewModel nt51929 = Assert.Single(
             viewModel.Settings.SupportMatrix.IcRows,
             static row => row.IcId == "NT51929");
@@ -42,7 +50,7 @@ public sealed partial class ShellNavigationSystemTests
             SupportMatrixCellStatus.ReviewRequired,
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").Status);
         Assert.Equal(
-            "Needs review",
+            "Some unverified",
             nt51929.Cells.Single(static cell => cell.WorkflowLabel == "CtrlRAM Replace").StatusLabel);
         Assert.All(
             viewModel.Settings.SupportMatrix.Rows,
@@ -83,7 +91,19 @@ public sealed partial class ShellNavigationSystemTests
                 "NT51950",
                 CapabilityAuthoringAvailability.Available,
                 "standard-merge",
-                CapabilityEvidenceStatus.DirectGolden)));
+                CapabilityEvidenceStatus.DirectGolden),
+            Row(
+                "NT51951",
+                CapabilityAuthoringAvailability.Available,
+                "general-merge",
+                CapabilityEvidenceStatus.DirectGolden,
+                mapVariant: "nt51951-general-merge-a"),
+            Row(
+                "NT51951",
+                CapabilityAuthoringAvailability.Available,
+                "general-merge",
+                CapabilityEvidenceStatus.Missing,
+                mapVariant: "nt51951-general-merge-b")));
         var settings = new SettingsViewModel(
             "0.10.2",
             query,
@@ -96,10 +116,12 @@ public sealed partial class ShellNavigationSystemTests
             [
                 SupportMatrixCellStatus.ReviewedEvidence,
                 SupportMatrixCellStatus.Blocked,
-                SupportMatrixCellStatus.ReviewRequired,
+                SupportMatrixCellStatus.ContractOnly,
                 SupportMatrixCellStatus.ContractOnly,
             ],
             nt51929.Cells.Select(static cell => cell.Status));
+        SupportMatrixIcRowViewModel nt51951 = settings.SupportMatrix.IcRows[2];
+        Assert.Equal(SupportMatrixCellStatus.ReviewRequired, nt51951.Cells[2].Status);
         SupportMatrixIcRowViewModel nt51950 = settings.SupportMatrix.IcRows[1];
         Assert.Equal(SupportMatrixCellStatus.ReviewedEvidence, nt51950.Cells[0].Status);
         Assert.All(
@@ -268,13 +290,13 @@ public sealed partial class ShellNavigationSystemTests
         SupportMatrixRowViewModel row = Assert.Single(settings.SupportMatrix.Rows);
         Assert.Equal("不可用", row.AuthoringLabel);
         Assert.Equal("編輯不可用", row.BlockerLabel);
-        Assert.Equal("僅有定義", row.EvidenceLabel);
+        Assert.Equal("未驗證（僅有定義）", row.EvidenceLabel);
         Assert.Equal("1 條路徑", settings.SupportMatrix.RouteCountLabel);
         Assert.Equal("目前版本", settings.SupportMatrix.CatalogStateLabel);
         Assert.Equal("已阻擋", settings.SupportMatrix.IcRows[0].Cells[0].StatusLabel);
         Assert.Equal("執行", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixExecutionLabel);
         Assert.Equal("證據", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixEvidenceLabel);
-        Assert.Equal("待審查", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
+        Assert.Equal("部分未驗證", ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixReviewRequiredLabel);
         Assert.Equal(
             "滑鼠停留或聚焦儲存格可查看明細。",
             ShellTextResources.For(ShellLanguage.ChineseTraditional).SupportMatrixHoverHint);
@@ -293,12 +315,22 @@ public sealed partial class ShellNavigationSystemTests
     private static CanonicalSupportMatrixSnapshot Matrix(
         IEnumerable<CanonicalSupportMatrixRow> rows)
     {
+        CanonicalSupportMatrixRow[] suppliedRows = [.. rows];
+        CanonicalSupportMatrixRow[] availableRows = [.. suppliedRows.Where(static row =>
+            row.Authoring.Value == CapabilityAuthoringAvailability.Available &&
+            row.ExecutionState != CanonicalSupportMatrixExecutionState.Unavailable)];
         return new CanonicalSupportMatrixSnapshot(
             "test-catalog",
             "1.0.0",
             new string('f', 64),
             new ResolutionToken("test-catalog:1"),
-            rows);
+            suppliedRows,
+            new CapabilityCatalogSummary(
+                availableRows.Select(static row => row.Identity.IcId).Distinct().Count(),
+                availableRows.Where(static row => row.Identity.WorkflowId == ExperienceIds.StandardMerge)
+                    .Select(static row => row.Identity.IcId).Distinct().Count(),
+                availableRows.Where(static row => row.Identity.WorkflowId == ExperienceIds.CtrlRamReplace)
+                    .Select(static row => row.Identity.IcId).Distinct().Count()));
     }
 
     private static CanonicalSupportMatrixRow Row(
@@ -308,13 +340,14 @@ public sealed partial class ShellNavigationSystemTests
         CapabilityEvidenceStatus evidence = CapabilityEvidenceStatus.ContractOnly,
         CanonicalSupportMatrixExecutionState executionState =
             CanonicalSupportMatrixExecutionState.Admitted,
-        bool includeCertificationBlocker = false)
+        bool includeCertificationBlocker = false,
+        string? mapVariant = null)
     {
         var identity = new CapabilityRouteIdentity(
             icId,
             workflowId,
             "selector-free",
-            $"{icId.ToLowerInvariant()}-{workflowId}-256k");
+            mapVariant ?? $"{icId.ToLowerInvariant()}-{workflowId}-256k");
         string fingerprint = new('a', 64);
         var blockers = new List<CanonicalSupportMatrixBlocker>();
         if (availability == CapabilityAuthoringAvailability.Unavailable)

@@ -27,6 +27,22 @@ Canonical schema: [`composition-report-v1.schema.json`](composition-report-v1.sc
 
 ## Application Run Report Semantic Extension
 
+### Execution-captured capability verification (1.2.2)
+
+The Application run report optionally includes `Capability`, containing
+`RouteId`, `CapabilityFingerprint`, `Publication`, `Evidence`, and
+`VerificationStatus` from the exact resolved capability admitted for that run.
+Publication and evidence retain their existing enum names. Verification is
+always derived by the shared capability disclosure owner: `ContractOnly` and
+`Missing` produce `unverified`; `DirectGolden`, `ApprovedAlias`, and
+`SyntheticOracle` produce `verified`, retaining the exact evidence class rather
+than asserting independent Golden output. Save/load never consults newer policy.
+The whole summary is omitted, not null, for policy-absent legacy runs. An older
+report without it displays **not recorded**, never inferred verification or
+support. The focused summary uses source-generated metadata through the existing
+Application JSON resolver chain. It changes neither read completeness nor the
+frozen `composition-report-v1.schema.json`, firmware bytes, naming, or Build admission.
+
 ### Captured DP source envelope (1.1.10 candidate)
 
 For a Standard Merge compiled from a nonstandard captured DP length, the

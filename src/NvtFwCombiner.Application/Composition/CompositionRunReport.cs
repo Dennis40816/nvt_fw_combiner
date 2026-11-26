@@ -35,7 +35,8 @@ public sealed class CompositionRunReport(
     string? resolvedMapId = null,
     IReadOnlyList<InputDiagnosticSummary>? inputDiagnostics = null,
     AbMergeFormatRunSummary? abMergeFormat = null,
-    SourceEnvelopeRunSummary? sourceEnvelope = null)
+    SourceEnvelopeRunSummary? sourceEnvelope = null,
+    CapabilityRunSummary? capability = null)
 {
     /// <summary>Stable run id.</summary>
     public string RunId { get; } = CompositionSummaryValue.NotBlank(runId, nameof(runId));
@@ -108,6 +109,10 @@ public sealed class CompositionRunReport(
     /// <summary>Actual DP/output extent and canonical layout template, omitted for exact map runs.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SourceEnvelopeRunSummary? SourceEnvelope { get; } = sourceEnvelope;
+
+    /// <summary>Execution-captured policy disclosure; absence means not recorded.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CapabilityRunSummary? Capability { get; } = capability;
 
     /// <summary>Compiled validation outcomes retained independently from operation execution.</summary>
     public IReadOnlyList<ValidationRunSummary> Validations { get; } = Array.AsReadOnly(

@@ -12,6 +12,7 @@ dependencies = []
 [project.optional-dependencies]
 dev = [
   "hypothesis>=6.130,<7",
+  "jsonschema==4.25.1",
   "pylint>=3.3,<5",
   "PyYAML==6.0.3",
   "pyright>=1.1.400,<2",

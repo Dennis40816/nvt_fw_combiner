@@ -21,6 +21,9 @@ internal static class CanonicalFormalRouteRuntimeFixtureCatalog
         return
         [
             .. BuiltInCanonicalCapabilityPolicy.Load().Routes
+                // NT51925 has no independent owner runtime fixtures yet; its nine candidate
+                // declarations are covered separately by Nt51925RestorationProfileTests.
+                .Where(static route => route.Identity.IcId != "NT51925")
                 .Where(static route => route.Identity.WorkflowId is
                     ExperienceIds.StandardMerge or
                     ExperienceIds.AbMerge or

@@ -192,6 +192,7 @@ public static class GeneralReplaceDiagnosticPreviewReportProjector
             imageInitialization: ImageInitializationSummary.FromCompiled(
                 composition.Plan.OutputInitialization),
             diagnosticPreview: diagnostic,
-            resolvedMapId: composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId);
+            resolvedMapId: composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId,
+            capability: CapabilityRunSummary.FromResolvedCapability(capability));
     }
 }
