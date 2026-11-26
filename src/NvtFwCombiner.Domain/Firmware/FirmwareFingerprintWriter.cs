@@ -70,6 +70,12 @@ internal static class FirmwareFingerprintWriter
         AppendPredicateDefinitions(builder, $"{prefix}.predicate", applicability.MetadataPredicates);
     }
 
+    internal static void AppendCommonFirmwareVersionFrom(StringBuilder builder, string prefix, CommonFirmwareVersion? version)
+    {
+        if (version is { } declared)
+        { AppendField(builder, $"{prefix}.common-firmware-version-from", declared.ToString()); }
+    }
+
     internal static void AppendPredicateDefinitions(
         StringBuilder builder,
         string prefix,

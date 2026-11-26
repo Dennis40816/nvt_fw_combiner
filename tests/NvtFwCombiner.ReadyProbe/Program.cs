@@ -16,6 +16,13 @@ const string bootstrapIdentityKey = "NVT_FW_COMBINER_ROOT_BOOTSTRAP_IDENTITY";
 const string identityMarkerKey = "NVT_READY_PROBE_IDENTITY_MARKER";
 const string bootstrapAdmissionKey = "NVT_FW_COMBINER_BOOTSTRAP_ADMISSION_PIPE_HANDLE";
 string behavior = Environment.GetEnvironmentVariable(behaviorKey) ?? "ready";
+if (string.Equals(behavior, "xunit-assembly-info-output", StringComparison.Ordinal))
+{
+    // Writes through the installed XunitAssemblyInfoOutputGuard and exits without flushing Console.Out.
+    Console.Out.Write(Environment.GetEnvironmentVariable("NVT_READY_PROBE_STANDARD_OUTPUT") ??
+        throw new InvalidOperationException("Missing standard output text."));
+    return 0;
+}
 if (string.Equals(behavior, "probe-ambient-pipe", StringComparison.Ordinal))
 {
     string marker = Environment.GetEnvironmentVariable("NVT_READY_PROBE_HANDLE_MARKER") ??

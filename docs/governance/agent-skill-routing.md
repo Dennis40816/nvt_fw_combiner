@@ -18,6 +18,8 @@ CRC/header behavior, evidence, support, release authority, or permissions.
 | --- | --- |
 | Architecture, layers, public contracts, ADRs | skill `nfc-architecture-change` |
 | IC facts, profiles, regions, mappings, processors | skill `nfc-firmware-profile-authoring` |
+| Owner IC evidence drop, new IC or new layout, onboarding order | skill `nfc-onboard-new-ic` |
+| Pinned legacy `Combiner.exe` version, rebuild, replacement | skill `nfc-change-legacy-combiner` |
 | CRC/header worker or staged transform protocol | skill `nfc-crc-worker-contract` |
 | Golden bytes, hashes, provenance, promotion | skill `nfc-golden-regression` |
 | Merge/Replace authoring and access | skill `nfc-composition-experience-change` |

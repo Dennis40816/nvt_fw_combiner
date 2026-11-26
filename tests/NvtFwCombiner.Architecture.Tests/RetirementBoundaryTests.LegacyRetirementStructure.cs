@@ -17,10 +17,10 @@ public sealed partial class RetirementBoundaryTests
             "BuiltInTpFlashMapCatalog",
             "src/NvtFwCombiner.Infrastructure/FlashMaps/BuiltInTpFlashMapCatalog",
             [
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCommonFwSelector.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",
-                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.FirmwareVersion.cs",
             ]);
         AssertNoProductionText("IcMetadataFacade");
         AssertNoProductionText("LegacyCombinerPostbuildCatalog");
@@ -28,7 +28,7 @@ public sealed partial class RetirementBoundaryTests
             "BuiltInPostbuildProfileCatalog",
             "src/NvtFwCombiner.Infrastructure/ExternalTools/BuiltInPostbuildProfileCatalog",
             [
-                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInGeneralAuthoringPlanner.cs",
+                "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCommonFwSelector.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/CanonicalCapabilityDisclosureInventory.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/CanonicalDynamicRouteInventory.cs",
                 "src/NvtFwCombiner.Infrastructure/Composition/BuiltInCtrlRamAuthoringAdapter.Context.cs",

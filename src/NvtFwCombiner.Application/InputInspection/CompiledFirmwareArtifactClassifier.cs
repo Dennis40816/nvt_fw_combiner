@@ -409,10 +409,11 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 authoritativeCapacity.Value,
                 candidate,
                 out CompiledFirmwareArtifactClassification? authoritative,
-                out StandardCandidate? authoritativeCandidate))
+                out StandardCandidate? authoritativeCandidate,
+                out IReadOnlyList<ResolvedCapability>? authoritativeConsensus))
         {
             return IsCurrentSnapshot(snapshot)
-                ? (authoritative, authoritativeCandidate?.Capability, null)
+                ? (authoritative, authoritativeCandidate?.Capability, authoritativeConsensus)
                 : (null, null, null);
         }
 
@@ -421,10 +422,11 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 candidate.Length,
                 candidate,
                 out CompiledFirmwareArtifactClassification? exact,
-                out StandardCandidate? exactCandidate))
+                out StandardCandidate? exactCandidate,
+                out IReadOnlyList<ResolvedCapability>? exactConsensus))
         {
             return IsCurrentSnapshot(snapshot)
-                ? (exact, exactCandidate?.Capability, null)
+                ? (exact, exactCandidate?.Capability, exactConsensus)
                 : (null, null, null);
         }
 
@@ -502,7 +504,8 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
                 prefixLength,
                 candidate[..prefixLength],
                 out CompiledFirmwareArtifactClassification? prefix,
-                out StandardCandidate? exact) ||
+                out StandardCandidate? exact,
+                out _) ||
             prefix?.Kind != CompiledFirmwareArtifactKind.FlashCode)
         {
             return false;
@@ -524,6 +527,21 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
     }
 
     private StandardCandidate[]? ResolveCurrentCompositions(
+        CanonicalCapabilityCatalogSnapshot snapshot,
+        string icId)
+    {
+        try
+        {
+            return ResolveCurrentCompositionsCore(snapshot, icId);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            // An unavailable trusted bundle cannot establish agreement across all declared maps.
+            return null;
+        }
+    }
+
+    private StandardCandidate[]? ResolveCurrentCompositionsCore(
         CanonicalCapabilityCatalogSnapshot snapshot,
         string icId)
     {
@@ -569,23 +587,29 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
             string[][] selections = memberSlotIds.Count == 0
                 ? [[]]
                 : [[], [.. memberSlotIds]];
+            string?[] explicitMapIds = _compiler.GetStandardMapSelectionPrerequisite(icId) is not null
+                ? [.. route.CompilationContract.AllowedMapVariantIds]
+                : [null];
             var dynamicCompositions = new List<StandardCandidate>(selections.Length);
-            foreach (string[] selection in selections)
+            foreach (string? explicitMapId in explicitMapIds)
             {
-                bool compiled = selectedCapacity is { } capacity
-                    ? _compiler.TryCompilePublishedClassificationCandidate(
-                        route, capacity, selection, out ResolvedCapability? exactCapability)
-                    : _compiler.TryCompilePublishedClassificationCandidate(
-                        route, selection, out exactCapability);
-                if (!compiled ||
-                    exactCapability is null ||
-                    !IsCurrentCapability(snapshot, icId, exactCapability))
+                foreach (string[] selection in selections)
                 {
-                    return null;
-                }
+                    bool compiled = selectedCapacity is { } capacity
+                        ? _compiler.TryCompilePublishedClassificationCandidate(
+                            route, capacity, selection, out ResolvedCapability? exactCapability)
+                        : _compiler.TryCompilePublishedClassificationCandidate(
+                            route, selection, out exactCapability, explicitMapId);
+                    if (!compiled ||
+                        exactCapability is null ||
+                        !IsCurrentCapability(snapshot, icId, exactCapability))
+                    {
+                        return null;
+                    }
 
-                AddUnique(dynamicCompositions, new StandardCandidate(
-                    exactCapability.CompiledComposition, exactCapability));
+                    AddUnique(dynamicCompositions, new StandardCandidate(
+                        exactCapability.CompiledComposition, exactCapability));
+                }
             }
 
             string[] compiledMapIds =
@@ -639,7 +663,8 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
         long capacity,
         ReadOnlySpan<byte> candidate,
         out CompiledFirmwareArtifactClassification? classification,
-        out StandardCandidate? exactCandidate)
+        out StandardCandidate? exactCandidate,
+        out IReadOnlyList<ResolvedCapability>? consensusCapabilities)
     {
         StandardCandidate[] exact =
         [
@@ -650,6 +675,20 @@ internal sealed partial class FirmwareArtifactClassificationResolver(
         classification = exact.Length == 1
             ? CompiledFirmwareArtifactClassifier.Classify(exact[0].Composition, candidate)
             : null;
+        consensusCapabilities = null;
+        if (exact.Length > 1)
+        {
+            var classifications = new CompiledFirmwareArtifactClassification[exact.Length];
+            for (int index = 0; index < exact.Length; index++)
+            {
+                classifications[index] = CompiledFirmwareArtifactClassifier.Classify(exact[index].Composition, candidate);
+            }
+            CompiledFirmwareArtifactKind kind = classifications[0].Kind;
+            classification = classifications.All(item => item.Kind == kind)
+                ? CreateConsensus(classifications, kind) : null;
+            consensusCapabilities = classification is not null && exact.All(static item => item.Capability is not null)
+                ? Array.AsReadOnly(exact.Select(static item => item.Capability!).ToArray()) : null;
+        }
         return exact.Length != 0;
     }
 

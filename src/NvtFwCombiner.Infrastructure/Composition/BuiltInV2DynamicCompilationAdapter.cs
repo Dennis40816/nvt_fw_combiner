@@ -43,6 +43,24 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         }
     }
 
+    public CanonicalMapSelectionPrerequisite? GetMapSelectionPrerequisite(string icId, string workflowId)
+    {
+        return workflowId == ExperienceIds.StandardMerge &&
+            BuiltInV2RegistrationRegistry.StandardMergeByIc.TryGetValue(icId, out BuiltInV2Registration? registration)
+                ? registration.MapSelectionPrerequisite : null;
+    }
+
+    public MetadataPlanDefinition? GetDeclaredMapMetadataPlan(string icId, string workflowId)
+    {
+        BuiltInV2Registration registration = ResolveRegistration(icId, workflowId);
+        if (registration.MapSelectionPrerequisite is null) { return null; }
+        IReadOnlyList<FirmwareImageMap> maps = registration.GetMapVariants(
+            out _, out IReadOnlyList<CompositionIssue> issues);
+        return issues.Count == 0 && maps.Count != 0
+            ? registration.CreateExactMapMetadataPlan(maps[0].MapId)
+            : null;
+    }
+
     public IReadOnlyList<long> GetMapCapacities(
         string icId,
         string workflowId,
@@ -127,12 +145,28 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         out IReadOnlyList<CompositionIssue> issues,
         TopologySelection? requestedTopology = null)
     {
+        Compile(identity, requestedMapCapacity, capturedArtifacts, selectedInputSlotIds, explicitMapId: null,
+            out composition, out metadataPlan, out issues, requestedTopology);
+    }
+
+    public void Compile(
+        CapabilityRouteIdentity identity,
+        long? requestedMapCapacity,
+        IReadOnlyList<FirmwareArtifactPayload> capturedArtifacts,
+        IReadOnlyCollection<string>? selectedInputSlotIds,
+        string? explicitMapId,
+        out CompiledComposition? composition,
+        out MetadataPlanDefinition? metadataPlan,
+        out IReadOnlyList<CompositionIssue> issues,
+        TopologySelection? requestedTopology = null)
+    {
         ArgumentNullException.ThrowIfNull(identity);
         ArgumentNullException.ThrowIfNull(capturedArtifacts);
         BuiltInV2Registration? registration = identity.WorkflowId == ExperienceIds.AbMerge
             ? BuiltInV2RegistrationRegistry.FindAbMergeRegistration(identity.IcId, identity.MapVariant)
             : ResolveRegistration(identity.IcId, identity.WorkflowId);
         if (registration is null ||
+            (explicitMapId is not null && registration.MapSelectionPrerequisite is null) ||
             (registration.SelectionGroupMapVariantSetId is { } mapSet &&
                 !StringComparer.Ordinal.Equals(mapSet, identity.MapVariant)))
         {
@@ -144,7 +178,7 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         }
 
         CompileRegistration(registration, requestedMapCapacity, capturedArtifacts, selectedInputSlotIds,
-            out composition, out metadataPlan, out issues, requestedTopology);
+            out composition, out metadataPlan, out issues, requestedTopology, explicitMapId);
         if (composition is not null && issues.Count == 0 && registration.SelectionGroupMapVariantSetId is null &&
             !StringComparer.Ordinal.Equals(composition.V2Details.Provenance.ResolvedMap.ImageMap.MapId, identity.MapVariant))
         {
@@ -163,7 +197,8 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
         out CompiledComposition? composition,
         out MetadataPlanDefinition? metadataPlan,
         out IReadOnlyList<CompositionIssue> issues,
-        TopologySelection? requestedTopology)
+        TopologySelection? requestedTopology,
+        string? explicitMapId)
     {
         registration.TryCompile(
             requestedMapCapacity,
@@ -171,7 +206,8 @@ internal sealed class BuiltInV2DynamicCompilationAdapter :
             selectedInputSlotIds,
             capturedArtifacts,
             out composition,
-            out issues);
+            out issues,
+            explicitMapId);
         metadataPlan = composition is not null && issues.Count == 0
             ? registration.CreateMetadataPlan(composition)
             : null;

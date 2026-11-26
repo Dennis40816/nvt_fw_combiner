@@ -22,7 +22,7 @@ public sealed class PrebuiltProfileCatalogRejectionTests
         JsonNode result = await copy.RunAsync();
         AssertSource(result, "prebuilt", 0);
         PrebuiltProfileCatalogEquivalenceTests.AssertPinned(result);
-        Assert.Equal(24, result["bundles"]!.AsArray().Count);
+        Assert.Equal(26, result["bundles"]!.AsArray().Count);
         Assert.All(result["bundles"]!.AsArray(), b => Assert.Null(b!["error"]));
         Assert.Equal(0, result["entryValidationCalls"]!.GetValue<long>());
     }

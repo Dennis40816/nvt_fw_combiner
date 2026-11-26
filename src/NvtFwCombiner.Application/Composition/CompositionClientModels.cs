@@ -204,7 +204,8 @@ public sealed record CtrlRamInspectionRequest(string NumberToken, CtrlRamAuthori
 public sealed record CtrlRamInspectionDisplay(
     string NumberToken,
     IReadOnlyList<CtrlRamRegion> Regions,
-    IReadOnlyList<ReplaceInputSlot> InputSlots);
+    IReadOnlyList<ReplaceInputSlot> InputSlots,
+    string? Issue = null);
 
 /// <summary>One named firmware projection requested from a shared distinct-path read batch.</summary>
 public sealed record FirmwareInspectionSnapshotInput(

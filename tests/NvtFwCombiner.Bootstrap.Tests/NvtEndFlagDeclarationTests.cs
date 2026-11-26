@@ -40,14 +40,14 @@ public sealed class NvtEndFlagDeclarationTests
     }
 
     /// <summary>
-    /// F-3 executable inventory: the families that resolve without a declaration are exactly the named migration
-    /// inventory, no NT51950/NT51951 family is in it, and no built-in layout fails to resolve.
+    /// F-3 executable inventory: authorable families that resolve without a declaration are exactly the named migration
+    /// inventory; blocked candidate maps do not enter the executable end-flag audit.
     /// </summary>
     [Fact]
     public void LegacyInventoryIsExactlyTheBuiltInFamiliesStillPending()
     {
         var legacy = new SortedSet<string>(StringComparer.Ordinal);
-        foreach (string icId in RegisteredIcIds())
+        foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds())
         {
             foreach ((string _, string familyId, string mapId, FirmwareNvtEndFlagResolution resolution) in
                      DeclaredResolutions(icId, includeMapsWithoutNvtLocator: true))
@@ -184,15 +184,6 @@ public sealed class NvtEndFlagDeclarationTests
         }
 
         Assert.True(checkedMarkers > 0);
-    }
-
-    private static IEnumerable<string> RegisteredIcIds()
-    {
-        return BuiltInV2BundleRegistry.TrustIndex.Bundles
-            .SelectMany(static bundle => bundle.RuntimeRegistrations)
-            .Select(static registration => registration.IcId)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal);
     }
 
     private static (string Workflow, string FamilyId, string MapId, FirmwareNvtEndFlagResolution Resolution)[]

@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.FlashMaps;
@@ -35,6 +36,9 @@ public enum TpFlashMapRegionVisibility
 
     /// <summary>Visible only for numeric selections of three or larger.</summary>
     ThreeChipAndAbove,
+
+    /// <summary>Visible only for a single-chip selection.</summary>
+    SingleChipOnly,
 }
 
 /// <summary>One TP Overview-derived flash-map region.</summary>
@@ -99,7 +103,9 @@ public sealed class TpFlashMapProfile
         IEnumerable<long> fullFlashCapacities,
         string baseShapeEvidence,
         IEnumerable<TpFlashMapRegion> regions,
-        string evidence)
+        string evidence,
+        LegacyCombinerCommonFwVersion? effectiveCommonFwVersion = null,
+        bool useDeclaredRegionRanges = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentException.ThrowIfNullOrWhiteSpace(overviewSource);
@@ -129,10 +135,15 @@ public sealed class TpFlashMapProfile
         FullFlashCapacities = Array.AsReadOnly(capacities);
         BaseShapeEvidence = baseShapeEvidence;
         Evidence = evidence;
+        EffectiveCommonFwVersion = effectiveCommonFwVersion ?? LegacyCombinerCommonFwVersion.MinimumSupported;
+        UseDeclaredRegionRanges = useDeclaredRegionRanges;
     }
 
     /// <summary>Selectable NT-prefixed IC id.</summary>
     public string IcId { get; }
+
+    /// <summary>Inclusive Common FW version at which this map entry takes effect; defaults to 1.0.0.</summary>
+    public LegacyCombinerCommonFwVersion EffectiveCommonFwVersion { get; }
 
     /// <summary>TP Overview source section label.</summary>
     public string OverviewSource { get; }
@@ -154,6 +165,9 @@ public sealed class TpFlashMapProfile
 
     /// <summary>Reference evidence used to create this profile.</summary>
     public string Evidence { get; }
+
+    /// <summary>Keep authoritative catalog ranges even when a provisional postbuild plan is supplied.</summary>
+    public bool UseDeclaredRegionRanges { get; }
 
     /// <summary>All documented regions in stable TP Overview order.</summary>
     public IReadOnlyList<TpFlashMapRegion> Regions => _regions;

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "predecessor-comparison-declaration",
+  "candidateVersion": "1.2.2",
+  "baseline": {
+    "tag": "v1.2.1",
+    "tagObject": "2a638546a072910a9ae94e2686e9231b155c0c90"
+  },
+  "ledgerSha256": "6298c51a7b99b75d7a7599e38bf5037da8a3e742f013f74bd53630bc731beb7b",
+  "entries": [
+    {
+      "id": "RP-1.2.2-01",
+      "kind": "accepted-gap",
+      "scenarioIds": [],
+      "routeIds": [
+        "route-7-nt51919-15-ctrlram-replace-4-1-ic-21-nt51919-ab-merge-512k",
+        "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-21-nt51919-ab-merge-512k",
+        "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+        "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-21-nt51929-ab-merge-512k",
+        "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
+        "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
+        "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
+        "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
+        "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
+        "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
+        "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k"
+      ],
+      "expected": null,
+      "differences": null,
+      "knownIssue": null,
+      "routeWithdrawal": false,
+      "approval": {
+        "boardDecision": "1.2.2 board decision 346",
+        "role": "firmware-owner",
+        "date": "2026-10-10"
+      }
+    },
+    {
+      "id": "RP-1.2.2-02",
+      "kind": "accepted-gap",
+      "scenarioIds": [],
+      "routeIds": [
+        "route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
+        "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
+        "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k"
+      ],
+      "expected": null,
+      "differences": null,
+      "knownIssue": null,
+      "routeWithdrawal": false,
+      "approval": {
+        "boardDecision": "1.2.2 board decision 347",
+        "role": "firmware-owner",
+        "date": "2026-10-28"
+      }
+    }
+  ]
+}

@@ -178,7 +178,7 @@ internal sealed partial class ShellTextResources
             ? SelectLanguage("Not available", "尚未開放")
             : readiness.HasReviewedEvidence
             ? SelectLanguage("Golden verified", "Golden 已驗證")
-            : SelectLanguage("Evidence open", "Evidence 待補");
+            : VerificationText.Unverified(this);
     }
 
     public string GetWorkflowEvidenceTooltip(CapabilityWorkflowReadiness readiness)
@@ -404,8 +404,8 @@ internal sealed partial class ShellTextResources
         if (open.Count > 0)
         {
             summaries.Add(SelectLanguage(
-                $"! Open: {string.Join(", ", open)}",
-                $"! 待補：{string.Join("、", open)}"));
+                $"! {VerificationText.Unverified(this)}: {string.Join(", ", open)}",
+                $"! {VerificationText.Unverified(this)}：{string.Join("、", open)}"));
         }
 
         if (unavailable.Count > 0)

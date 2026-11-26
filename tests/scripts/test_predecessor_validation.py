@@ -111,11 +111,23 @@ def difference(ranges: list[dict[str, int]]) -> dict[str, Any]:
     }
 
 
+def before_release_approval(ledger: dict[str, Any]) -> dict[str, Any]:
+    """The committed ledger with its accepted gaps put back as pending, so a world starts before any release approved them."""
+
+    restored = copy.deepcopy(ledger)
+    restored["pendingAcceptedGaps"]["routeIds"] = [
+        *restored["pendingAcceptedGaps"]["routeIds"],
+        *(row["routeId"] for row in restored["acceptedGaps"]),
+    ]
+    restored["acceptedGaps"] = []
+    return restored
+
+
 def rolling_world() -> dict[str, Any]:
     """A complete, valid rolling run: decision 96's gaps, one retirement, and three declared changes."""
 
-    baseline_ledger = copy.deepcopy(Sources.ledger)
-    ledger = copy.deepcopy(Sources.ledger)
+    baseline_ledger = before_release_approval(Sources.ledger)
+    ledger = before_release_approval(Sources.ledger)
     entries: list[dict[str, Any]] = []
 
     def entry(kind: str, scenario_ids: list[str], route_ids: list[str], **values: Any) -> dict[str, Any]:
@@ -239,6 +251,7 @@ def rolling_world() -> dict[str, Any]:
         },
         "ledgerSha256": "c" * 64,
         "declarationSha256": "d" * 64,
+        "publishedInventory": {"rawSha256": "e" * 64, "factsSha256": "f" * 64},
         "scenarios": scenarios,
         "coverage": {
             "universe": len(universe),
@@ -270,6 +283,7 @@ def rolling_world() -> dict[str, Any]:
         contracts={"docs/contracts/predecessor-comparison-v1.json": "b" * 64},
         ledger_sha256="c" * 64,
         declaration_sha256="d" * 64,
+        published_inventory=report["publishedInventory"],
     )
     return {
         "report": report,
@@ -350,7 +364,7 @@ class RollingValidationTests(unittest.TestCase):
         world = rolling_world()
         self.assertEqual([], rolling_failures(world))
         self.assertEqual({"result": "clear", "failures": []}, validation.rolling_gate(rolling_failures(world)))
-        self.assertEqual(11, sum(1 for row in world["declaration"]["entries"] if row["kind"] == "accepted-gap"))
+        self.assertEqual(20, sum(1 for row in world["declaration"]["entries"] if row["kind"] == "accepted-gap"))
         self.assertTrue(scenario(world, "plain")["comparison"]["rangesTruncated"])
 
     def test_report_covers_each_ledger_scenario_and_the_ledger_coverage(self) -> None:
@@ -1366,6 +1380,65 @@ class V0916ModeValidationTests(unittest.TestCase):
         self.assertEqual("inconsistent", validation.v0916_result(["consistent", "inconsistent"]))
         self.assertEqual("invalid", validation.v0916_result(["inconsistent", "invalid"]))
 
+
+
+class DeterministicProjectionTests(unittest.TestCase):
+    def test_projection_removes_exactly_contract_paths_and_preserves_nulls_and_other_values(self):
+        fixture_root = ROOT / "tests/scripts/fixtures/predecessor-comparison"
+        report = load_json(fixture_root / "rolling-declared.json")
+        report["routes"] = load_json(fixture_root / "v0916-consistent.json")["routes"]
+        report["gate"]["failures"] = [{"code": "PREDECESSOR_REPORT_INVALID", "subject": "synthetic", "detail": "path"}]
+        report["failures"] = copy.deepcopy(report["gate"]["failures"])
+        report["publishedInventory"] = {"rawSha256": "a" * 64, "factsSha256": "b" * 64}
+        report["informational"] = {"size": 1, "sha256": "a" * 64, "timestamp": "unchanged", "detail": "retained"}
+        report["routes"].append({"baseline": None, "candidate": {"processes": [{"report": None}]}})
+        original = copy.deepcopy(report)
+        projection = validation.deterministic_digest_projection(report)
+        removed = set()
+
+        def compare(before, after, pointer=""):
+            if isinstance(before, dict):
+                self.assertEqual(set(), set(after) - set(before))
+                for key, value in before.items():
+                    child = pointer + "/" + key.replace("~", "~0").replace("/", "~1")
+                    if key not in after:
+                        removed.add(child)
+                    else:
+                        compare(value, after[key], child)
+            elif isinstance(before, list):
+                self.assertEqual(len(before), len(after))
+                for index, (left, right) in enumerate(zip(before, after)):
+                    compare(left, right, pointer + "/" + str(index))
+            else:
+                self.assertEqual(before, after, pointer)
+
+        compare(report, projection)
+        patterns = load_json(CONTRACTS / "predecessor-comparison-v1.json")["comparison"]["deterministicDigestExcludedPaths"]
+
+        def expand(value, parts, pointer=""):
+            if not parts:
+                return {pointer}
+            part, *rest = parts
+            if part == "*":
+                return set().union(*(expand(item, rest, pointer + "/" + str(index)) for index, item in enumerate(value)))
+            if not isinstance(value, dict) or part not in value:
+                return set()
+            return expand(value[part], rest, pointer + "/" + part)
+
+        expected = set().union(*(expand(report, path.split("/")[1:]) for path in patterns))
+        self.assertEqual(expected, removed)
+        self.assertEqual(report, original)
+        self.assertIsNone(projection["routes"][-1]["baseline"])
+        self.assertIsNone(projection["routes"][-1]["candidate"]["processes"][0]["report"])
+        # Every declared wildcard pattern is exercised by the combined full fixture.
+        self.assertEqual(len(patterns), len({"/".join("*" if part.isdigit() else part for part in path.split("/")) for path in removed}))
+
+    def test_completed_report_digest_validation_retains_semantic_values_in_both_modes(self):
+        for name in ("rolling-declared", "v0916-consistent"):
+            report = load_json(ROOT / "tests/scripts/fixtures/predecessor-comparison" / (name + ".json"))
+            self.assertEqual([], validation.deterministic_digest_failures(report))
+            report["candidate"]["executor"]["runtimeClosureSha256"] = "0" * 64
+            self.assertEqual("PREDECESSOR_REPORT_INVALID", validation.deterministic_digest_failures(report)[0].code)
 
 if __name__ == "__main__":
     unittest.main()

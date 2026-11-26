@@ -33,9 +33,13 @@ public sealed class TpSvnProfileDeclarationTests
         ["NT51951"] = 0x2D330,
     };
 
-    /// <summary>Decision 45: NT51926 per declared firmware-version variant.</summary>
-    private static readonly Dictionary<string, long> Nt51926HeaderCopyStampByMap = new(StringComparer.Ordinal)
+    /// <summary>Decision 45: NT51926 variants; owner TP overview: NT51925 2.0.0 Header Copy + 0x24.</summary>
+    private static readonly Dictionary<string, long> VersionedHeaderCopyStampByMap = new(StringComparer.Ordinal)
     {
+        ["nt51925-ctrlram-fw200-single-tp-work-192k"] = 0x2E9A4,
+        ["nt51925-ctrlram-fw200-single-full-flash-256k"] = 0x2E9A4,
+        ["nt51925-ctrlram-fw200-cascade-tp-work-192k"] = 0x2E9A4,
+        ["nt51925-ctrlram-fw200-cascade-full-flash-256k"] = 0x2E9A4,
         ["nt51926-ctrlram-fw141-tp-work-240k"] = 0x32F74,
         ["nt51926-ctrlram-fw141-full-flash-256k"] = 0x32F74,
         ["nt51926-ctrlram-fw200-tp-work-240k"] = 0x32A94,
@@ -47,6 +51,7 @@ public sealed class TpSvnProfileDeclarationTests
     {
         ["NT51917"] = 0x24,
         ["NT51923"] = 0x24,
+        ["NT51925"] = 0x24, // Prepared option A, pending official owner evidence.
         ["NT51926"] = 0x24,
         ["NT51927"] = 0x24,
         ["NT51928"] = 0x24,
@@ -58,40 +63,44 @@ public sealed class TpSvnProfileDeclarationTests
     };
 
     /// <summary>
-    /// Every CtrlRAM Replace layout of every IC declares the Header-copy stamp at the owner position, through the
-    /// one canonical definition; NT51926 fw1.4.1 and fw2.0.0 layouts each keep their own declared position.
+    /// Every CtrlRAM Replace layout declares its available SVN stamp at the owner position, through the
+    /// one canonical definition; NT51926 versioned layouts keep their positions. NT51925 1.x uses the original TP header.
     /// </summary>
     [Fact]
-    public void EveryCtrlRamReplaceLayoutDeclaresTheHeaderCopyStampAtTheOwnerPosition()
+    public void ResolveTpSvnEveryCtrlRamLayoutStampMatchesOwnerHeaderPosition()
     {
         var covered = new SortedSet<string>(StringComparer.Ordinal);
         var nt51926Maps = new SortedSet<string>(StringComparer.Ordinal);
         FirmwareMetadataStructureDefinition? canonical = null;
         foreach ((FirmwareFamilyResolutionDefinition family, FirmwareImageMap map) in CtrlRamReplaceMaps())
         {
-            FirmwareResolvedMetadataStructure resolved = ResolveHeaderCopy(family, map, new byte[map.CapacityBytes]);
+            bool originalNt51925Header = map.Applicability.MemberIds.Contains("NT51925", StringComparer.Ordinal) &&
+                map.MapId.Contains("fw141", StringComparison.Ordinal);
+            FirmwareResolvedMetadataStructure resolved = originalNt51925Header
+                ? ResolveOriginalHeader(family, map, new byte[map.CapacityBytes])
+                : ResolveHeaderCopy(family, map, new byte[map.CapacityBytes]);
             Assert.Equal(DefinitionId, resolved.StructureDefinition.Definition.DefinitionId);
             Assert.Equal(CompositionAddressSpaceIds.ReferenceBase, resolved.StructureDefinition.ArtifactBindingId);
             canonical ??= resolved.StructureDefinition.Definition;
             Assert.Same(canonical, resolved.StructureDefinition.Definition);
             foreach (string member in map.Applicability.MemberIds)
             {
-                long expected = member == "NT51926"
-                    ? Nt51926HeaderCopyStampByMap[map.MapId]
+                long expected = originalNt51925Header ? 0x24 : member is "NT51925" or "NT51926"
+                    ? VersionedHeaderCopyStampByMap[map.MapId]
                     : HeaderCopyStampByIc[member];
                 Assert.Equal(new FirmwareAddressedRange("flash", new ByteRange(expected, 4)),
                     resolved.LocatorOutcome.ResolvedRange);
                 _ = covered.Add(member);
             }
 
-            if (map.Applicability.MemberIds.Contains("NT51926", StringComparer.Ordinal))
+            if (!originalNt51925Header && map.Applicability.MemberIds.Any(static member => member is "NT51925" or "NT51926"))
             {
                 _ = nt51926Maps.Add(map.MapId);
             }
         }
 
         Assert.Equal(MainStampByIc.Keys.Order(StringComparer.Ordinal), covered);
-        Assert.Equal(Nt51926HeaderCopyStampByMap.Keys.Order(StringComparer.Ordinal), nt51926Maps);
+        Assert.Equal(VersionedHeaderCopyStampByMap.Keys.Order(StringComparer.Ordinal), nt51926Maps);
     }
 
     /// <summary>
@@ -207,7 +216,7 @@ public sealed class TpSvnProfileDeclarationTests
             }
         }
 
-        Assert.Equal(26, displayBindings);
+        Assert.Equal(27, displayBindings);
         foreach (string path in Directory.EnumerateFiles(root, "*.json", SearchOption.AllDirectories)
                      .Where(static path => path.Contains($"{Path.DirectorySeparatorChar}families{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         {
@@ -229,7 +238,10 @@ public sealed class TpSvnProfileDeclarationTests
         foreach ((string icId, BuiltInV2Registration registration) in BuiltInV2RegistrationRegistry.StandardMergeByIc)
         {
             long capacity = icId == "NT51928" ? 0x80000 : 0x40000;
-            MetadataPlanEntry entry = SingleStamp(Plan(registration, capacity), CompositionAddressSpaceIds.TpInput);
+            MetadataPlanDefinition standardPlan = registration.MapSelectionPrerequisite is null
+                ? Plan(registration, capacity)
+                : registration.CreateExactMapMetadataPlan(registration.GetMapVariants(out _, out _)[0].MapId);
+            MetadataPlanEntry entry = SingleStamp(standardPlan, CompositionAddressSpaceIds.TpInput);
             canonical ??= entry.StructureDefinition.Definition;
             AssertStamp(entry, canonical, MainStampByIc[icId]);
         }
@@ -396,8 +408,28 @@ public sealed class TpSvnProfileDeclarationTests
         FirmwareMetadataStructureResolution resolution = family.ResolveMetadataStructure(
             map.MapId, HeaderCopyStructureId,
             new FirmwareMapResolutionInputs(map.Applicability.MemberIds[0], "ctrlram-replace", map.CapacityBytes,
-                requestedTopology: null, [new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, image)]));
+                requestedTopology: MetadataTopology(map), [new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, image)]));
         return Assert.IsType<FirmwareResolvedMetadataStructure>(resolution.Resolved);
+    }
+
+    private static FirmwareResolvedMetadataStructure ResolveOriginalHeader(
+        FirmwareFamilyResolutionDefinition family, FirmwareImageMap map, byte[] image)
+    {
+        FirmwareMetadataStructureResolution resolution = family.ResolveMetadataStructure(
+            map.MapId, DefinitionId,
+            new FirmwareMapResolutionInputs("NT51925", "ctrlram-replace", map.CapacityBytes,
+                requestedTopology: MetadataTopology(map),
+                [new FirmwareArtifactPayload(CompositionAddressSpaceIds.ReferenceBase, image)]));
+        Assert.False(family.TryResolveStructure(map.MapId, HeaderCopyStructureId, out _));
+        return Assert.IsType<FirmwareResolvedMetadataStructure>(resolution.Resolved);
+    }
+
+    private static TopologySelection? MetadataTopology(FirmwareImageMap map)
+    {
+        return map.Applicability.MemberIds.Contains("NT51925", StringComparer.Ordinal)
+            ? new TopologySelection(map.Applicability.TopologyRequirement.Kind == TopologyRequirementKind.SingleChip ? 1 : 2,
+                "test", TopologySelectionSource.Requested, "ic-number")
+            : null;
     }
 
     private static string StampHex(FirmwareResolvedMetadataStructure resolved)

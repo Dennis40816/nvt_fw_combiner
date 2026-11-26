@@ -5,7 +5,6 @@ using CommunityToolkit.Mvvm.Input;
 using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.Configuration;
 using NvtFwCombiner.Application.VersionManagement;
-using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -163,14 +162,8 @@ internal sealed partial class SettingsViewModel : ObservableObject
         RefreshToolchainLabels();
         SupportMatrix.Refresh(text);
         bool chinese = text.Language == ShellLanguage.ChineseTraditional;
-        SupportMatrixRowViewModel[] authoringAvailableRows =
-        [
-            .. SupportMatrix.Rows.Where(static row => row.IsAuthoringAvailable),
-        ];
-        int catalogIcCount = authoringAvailableRows
-            .Select(static row => row.IcId)
-            .Distinct(StringComparer.Ordinal)
-            .Count();
+        CapabilityCatalogSummary? summary = SupportMatrix.AuthoringSummary;
+        int catalogIcCount = summary?.CatalogIcCount ?? 0;
         bool hasPublication = SupportMatrix.CatalogState is
             CanonicalSupportMatrixCatalogState.Current or
             CanonicalSupportMatrixCatalogState.LastKnownGood;
@@ -216,9 +209,7 @@ internal sealed partial class SettingsViewModel : ObservableObject
                     CatalogStatus(chinese ? "目錄" : "Catalog")),
                 new SettingSummaryViewModel(
                     "Standard Merge",
-                    CatalogIcValue(CountAvailableIcs(
-                        authoringAvailableRows,
-                        ExperienceIds.StandardMerge)),
+                    CatalogIcValue(summary?.StandardMergeProfileCount ?? 0),
                     chinese
                         ? "至少有一條 Standard Merge 路徑可出現在一般編輯選擇器中的 IC。"
                         : "ICs with at least one Standard Merge route available to ordinary authoring selectors.",
@@ -230,25 +221,12 @@ internal sealed partial class SettingsViewModel : ObservableObject
             [
                 new SettingSummaryViewModel(
                     chinese ? "CtrlRAM Replace 可用的 IC" : "CtrlRAM Replace available ICs",
-                    CatalogIcValue(CountAvailableIcs(
-                        authoringAvailableRows,
-                        ExperienceIds.CtrlRamReplace)),
+                    CatalogIcValue(summary?.CtrlRamReplaceAvailableIcCount ?? 0),
                     chinese
                         ? "可出現在一般編輯選擇器中；執行、發布與證據狀態請見支援矩陣。"
                         : "Available to ordinary authoring selectors; see the matrix for execution, publication, and evidence.",
                     CatalogStatus(chinese ? "可用" : "Available")),
             ]);
-    }
-
-    private static int CountAvailableIcs(
-        IEnumerable<SupportMatrixRowViewModel> rows,
-        string workflowId)
-    {
-        return rows
-            .Where(row => StringComparer.Ordinal.Equals(row.WorkflowId, workflowId))
-            .Select(static row => row.IcId)
-            .Distinct(StringComparer.Ordinal)
-            .Count();
     }
 
     private void ApplyChoiceLabels(ShellTextResources text)

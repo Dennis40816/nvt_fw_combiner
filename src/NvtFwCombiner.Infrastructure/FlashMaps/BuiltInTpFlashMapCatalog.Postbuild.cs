@@ -25,11 +25,23 @@ internal static partial class BuiltInTpFlashMapCatalog
         LegacyCombinerPostbuildCommandPlan plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        return TryFind(icId, out TpFlashMapProfile? profile)
+            ? GetPostbuildMappedCtrlRamRegionsOf(profile!, plan)
+            : [];
+    }
+
+    /// <summary>Gets mapped CtrlRAM regions of an entry the shared selector already chose.</summary>
+    internal static IReadOnlyList<TpFlashMapRegion> GetPostbuildMappedCtrlRamRegionsOf(
+        TpFlashMapProfile profile,
+        LegacyCombinerPostbuildCommandPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentNullException.ThrowIfNull(plan);
         IReadOnlyList<LegacyCombinerBlockArgument> blocks =
             GetSelectableStagedFileBlocks(plan);
         return [
-            .. GetRegionsForPlan(icId, plan, TpFlashMapRegionKind.CtrlRam)
-                .Where(region => blocks.Any(block => IsMappedBlock(region, block)))
+            .. GetRegionsForPlan(profile, plan, TpFlashMapRegionKind.CtrlRam)
+                .Where(region => blocks.Any(block => IsMappedBlock(region, block, profile.UseDeclaredRegionRanges)))
         ];
     }
 
@@ -41,12 +53,8 @@ internal static partial class BuiltInTpFlashMapCatalog
         IcNumberSelection? selection,
         LegacyCombinerPostbuildProfile? postbuildProfile)
     {
-        return ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? flashMapProfile) &&
-               postbuildProfile is not null
-            ? GetPostbuildCtrlRamSources(
-                icId,
-                flashMapProfile,
-                postbuildProfile.ResolvePlan(selection))
+        return TryFind(icId, out TpFlashMapProfile? flashMapProfile)
+            ? GetPostbuildCtrlRamSourcesOf(flashMapProfile, selection, postbuildProfile)
             : [];
     }
 
@@ -55,32 +63,56 @@ internal static partial class BuiltInTpFlashMapCatalog
         string icId,
         LegacyCombinerPostbuildCommandPlan plan)
     {
-        return ProfilesByIc.TryGetValue(icId, out TpFlashMapProfile? flashMapProfile)
-            ? GetPostbuildCtrlRamSources(icId, flashMapProfile, plan)
+        return TryFind(icId, out TpFlashMapProfile? flashMapProfile)
+            ? GetPostbuildCtrlRamSourcesOf(flashMapProfile, plan)
             : [];
     }
 
+    /// <summary>Gets selectable CtrlRAM sources of an entry the shared selector already chose; nothing when none was chosen.</summary>
+    internal static IReadOnlyList<TpCtrlRamPostbuildSource> GetPostbuildCtrlRamSourcesOf(
+        TpFlashMapProfile? flashMapProfile,
+        LegacyCombinerPostbuildCommandPlan plan)
+    {
+        return flashMapProfile is null
+            ? []
+            : GetPostbuildCtrlRamSources(flashMapProfile, plan);
+    }
+
+    /// <summary>Gets selectable CtrlRAM sources of a chosen entry for the topology of a profile and selection.</summary>
+    internal static IReadOnlyList<TpCtrlRamPostbuildSource> GetPostbuildCtrlRamSourcesOf(
+        TpFlashMapProfile? flashMapProfile,
+        IcNumberSelection? selection,
+        LegacyCombinerPostbuildProfile? postbuildProfile)
+    {
+        return flashMapProfile is null || postbuildProfile is null
+            ? []
+            : GetPostbuildCtrlRamSources(
+                flashMapProfile,
+                postbuildProfile.ResolvePlan(selection));
+    }
+
     private static IReadOnlyList<TpCtrlRamPostbuildSource> GetPostbuildCtrlRamSources(
-        string icId,
         TpFlashMapProfile flashMapProfile,
         LegacyCombinerPostbuildCommandPlan plan)
     {
         TpFlashMapRegion[] regions =
         [
-            .. GetPostbuildMappedCtrlRamRegions(icId, plan),
+            .. GetPostbuildMappedCtrlRamRegionsOf(flashMapProfile, plan),
         ];
         return
         [
             .. GetSelectableStagedFileBlocks(plan)
             .Where(block => block.SourceKind == LegacyCombinerBlockSourceKind.StagedFile)
             .GroupBy(block => block.SourceFileName, StringComparer.Ordinal)
+            .Where(group => !flashMapProfile.UseDeclaredRegionRanges ||
+                group.All(block => regions.Any(region => IsMappedBlock(region, block, requireExactRange: true))))
             .OrderBy(group => group.Min(block => block.FirmwareRange.Start))
             .Select(group =>
             {
                 LegacyCombinerBlockArgument[] blocks = [.. group];
                 TpFlashMapRegion[] sourceRegions = [.. regions.Where(region =>
                     string.Equals(region.PostbuildFileName, group.Key, StringComparison.Ordinal) &&
-                    blocks.Any(block => region.Range.Overlaps(block.FirmwareRange)))];
+                    blocks.Any(block => IsMappedBlock(region, block, flashMapProfile.UseDeclaredRegionRanges)))];
                 string[] physicalRegionIds = [.. flashMapProfile.Regions
                     .Where(region =>
                     region.Kind == TpFlashMapRegionKind.CtrlRam &&
@@ -198,9 +230,9 @@ internal static partial class BuiltInTpFlashMapCatalog
             block.BlockId.Contains("fw-config", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static bool IsMappedBlock(TpFlashMapRegion region, LegacyCombinerBlockArgument block)
+    private static bool IsMappedBlock(TpFlashMapRegion region, LegacyCombinerBlockArgument block, bool requireExactRange = false)
     {
         return string.Equals(region.PostbuildFileName, block.SourceFileName, StringComparison.Ordinal) &&
-            region.Range.Overlaps(block.FirmwareRange);
+            (requireExactRange ? region.Range.Equals(block.FirmwareRange) : region.Range.Overlaps(block.FirmwareRange));
     }
 }

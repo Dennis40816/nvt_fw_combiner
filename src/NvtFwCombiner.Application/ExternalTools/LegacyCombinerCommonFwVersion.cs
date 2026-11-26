@@ -1,4 +1,4 @@
-using System.Globalization;
+using NvtFwCombiner.Domain.Firmware;
 
 namespace NvtFwCombiner.Application.ExternalTools;
 
@@ -7,41 +7,26 @@ public readonly record struct LegacyCombinerCommonFwVersion(byte Major, byte Min
     : IComparable<LegacyCombinerCommonFwVersion>
 {
     /// <summary>Lowest Common FW version covered by production postbuild profiles.</summary>
-    public static LegacyCombinerCommonFwVersion MinimumSupported { get; } = new(1, 0, 0);
+    public static LegacyCombinerCommonFwVersion MinimumSupported { get; } = new(CommonFirmwareVersion.MinimumSupported);
+
+    private LegacyCombinerCommonFwVersion(CommonFirmwareVersion version)
+        : this(version.Major, version.Minor, version.Additional) { }
+
+    /// <summary>The shared firmware-semantic value used by interval selection.</summary>
+    public CommonFirmwareVersion CanonicalVersion => new(Major, Minor, Additional);
 
     /// <summary>Parses the exact FWConfig three-component representation.</summary>
     public static bool TryParse(string? value, out LegacyCombinerCommonFwVersion version)
     {
-        version = default;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
-
-        string[] parts = value.Trim().Split('.');
-        if (parts.Length != 3 ||
-            !byte.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out byte major) ||
-            !byte.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out byte minor) ||
-            !byte.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out byte additional))
-        {
-            return false;
-        }
-
-        version = new LegacyCombinerCommonFwVersion(major, minor, additional);
-        return true;
+        bool parsed = CommonFirmwareVersion.TryParse(value, out CommonFirmwareVersion canonical);
+        version = new(canonical);
+        return parsed;
     }
 
     /// <inheritdoc />
     public int CompareTo(LegacyCombinerCommonFwVersion other)
     {
-        int major = Major.CompareTo(other.Major);
-        if (major != 0)
-        {
-            return major;
-        }
-
-        int minor = Minor.CompareTo(other.Minor);
-        return minor != 0 ? minor : Additional.CompareTo(other.Additional);
+        return CanonicalVersion.CompareTo(other.CanonicalVersion);
     }
 
     /// <summary>Returns whether the left version precedes the right version.</summary>
@@ -79,8 +64,6 @@ public readonly record struct LegacyCombinerCommonFwVersion(byte Major, byte Min
     /// <inheritdoc />
     public override string ToString()
     {
-        return string.Create(
-            CultureInfo.InvariantCulture,
-            $"{Major}.{Minor}.{Additional}");
+        return CanonicalVersion.ToString();
     }
 }
