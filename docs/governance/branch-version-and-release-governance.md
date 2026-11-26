@@ -59,7 +59,11 @@ Under [ADR 0080 items 10-12](../adr/0080-governance-reset.md#branches-releases-a
    retired after `v1.2.0`, board decisions 200 and 215)
    receives `feature/<version>/<topic>` pull requests, except while frozen.
    While `1.3.0` is in development, `1.3.0` is the development base and
-   `1.3.x` is frozen: it takes no new commits. Feature pull requests for
+   `1.3.x` is frozen: it takes no new commits, including hotfixes and the
+   item 2 merge-back of release fixes. Those fixes reach `1.3.x` through the
+   item 3 merge below. `1.3.0` was cut from `1.3.x` on 2026-10-07, before
+   development started, so this cycle is an exception to the item 2 cut at
+   feature freeze. Feature pull requests for
    `1.3.0` target `1.3.0`. The release pull request merges `1.3.0` into
    `main`. After `v1.3.0` is published, the item 3 merge of `main` brings that
    work back into `1.3.x`, and trunk development resumes on `1.3.x`. The owner
