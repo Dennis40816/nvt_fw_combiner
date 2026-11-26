@@ -11,6 +11,7 @@ skills; they are not repository authority.
 | --- | --- | --- | --- |
 | `nfc-architecture-change` | implicit | architecture | codebase-design, improve-codebase-architecture |
 | `nfc-capture-firmware-ui` | implicit | visual-evidence | — |
+| `nfc-change-legacy-combiner` | implicit | legacy-combiner | — |
 | `nfc-composition-experience-change` | implicit | experience | — |
 | `nfc-crc-worker-contract` | implicit | crc-worker | — |
 | `nfc-diagnosing-bugs` | implicit | diagnosis | — |
@@ -21,6 +22,7 @@ skills; they are not repository authority.
 | `nfc-grill-with-docs` | implicit | decision-documentation | domain-modeling |
 | `nfc-implement` | implicit | implementation | tdd |
 | `nfc-locate-golden-evidence` | implicit | golden-lookup | — |
+| `nfc-onboard-new-ic` | implicit | ic-onboarding | — |
 | `nfc-open-firmware-example` | implicit | example-opening | — |
 | `nfc-release-readiness` | implicit | release | — |
 | `nfc-resolving-merge-conflicts` | implicit | conflict-recovery | — |

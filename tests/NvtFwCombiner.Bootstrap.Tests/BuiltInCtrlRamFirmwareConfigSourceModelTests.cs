@@ -12,6 +12,7 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
     [
         "nt51917-ctrlram-replace-alias-candidate",
         "nt51923-ctrlram-replace-candidate",
+        "nt51925-ctrlram-replace-candidate",
         "nt51926-ctrlram-replace-candidate",
         "nt51927-ctrlram-replace-candidate",
         "nt51928-ctrlram-replace-candidate",
@@ -28,6 +29,14 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
             ["nt51923-ctrlram-fw141-single-full-flash"] = "single",
             ["nt51923-ctrlram-fw141-cascade3-tp-work-240k"] = "cascade:2-*",
             ["nt51923-ctrlram-fw141-cascade3-full-flash"] = "cascade:2-*",
+            ["nt51925-ctrlram-fw141-single-tp-work-192k"] = "single",
+            ["nt51925-ctrlram-fw141-single-full-flash-256k"] = "single",
+            ["nt51925-ctrlram-fw141-cascade-tp-work-192k"] = "cascade:2-3",
+            ["nt51925-ctrlram-fw141-cascade-full-flash-256k"] = "cascade:2-3",
+            ["nt51925-ctrlram-fw200-single-tp-work-192k"] = "single",
+            ["nt51925-ctrlram-fw200-single-full-flash-256k"] = "single",
+            ["nt51925-ctrlram-fw200-cascade-tp-work-192k"] = "cascade:2-3",
+            ["nt51925-ctrlram-fw200-cascade-full-flash-256k"] = "cascade:2-3",
             ["nt51926-ctrlram-fw141-tp-work-240k"] = "none",
             ["nt51926-ctrlram-fw141-full-flash-256k"] = "none",
             ["nt51926-ctrlram-fw200-tp-work-240k"] = "none",
@@ -89,9 +98,9 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
         Assert.Equal(ExpectedCtrlRamMapTopologies, actualTopologies);
     }
 
-    /// <summary>All declared CtrlRAM profiles are formally supported without residual promotion blockers.</summary>
+    /// <summary>Existing CtrlRAM profiles stay Supported; the four NT51925 executable candidates retain their blockers.</summary>
     [Fact]
-    public void EveryCtrlRamProfileIsSupportedWithoutPromotionBlockers()
+    public void ExistingCtrlRamProfilesStaySupportedAndNt51925RemainsExecutableCandidate()
     {
         int profileCount = 0;
 
@@ -118,12 +127,23 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
 
                 profileCount++;
                 JsonElement promotion = profile.GetProperty("promotion");
-                Assert.Equal("supported", promotion.GetProperty("stage").GetString());
-                Assert.Empty(promotion.GetProperty("blockers").EnumerateArray());
+                if (profile.GetProperty("profileId").GetString() is
+                    "nt51925-ctrlram-replace-fw141-runtime-single" or "nt51925-ctrlram-replace-fw141-runtime-cascade" or
+                    "nt51925-ctrlram-replace-fw200-runtime-single" or "nt51925-ctrlram-replace-fw200-runtime-cascade")
+                {
+                    Assert.Equal("executable-candidate", promotion.GetProperty("stage").GetString());
+                    Assert.Equal(["golden", "human-review", "map"], promotion.GetProperty("blockers")
+                        .EnumerateArray().Select(static blocker => blocker.GetProperty("kind").GetString()).Order(StringComparer.Ordinal));
+                }
+                else
+                {
+                    Assert.Equal("supported", promotion.GetProperty("stage").GetString());
+                    Assert.Empty(promotion.GetProperty("blockers").EnumerateArray());
+                }
             }
         }
 
-        Assert.Equal(26, profileCount);
+        Assert.Equal(30, profileCount);
     }
 
     /// <summary>Every CtrlRAM profile requires one TP firmware-config region at the cataloged Primary start.</summary>
@@ -152,7 +172,8 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
                 string profileId = profile.GetProperty("profileId").GetString()!;
                 string icId = profileId[..7].ToUpperInvariant();
                 _ = coveredIcIds.Add(icId);
-                Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMap),
+                // The minimum-version entry is each IC's reference map.
+                Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, "1.0.0", out TpFlashMapProfile? flashMap, out _),
                     $"{profileId} has no TP flash-map profile.");
 
                 JsonElement mapBinding = profile.GetProperty("mapBinding");
@@ -184,10 +205,10 @@ public sealed class BuiltInCtrlRamFirmwareConfigSourceModelTests
             }
         }
 
-        Assert.Equal(26, profileCount);
+        Assert.Equal(30, profileCount);
         Assert.Equal(
             [
-                "NT51917", "NT51919", "NT51923", "NT51926", "NT51927", "NT51928",
+                "NT51917", "NT51919", "NT51923", "NT51925", "NT51926", "NT51927", "NT51928",
                 "NT51929", "NT51932", "NT51950", "NT51951",
             ],
             [.. coveredIcIds.Order(StringComparer.Ordinal)]);

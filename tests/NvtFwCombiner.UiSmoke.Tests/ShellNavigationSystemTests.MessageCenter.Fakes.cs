@@ -126,7 +126,7 @@ public sealed partial class ShellNavigationSystemTests
                         "1.5.0",
                         new string('a', 64),
                         new ResolutionToken("catalog:ui-test"),
-                        []))
+                        [], new CapabilityCatalogSummary(0, 0, 0)))
                 : new CanonicalSupportMatrixQueryResult(
                     CanonicalSupportMatrixCatalogState.ColdStartBlocked,
                     matrix: null,

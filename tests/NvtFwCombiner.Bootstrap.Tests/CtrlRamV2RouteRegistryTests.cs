@@ -69,12 +69,12 @@ public sealed class CtrlRamV2RouteRegistryTests
     [Fact]
     public void ProductionRouteKeysAreUnique()
     {
-        Assert.Equal(25, CtrlRamV2RouteRegistry.All.Count);
+        Assert.Equal(29, CtrlRamV2RouteRegistry.All.Count);
         Assert.Equal(
             CtrlRamV2RouteRegistry.All.Count,
             CtrlRamV2RouteRegistry.All.Select(static route => route.Key).Distinct().Count());
         Assert.Equal(
-            19,
+            23,
             CtrlRamV2RouteRegistry.All.Count(static route =>
                 route.ReportMetadataMapId is not null));
         Assert.Equal(
@@ -86,7 +86,6 @@ public sealed class CtrlRamV2RouteRegistryTests
     /// <summary>Retired ICs have no production CtrlRAM route, bundle, profile, or processor owner.</summary>
     [Theory]
     [InlineData("NT51920")]
-    [InlineData("NT51925")]
     [InlineData("NT51930")]
     [InlineData("NT51931")]
     public void RetiredIcIdsHaveNoCtrlRamV2Route(string icId)

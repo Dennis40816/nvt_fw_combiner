@@ -7,23 +7,11 @@ internal sealed partial class MergePresentationViewModel
     internal void ApplyFirmwareSlotText()
     {
         MergeDpSlot.ApplyDisplayText(
-            "DP BIN",
-            Text.MergeDpSlotDescription,
-            Text.RequiredLabel,
-            Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
+            "DP BIN", Text.MergeDpSlotDescription, Text.RequiredLabel, Text.OptionalLabel, Text.NoBinSelectedLabel);
         MergeTpSlot.ApplyDisplayText(
-            "TP BIN",
-            Text.MergeTpSlotDescription,
-            Text.RequiredLabel,
-            Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
+            "TP BIN", Text.MergeTpSlotDescription, Text.RequiredLabel, Text.OptionalLabel, Text.NoBinSelectedLabel);
         MergeLdcSlot.ApplyDisplayText(
-            "LDC BIN",
-            Text.MergeLdcSlotDescription,
-            Text.RequiredLabel,
-            Text.OptionalLabel,
-            Text.NoBinSelectedLabel);
+            "LDC BIN", Text.MergeLdcSlotDescription, Text.RequiredLabel, Text.OptionalLabel, Text.NoBinSelectedLabel);
         foreach (FirmwareSlotViewModel slot in new[] { MergeDpSlot, MergeTpSlot, MergeLdcSlot })
         {
             slot.ApplyExperienceText(Text);

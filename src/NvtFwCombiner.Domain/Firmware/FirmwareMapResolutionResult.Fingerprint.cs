@@ -30,6 +30,8 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             AppendField(builder, "family.content-hash", resolvedMap.FamilyContentHash);
             AppendMap(builder, resolvedMap);
             AppendTopology(builder, resolvedMap.TopologySelection);
+            if (resolvedMap.CommonFirmwareVersion is { } commonVersion)
+            { AppendField(builder, "selection.common-firmware-version", commonVersion.ToString()); }
             AppendArtifacts(builder, resolvedMap.ArtifactIdentities);
             AppendMetadataStructures(
                 builder,
@@ -48,6 +50,7 @@ public sealed partial class FirmwareFamilyResolutionDefinition
             AppendField(builder, "map.id", map.MapId);
             AppendField(builder, "map.address-space", map.AddressSpaceId);
             AppendEnum(builder, "map.coverage-policy", map.CoveragePolicy);
+            AppendCommonFirmwareVersionFrom(builder, "map.applicability", map.Applicability.CommonFirmwareVersionFrom);
             AppendStringList(builder, "map.evidence", map.EvidenceRefs);
             AppendField(builder, "selection.member", resolvedMap.MemberId);
             AppendField(builder, "selection.mode", resolvedMap.ModeId);

@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Each compared subject is the real selected registry in a fresh process.</summary>
 public sealed class PrebuiltProfileCatalogEquivalenceTests
 {
-    /// <summary>All 24 selected bundles and the entire pinned publication must agree across sources.</summary>
+    /// <summary>All 26 selected bundles and the entire pinned publication must agree across sources.</summary>
     [Fact]
     public async Task SelectedSourcesPreserveAllDocumentsAndPinnedPublication()
     {
@@ -22,7 +22,7 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
         JsonNode second = await json.RunAsync();
         Assert.Equal("prebuilt", first["source"]!.GetValue<string>());
         Assert.Equal("json", second["source"]!.GetValue<string>());
-        Assert.Equal(24, first["bundles"]!.AsArray().Count);
+        Assert.Equal(26, first["bundles"]!.AsArray().Count);
         Assert.True(JsonNode.DeepEquals(first["bundles"], second["bundles"]));
         Assert.True(JsonNode.DeepEquals(first["publication"], second["publication"]));
         Assert.True(JsonNode.DeepEquals(first["parents"], second["parents"]));
@@ -167,9 +167,8 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     internal static void AssertPinned(JsonNode result)
     {
         Assert.True(result["loaded"]!.GetValue<bool>(), result.ToJsonString());
-        // The published catalog snapshot pinned by CanonicalCatalogSnapshotDigestTests (decision 192/195 DP declaration identities).
-        Assert.Equal("adf144922d409b48b3ef76a263f57c957337c3c4b4ecefd3b65137e18bbca730", result["publication"]!["sha256"]!.GetValue<string>());
-        Assert.Equal(493864, result["publication"]!["text"]!.GetValue<string>().Length);
+        Assert.Equal("4b3f2502af96373d8c5987c06e30bb4e52ded88a237d565b28cc7e3f7f251fb6", result["publication"]!["sha256"]!.GetValue<string>());
+        Assert.Equal(524465, result["publication"]!["text"]!.GetValue<string>().Length);
         Assert.Equal(7, result["publication"]!["sections"]!.AsArray().Count);
     }
 }

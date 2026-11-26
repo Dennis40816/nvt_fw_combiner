@@ -73,6 +73,31 @@ class PinnedGitReaderGitlinkTests(unittest.TestCase):
                 self.assertEqual("PARITY_AUTHORITY_MISMATCH", raised.exception.code)
                 self.assertEqual({}, dict(reader.gitlinks))
 
+    def test_real_comparator_worktree_holds_paths_beyond_the_windows_limit(self) -> None:
+        """The Golden tree has paths near 200 characters; a worktree under a temporary root passes 260."""
+
+        import os
+
+        from scripts.predecessor_comparison import LocalGitHost
+
+        blob = git(self.root, "rev-parse", f"{self.plain}:docs/note.txt")
+        long_path = "/".join(["golden"] + ["segment-" + "x" * 31] * 5 + ["expected.bin"])
+        git(self.root, "update-index", "--add", "--cacheinfo", f"100644,{blob},{long_path}")
+        git(self.root, "commit", "--quiet", "-m", "long path")
+        commit = git(self.root, "rev-parse", "HEAD")
+        with tempfile.TemporaryDirectory() as scratch:
+            parent = Path(scratch) / ("executor-" + "y" * 40)
+            parent.mkdir()
+            self.assertGreater(len(str(parent / "source" / long_path)), 260)
+            before = {name: os.environ.get(name) for name in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")}
+            host = LocalGitHost(self.root)
+            with host.detached_worktree(commit, parent, "source") as worktree:
+                self.assertEqual(commit, host.git_head(worktree))
+                self.assertEqual([], host.git_dirty_paths(worktree))
+                self.assertTrue((worktree / "docs" / "note.txt").is_file())
+            self.assertFalse((parent / "source").exists())
+            self.assertEqual(before, {name: os.environ.get(name) for name in before})
+
     def test_real_comparator_git_hosts_list_and_read_files_with_a_gitlink(self) -> None:
         from scripts.predecessor_comparison import LocalGitHost
         from scripts.predecessor_rolling import LocalRollingGitHost

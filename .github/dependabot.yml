@@ -6,6 +6,11 @@ updates:
       interval: weekly
     open-pull-requests-limit: 5
     labels: ["dependencies", "dotnet"]
+    ignore:
+      # JsonSchema.Net 9.0.0 added a maintenance-fee EULA to its binary packages.
+      # The owner keeps the audited 8.0.5 (1.3.x board decision 348, pull request 642).
+      - dependency-name: "JsonSchema.Net"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: pip
     directory: /tools/crc-worker

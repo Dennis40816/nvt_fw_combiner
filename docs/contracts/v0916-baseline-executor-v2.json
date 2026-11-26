@@ -1,0 +1,283 @@
+{
+  "schemaVersion": "2.0",
+  "kind": "exact-tag-source-built-cli",
+  "source": {
+    "tag": "v0.9.16",
+    "tagObject": "578b2614632d6c2affdf2000324b134b5d1a16c1",
+    "peeledCommit": "462590e8b993b8e42d088bc07377571a4bb9f25d",
+    "sourceTree": "dc46c9aa9ecf00cb898ba3bc287e1b15acdab735",
+    "cleanTreeRequired": true
+  },
+  "toolchain": {
+    "resolvedSdkVersion": "10.0.303",
+    "globalJson": {
+      "path": "global.json",
+      "size": 109,
+      "sha256": "1497bda77ac26a91600f9eaa9d733be95a970961816c63738a4aafe1dc9c14e3"
+    }
+  },
+  "lockFiles": [
+    {
+      "path": "src/NvtFwCombiner.Application/packages.lock.json",
+      "size": 202,
+      "sha256": "7caeed41b3bad2407a3ff34c212f80966b35b7294d94db6cb52953c29950d617"
+    },
+    {
+      "path": "src/NvtFwCombiner.Bootstrap/packages.lock.json",
+      "size": 1966,
+      "sha256": "9499cca47f49315eecc1cccb75d6a27d518493d7d9d9d96a345504b4e93adf0e"
+    },
+    {
+      "path": "src/NvtFwCombiner.Cli/packages.lock.json",
+      "size": 2228,
+      "sha256": "0f0d6f03bf7552650a042f4dbdaec23d35d5adca7625f441d05072dde7c58be8"
+    },
+    {
+      "path": "src/NvtFwCombiner.Contracts/packages.lock.json",
+      "size": 61,
+      "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46"
+    },
+    {
+      "path": "src/NvtFwCombiner.Domain/packages.lock.json",
+      "size": 61,
+      "sha256": "03eeadc5ef377c17f787ab65f41fb4c8a9c936bb7f7f4171111fdeec8a81cb46"
+    },
+    {
+      "path": "src/NvtFwCombiner.Infrastructure/packages.lock.json",
+      "size": 1452,
+      "sha256": "877f798d9e3e82e893b1825766912dd5e63cbbf4198bf9c47daadfbeaef115a5"
+    },
+    {
+      "path": "src/NvtFwCombiner.Profiles/packages.lock.json",
+      "size": 202,
+      "sha256": "7caeed41b3bad2407a3ff34c212f80966b35b7294d94db6cb52953c29950d617"
+    }
+  ],
+  "externalTools": [
+    {
+      "path": "external-tools/catalog.json",
+      "size": 4530,
+      "sha256": "0c9079ba73ffd35d8c91fd89c40f3b0d89a79e31035b9e3b5b2781e16bc5dac9"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/CommandLine.dll",
+      "size": 225280,
+      "sha256": "e7d67580a8999d0e5534039f62e0dbc423b2d6dac51c2f5ff6ef199e4a53138d"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe",
+      "size": 9728,
+      "sha256": "f611af7e315d46341e15cd7140eb3962f6ac05d337121e5554022ef5e69a2bbe"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe.config",
+      "size": 174,
+      "sha256": "e2f8febf28b49915d142e4b698435d53b7eb3443853bd2892b86fe20e8895620"
+    },
+    {
+      "path": "external-tools/diff-nf-merge/1.0.0/package-manifest.json",
+      "size": 1466,
+      "sha256": "de0c2c879842cc01e4ea03e3631c7fd455cb67a6a5bb3e6e9a818782f046b114"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.13.0/Combiner.exe",
+      "size": 41472,
+      "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.13.0/manifest.json",
+      "size": 559,
+      "sha256": "1c60badcc23fc5f3708d7cfb171a9a2e94c708a1aa257d0dac3efb7a20d96442"
+    }
+  ],
+  "restore": {
+    "workingDirectory": ".",
+    "arguments": [
+      "dotnet",
+      "restore",
+      "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+      "--force-evaluate",
+      "--runtime",
+      "win-x64"
+    ]
+  },
+  "build": {
+    "workingDirectory": ".",
+    "arguments": [
+      "dotnet",
+      "build",
+      "src/NvtFwCombiner.Cli/NvtFwCombiner.Cli.csproj",
+      "--configuration",
+      "Release",
+      "--runtime",
+      "win-x64",
+      "--self-contained",
+      "true",
+      "--no-restore",
+      "-p:ContinuousIntegrationBuild=true",
+      "-p:PathMap={sourceRoot}=/_/src"
+    ]
+  },
+  "cliAssembly": {
+    "path": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64/NvtFwCombiner.Cli.exe",
+    "size": 162304,
+    "sha256": "093212528d1048acdb43563ba795353e1ac872f8b6a3aa99251782e958ad1a30"
+  },
+  "runtimeClosure": {
+    "root": "src/NvtFwCombiner.Cli/bin/Release/net10.0/win-x64",
+    "fileCount": 431,
+    "totalSize": 88367164,
+    "sha256": "18da112302672766db191872d6b7973ca05effa257293b09161904545eb2c3b0"
+  },
+  "certification": "none",
+  "terminal": false,
+  "materialization": "fresh-detached-git-worktree",
+  "platform": "windows-x64",
+  "compilerHost": {
+    "status": "in-effect",
+    "boardDecisions": [
+      "1.1.12 board decision 79",
+      "1.2.x board decision 275",
+      "1.2.x board decision 277"
+    ],
+    "requiredRuntime": {
+      "framework": "Microsoft.NETCore.App",
+      "version": "10.0.11",
+      "architecture": "x64"
+    },
+    "environmentVariables": {
+      "DOTNET_ROLL_FORWARD": "Disable"
+    },
+    "extraBuildArguments": [
+      "-p:UseSharedCompilation=false",
+      "-nodeReuse:false",
+      "-p:RuntimeFrameworkVersion=10.0.11"
+    ],
+    "missingRuntimePolicy": "refuse",
+    "verification": {
+      "kind": "embedded-portable-pdb",
+      "scope": "first-party-cli-project-graph",
+      "runtimeVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32"
+    }
+  },
+  "lockFileRewrites": [
+    {
+      "path": "src/NvtFwCombiner.Application/packages.lock.json",
+      "size": 242,
+      "sha256": "6af4b16a9d68824e8329cc7f3d96264083034ad1fca4fdc0eece4a9290686ee3",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization"
+      ]
+    },
+    {
+      "path": "src/NvtFwCombiner.Bootstrap/packages.lock.json",
+      "size": 2064,
+      "sha256": "fd83c75bf9320dc05895210b05abe8df9a1c9e3979805b77e9c293fedb148259",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization",
+        "refresh-first-party-project-ranges"
+      ]
+    },
+    {
+      "path": "src/NvtFwCombiner.Cli/packages.lock.json",
+      "size": 2337,
+      "sha256": "96545dfde22b332e5ac0e71552809474dd6e29a7a1d4dd419e92c0d08a5e0d78",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization",
+        "refresh-first-party-project-ranges"
+      ]
+    },
+    {
+      "path": "src/NvtFwCombiner.Contracts/packages.lock.json",
+      "size": 94,
+      "sha256": "1e39b4149e1289978e01a366893a0697356e855bc7156b7c70747288030042f9",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization"
+      ]
+    },
+    {
+      "path": "src/NvtFwCombiner.Domain/packages.lock.json",
+      "size": 94,
+      "sha256": "1e39b4149e1289978e01a366893a0697356e855bc7156b7c70747288030042f9",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization"
+      ]
+    },
+    {
+      "path": "src/NvtFwCombiner.Infrastructure/packages.lock.json",
+      "size": 1529,
+      "sha256": "4dab1311f3e19bd834ce42fb75630139f339b477b42b5ddc6b17ca69cbe4da01",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization",
+        "refresh-first-party-project-ranges"
+      ]
+    },
+    {
+      "path": "src/NvtFwCombiner.Profiles/packages.lock.json",
+      "size": 242,
+      "sha256": "6af4b16a9d68824e8329cc7f3d96264083034ad1fca4fdc0eece4a9290686ee3",
+      "explanationClasses": [
+        "add-empty-win-x64-target",
+        "windows-nuget-serialization"
+      ]
+    }
+  ],
+  "lockFileDiff": {
+    "format": "unified-diff-lf",
+    "text": "diff --git a/src/NvtFwCombiner.Application/packages.lock.json b/src/NvtFwCombiner.Application/packages.lock.json\nindex acbe2fa4c..08a9b6cbb 100644\n--- a/src/NvtFwCombiner.Application/packages.lock.json\n+++ b/src/NvtFwCombiner.Application/packages.lock.json\n@@ -8,6 +8,7 @@\n       \"nvtfwcombiner.domain\": {\n         \"type\": \"Project\"\n       }\n-    }\n+    },\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\ndiff --git a/src/NvtFwCombiner.Bootstrap/packages.lock.json b/src/NvtFwCombiner.Bootstrap/packages.lock.json\nindex 758cac13e..21cbdd45c 100644\n--- a/src/NvtFwCombiner.Bootstrap/packages.lock.json\n+++ b/src/NvtFwCombiner.Bootstrap/packages.lock.json\n@@ -24,8 +24,8 @@\n       \"nvtfwcombiner.application\": {\n         \"type\": \"Project\",\n         \"dependencies\": {\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"nvtfwcombiner.contracts\": {\n@@ -38,16 +38,16 @@\n         \"type\": \"Project\",\n         \"dependencies\": {\n           \"JsonSchema.Net\": \"[8.0.5, )\",\n-          \"NvtFwCombiner.Application\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Application\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"nvtfwcombiner.profiles\": {\n         \"type\": \"Project\",\n         \"dependencies\": {\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"JsonSchema.Net\": {\n@@ -59,6 +59,7 @@\n           \"JsonPointer.Net\": \"6.0.1\"\n         }\n       }\n-    }\n+    },\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\ndiff --git a/src/NvtFwCombiner.Cli/packages.lock.json b/src/NvtFwCombiner.Cli/packages.lock.json\nindex 703e7fb9c..4602d93ae 100644\n--- a/src/NvtFwCombiner.Cli/packages.lock.json\n+++ b/src/NvtFwCombiner.Cli/packages.lock.json\n@@ -24,16 +24,16 @@\n       \"nvtfwcombiner.application\": {\n         \"type\": \"Project\",\n         \"dependencies\": {\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"nvtfwcombiner.bootstrap\": {\n         \"type\": \"Project\",\n         \"dependencies\": {\n-          \"NvtFwCombiner.Application\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Infrastructure\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Profiles\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Application\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Infrastructure\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Profiles\": \"[0.9.16, )\"\n         }\n       },\n       \"nvtfwcombiner.contracts\": {\n@@ -46,16 +46,16 @@\n         \"type\": \"Project\",\n         \"dependencies\": {\n           \"JsonSchema.Net\": \"[8.0.5, )\",\n-          \"NvtFwCombiner.Application\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Application\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"nvtfwcombiner.profiles\": {\n         \"type\": \"Project\",\n         \"dependencies\": {\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"JsonSchema.Net\": {\n@@ -67,6 +67,7 @@\n           \"JsonPointer.Net\": \"6.0.1\"\n         }\n       }\n-    }\n+    },\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\ndiff --git a/src/NvtFwCombiner.Contracts/packages.lock.json b/src/NvtFwCombiner.Contracts/packages.lock.json\nindex 6afd6786b..0f43b3774 100644\n--- a/src/NvtFwCombiner.Contracts/packages.lock.json\n+++ b/src/NvtFwCombiner.Contracts/packages.lock.json\n@@ -1,6 +1,7 @@\n {\n   \"version\": 2,\n   \"dependencies\": {\n-    \"net10.0\": {}\n+    \"net10.0\": {},\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\ndiff --git a/src/NvtFwCombiner.Domain/packages.lock.json b/src/NvtFwCombiner.Domain/packages.lock.json\nindex 6afd6786b..0f43b3774 100644\n--- a/src/NvtFwCombiner.Domain/packages.lock.json\n+++ b/src/NvtFwCombiner.Domain/packages.lock.json\n@@ -1,6 +1,7 @@\n {\n   \"version\": 2,\n   \"dependencies\": {\n-    \"net10.0\": {}\n+    \"net10.0\": {},\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\ndiff --git a/src/NvtFwCombiner.Infrastructure/packages.lock.json b/src/NvtFwCombiner.Infrastructure/packages.lock.json\nindex 836b07c75..6faf1ef70 100644\n--- a/src/NvtFwCombiner.Infrastructure/packages.lock.json\n+++ b/src/NvtFwCombiner.Infrastructure/packages.lock.json\n@@ -33,8 +33,8 @@\n       \"nvtfwcombiner.application\": {\n         \"type\": \"Project\",\n         \"dependencies\": {\n-          \"NvtFwCombiner.Contracts\": \"[0.9.2, )\",\n-          \"NvtFwCombiner.Domain\": \"[0.9.2, )\"\n+          \"NvtFwCombiner.Contracts\": \"[0.9.16, )\",\n+          \"NvtFwCombiner.Domain\": \"[0.9.16, )\"\n         }\n       },\n       \"nvtfwcombiner.contracts\": {\n@@ -43,6 +43,7 @@\n       \"nvtfwcombiner.domain\": {\n         \"type\": \"Project\"\n       }\n-    }\n+    },\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\ndiff --git a/src/NvtFwCombiner.Profiles/packages.lock.json b/src/NvtFwCombiner.Profiles/packages.lock.json\nindex acbe2fa4c..08a9b6cbb 100644\n--- a/src/NvtFwCombiner.Profiles/packages.lock.json\n+++ b/src/NvtFwCombiner.Profiles/packages.lock.json\n@@ -8,6 +8,7 @@\n       \"nvtfwcombiner.domain\": {\n         \"type\": \"Project\"\n       }\n-    }\n+    },\n+    \"net10.0/win-x64\": {}\n   }\n }\n\\ No newline at end of file\n",
+    "size": 5937,
+    "sha256": "3b5d1b832174de820e53ba1aa71e7dd3b62f8e0680611d5fed123cc3474c3988"
+  },
+  "managedAssemblies": [
+    {
+      "path": "NvtFwCombiner.Application.dll",
+      "size": 321536,
+      "sha256": "8849f4078a19fb05fe3fdb3747ebb4165e0dbd824d02a7d6106609844a0a7110"
+    },
+    {
+      "path": "NvtFwCombiner.Bootstrap.dll",
+      "size": 537600,
+      "sha256": "d44a6c47997de67f14b7298cd187d1029613b05f89b8f11340e17ad995ca0427"
+    },
+    {
+      "path": "NvtFwCombiner.Cli.dll",
+      "size": 14336,
+      "sha256": "f146e1c54d205361d564b1cc5e68f18d511ddc07d541d4439585a578929dde71"
+    },
+    {
+      "path": "NvtFwCombiner.Contracts.dll",
+      "size": 144896,
+      "sha256": "a825c96ce188a4d9872df7b0867890f9dbdc53f24fa8a6fe50e89b1b4707a1ec"
+    },
+    {
+      "path": "NvtFwCombiner.Domain.dll",
+      "size": 378880,
+      "sha256": "6d1d630030b3ed10339e7154dde1dcfe9aa2ae1b5b91175e4d1f6be6484a170f"
+    },
+    {
+      "path": "NvtFwCombiner.Infrastructure.dll",
+      "size": 652288,
+      "sha256": "b29b0dc737288aeb8bc8310abba981f35938e7813d076f78e9fd24d1611a574e"
+    },
+    {
+      "path": "NvtFwCombiner.Profiles.dll",
+      "size": 870400,
+      "sha256": "c20877a29b70b0e89422b79494786471c1367ddefce2b0fb0ffc5f90c5a8837c"
+    }
+  ],
+  "v1Relation": {
+    "contract": {
+      "path": "docs/contracts/v0916-baseline-executor-v1.json",
+      "size": 3730,
+      "sha256": "92e400212b5cdbb5e164b4d1401d59cdd1adbb0aef9a490be4777554d5b1e659"
+    },
+    "relation": "identical-runtime-closure",
+    "differingFiles": []
+  }
+}

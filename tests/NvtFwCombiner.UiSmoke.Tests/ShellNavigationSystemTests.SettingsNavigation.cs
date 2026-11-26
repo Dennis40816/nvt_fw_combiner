@@ -63,12 +63,12 @@ public sealed partial class ShellNavigationSystemTests
         string expectedVersion = File.ReadAllText(RepositoryPaths.FromRepositoryRoot("VERSION")).Trim();
         Assert.Equal(expectedVersion, viewModel.AppVersion);
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "App version" && row.Value == expectedVersion);
-        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC catalog" && row.Value == "10");
-        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "10 ICs");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC catalog" && row.Value == "11");
+        Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "Standard Merge" && row.Value == "11 ICs");
         Assert.DoesNotContain(viewModel.Settings.OverviewRows, row => row.Title == "DP Replace");
         SettingSummaryViewModel capability = Assert.Single(viewModel.Settings.CapabilityRows);
         Assert.Equal("CtrlRAM Replace available ICs", capability.Title);
-        Assert.Equal("10 ICs", capability.Value);
+        Assert.Equal("11 ICs", capability.Value);
         Assert.Equal("Available", capability.Status);
         Assert.DoesNotContain(
             viewModel.Settings.OverviewRows.Concat(viewModel.Settings.CapabilityRows),
@@ -99,7 +99,7 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Contains(viewModel.Settings.OverviewRows, row => row.Title == "IC 目錄" && row.Status == "目錄");
         Assert.Contains(viewModel.Settings.CapabilityRows, row =>
             row.Title == "CtrlRAM Replace 可用的 IC" &&
-            row.Value == "10 個 IC" &&
+            row.Value == "11 個 IC" &&
             row.Status == "可用" &&
             row.Description.Contains("支援矩陣", StringComparison.Ordinal));
 
@@ -136,13 +136,13 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.Contains(
             viewModel.Settings.OverviewRows,
-            row => row.Title == "Standard Merge" && row.Value == "10 ICs");
+            row => row.Title == "Standard Merge" && row.Value == "11 ICs");
         Assert.DoesNotContain(
             viewModel.Settings.OverviewRows,
             row => row.Title == "DP Replace");
         Assert.Contains(
             viewModel.Settings.CapabilityRows,
-            row => row.Title == "CtrlRAM Replace available ICs" && row.Value == "10 ICs");
+            row => row.Title == "CtrlRAM Replace available ICs" && row.Value == "11 ICs");
 
         SupportMatrixRowViewModel[] availableRows =
         [

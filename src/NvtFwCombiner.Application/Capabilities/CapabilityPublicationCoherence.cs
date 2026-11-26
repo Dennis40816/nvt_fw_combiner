@@ -34,7 +34,8 @@ internal static class CapabilityPublicationCoherence
                ((composition.V2Details.Provenance.Context is
                      LogicalOutputV2CompilationContext or
                      RuntimeReferenceReplaceV2CompilationContext) ||
-                composition.IsV2AbFunctionOpenCandidate));
+                composition.IsV2AbFunctionOpenCandidate ||
+                composition.IsV2StandardMergeOpenCandidate));
     }
 
     internal static void ValidateDefinition(

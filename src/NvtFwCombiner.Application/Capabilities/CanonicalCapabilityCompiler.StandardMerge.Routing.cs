@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
 
@@ -10,6 +11,21 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         string icId,
         long dpInputLength)
     {
+        try
+        {
+            return ResolveSourceEnvelopeMetadataPlanCore(icId, dpInputLength);
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            return new(null, new CapabilityCatalogIssue("profile.v2.builtin-bundle-load-failed",
+                $"The declared Standard metadata could not be loaded: {exception.Message}", IcIdentifier.Normalize(icId)));
+        }
+    }
+
+    private MetadataPlanResolutionResult? ResolveSourceEnvelopeMetadataPlanCore(
+        string icId,
+        long dpInputLength)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(icId);
         ArgumentOutOfRangeException.ThrowIfNegative(dpInputLength);
         string normalizedIcId = IcIdentifier.Normalize(icId);
@@ -18,6 +34,30 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         {
             return MetadataFailure(CapabilityCatalogIssueCodes.CatalogUnavailable,
                 "No valid canonical capability catalog is loaded.");
+        }
+
+        if (GetStandardMapSelectionPrerequisite(normalizedIcId) is { } prerequisite)
+        {
+            if (dpInputLength != prerequisite.MapCapacity)
+            {
+                return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "The Standard DP length has no published exact metadata route.");
+            }
+            _ = TryGetPublishedStandardVersionRoute(normalizedIcId,
+                out ResolvedCapabilityRoute? versionRoute, out _, out _);
+            if (versionRoute is null)
+            {
+                return MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                    "Version selection requires one published Standard metadata route.");
+            }
+            MetadataPlanDefinition? plan = _dynamicCompiler.GetDeclaredMapMetadataPlan(normalizedIcId, ExperienceIds.StandardMerge);
+            return !IsCurrentPublishedRoute(snapshot, versionRoute)
+                ? MetadataFailure(AuthoringSessionIssueCodes.StalePublication,
+                    "The canonical Standard publication changed during metadata lookup.")
+                : plan is not null && versionRoute.CompilationContract.AdmitsDeclaredMetadataPlan(normalizedIcId, plan)
+                    ? new MetadataPlanResolutionResult(plan.Resolve(snapshot.ResolutionToken), null)
+                    : MetadataFailure(CapabilityCatalogIssueCodes.RouteUnavailable,
+                        "The published Standard route did not supply its declared metadata plan.");
         }
 
         bool declared = TryGetStandardSourceEnvelopeRoutes(
@@ -354,6 +394,11 @@ internal sealed partial class CanonicalCapabilityCompilerAdapter
         out ResolvedCapability? resolvedCapability,
         out IReadOnlyList<CompositionIssue> issues)
     {
+        if (GetStandardMapSelectionPrerequisite(icId) is { } prerequisite)
+        {
+            return TryCompileStandardVersionSelection(icId, capturedDp, prerequisite, selectedInputSlotIds,
+                out composition, out resolvedCapability, out issues);
+        }
         bool declared = TryGetStandardSourceEnvelopeRoutes(
             icId, out StandardSourceEnvelopeRoutes? routes, out issues);
         if (!declared)

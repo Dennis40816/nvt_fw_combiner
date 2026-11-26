@@ -105,7 +105,7 @@ internal sealed partial class FirmwareArtifactClassificationResolver
                     : null;
         }
         // TP-SVN-MODEL-1113-01: the TP SVN stamp at TP start + 0x24 is read from the same capture through the same
-        // exact Standard plan, or only when every current TP-only candidate agrees; it never depends on FWConfig.
+        // exact Standard plan, or only when every declared map candidate agrees; it never depends on FWConfig.
         TpSvnObservation? standardTpSvn = kind is CtrlRamBaseKind.StandardTp or CtrlRamBaseKind.StandardFlash &&
             IsCurrentSnapshot(publication)
                 ? exactStandard?.MetadataPlan.ResolutionToken == publication.ResolutionToken

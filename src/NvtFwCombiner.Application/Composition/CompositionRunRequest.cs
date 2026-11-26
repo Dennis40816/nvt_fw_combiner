@@ -201,19 +201,7 @@ public sealed class CompositionRunRequest
 
     private static void ValidateExecutableComposition(CompiledComposition compiledComposition)
     {
-        if (compiledComposition.IsV2BankReplaceCandidate)
-        {
-            return;
-        }
-        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2RuntimeExecutable)
-        {
-            return;
-        }
-
-        if (compiledComposition.Eligibility == CompiledCompositionEligibility.V2PlanCompiled &&
-            compiledComposition.V2Details.Provenance.Promotion.Stage == CompiledProfilePromotionStage.ExecutableCandidate &&
-            (compiledComposition.V2Details.Provenance.Context is LogicalOutputV2CompilationContext or RuntimeReferenceReplaceV2CompilationContext ||
-             compiledComposition.IsV2AbFunctionOpenCandidate))
+        if (CapabilityPublicationCoherence.IsExecutionAdmitted(compiledComposition))
         {
             return;
         }
@@ -261,6 +249,13 @@ public sealed class CompositionRunRequest
         {
             throw new ArgumentException(
                 "The compiled V2 output policy forbids explicit filename overrides.",
+                nameof(outputFileName));
+        }
+
+        if (outputFileNameIsOverride && UnverifiedCandidateOutputName.Applies(compiledComposition))
+        {
+            throw new ArgumentException(
+                "An unverified candidate output name carries the unverified marker and cannot be overridden.",
                 nameof(outputFileName));
         }
 

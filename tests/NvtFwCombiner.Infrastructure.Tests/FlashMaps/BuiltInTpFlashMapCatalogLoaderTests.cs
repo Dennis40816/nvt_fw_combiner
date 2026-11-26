@@ -15,7 +15,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [Fact]
     public void LoadReadsEveryBuiltInProfile()
     {
-        Assert.Equal(10, BuiltInTpFlashMapCatalog.IcIds.Count);
+        Assert.Equal(11, BuiltInTpFlashMapCatalog.IcIds.Count);
         Assert.Equal(BuiltInTpFlashMapCatalog.IcIds.Count, BuiltInTpFlashMapCatalog.IcIds.Distinct().Count());
     }
 
@@ -33,7 +33,7 @@ public sealed class BuiltInTpFlashMapCatalogLoaderTests
     [InlineData("NT51951", 0x37000, 0x80000)]
     public void ProfilesDeclareTpAndFullFlashShapes(string icId, long tpPrefix, long evidencedFlashCapacity)
     {
-        Assert.True(BuiltInTpFlashMapCatalog.TryFind(icId, out Application.FlashMaps.TpFlashMapProfile? profile));
+        Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, "1.0.0", out Application.FlashMaps.TpFlashMapProfile? profile, out _));
         Assert.Equal(tpPrefix, profile!.TpPrefixLength);
         Assert.Contains(evidencedFlashCapacity, profile.FullFlashCapacities);
         Assert.False(string.IsNullOrWhiteSpace(profile.BaseShapeEvidence));

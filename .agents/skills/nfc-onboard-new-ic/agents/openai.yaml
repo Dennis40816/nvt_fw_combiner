@@ -1,0 +1,4 @@
+interface:
+  display_name: "Onboard A New IC"
+  short_description: "Order the work for an owner IC evidence drop"
+  default_prompt: "Use $nfc-onboard-new-ic to onboard this IC evidence drop without promoting support."

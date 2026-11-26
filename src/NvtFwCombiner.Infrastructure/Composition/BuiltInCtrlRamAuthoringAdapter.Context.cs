@@ -26,6 +26,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
         FirmwareConfigMetadata? baseFirmwareConfig = null;
         IReadOnlyList<TpFlashMapRegion> regions = [];
         IReadOnlyList<TpCtrlRamPostbuildSource> sources = [];
+        TpFlashMapProfile? tpFlashMap = null;
 
         string? basePath = null;
         byte[]? baseBytes = null;
@@ -75,11 +76,11 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
 
         if (basePath is not null && baseLength > 0)
         {
-            if (!BuiltInPostbuildProfileResolver.TryGetPostbuildProfile(
+            if (!BuiltInPostbuildProfileResolver.TryGetSelection(
                     projection,
                     icId,
                     basePath,
-                    out postbuildProfile,
+                    out BuiltInCommonFwSelection? commonFwSelection,
                     out CompositionIssue? postbuildIssue,
                     baseBytes))
             {
@@ -87,6 +88,8 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
             }
             else
             {
+                postbuildProfile = commonFwSelection!.PostbuildProfile;
+                tpFlashMap = commonFwSelection.TpFlashMap;
                 try
                 {
                     int? reportedChipCount =
@@ -148,12 +151,12 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
         if (commandPlan is not null || basePath is null)
         {
             sources = commandPlan is null
-                ? BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
-                    postbuildProfile?.IcId ?? icId,
+                ? BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSourcesOf(
+                    tpFlashMap,
                     selection,
                     postbuildProfile)
-                : BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSources(
-                    postbuildProfile?.IcId ?? icId,
+                : BuiltInTpFlashMapCatalog.GetPostbuildCtrlRamSourcesOf(
+                    tpFlashMap,
                     commandPlan);
             regions = [.. sources.SelectMany(source => source.Regions)
                 .DistinctBy(region => region.RegionId, StringComparer.Ordinal)
@@ -317,6 +320,7 @@ internal sealed partial class BuiltInCtrlRamAuthoringAdapter
             !TryCreateCtrlRamFirmwareVersionWritePlan(
                 backupMetadata,
                 postbuildProfile!,
+                tpFlashMap,
                 commandPlan,
                 firmwareVersionEdit,
                 baseBytes,

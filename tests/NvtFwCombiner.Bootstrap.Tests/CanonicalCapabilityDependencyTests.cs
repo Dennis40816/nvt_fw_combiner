@@ -1,4 +1,5 @@
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Infrastructure.Capabilities;
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Application.FlashMaps;
 using NvtFwCombiner.Domain.Composition;
@@ -14,22 +15,29 @@ public sealed class CanonicalCapabilityDependencyTests
     {
         foreach (string icId in BootstrapTestHost.Canonical.Projection.GetIcIds())
         {
-            Assert.True(
-                BuiltInTpFlashMapCatalog.TryFind(icId, out TpFlashMapProfile? flashMapProfile),
-                $"Missing TP flash-map profile for canonical IC {icId}.");
-            Assert.NotNull(flashMapProfile);
-            Assert.NotEmpty(flashMapProfile.Regions);
+            IReadOnlyList<LegacyCombinerPostbuildProfile> profiles = LegacyCombinerPostbuildCatalog.GetProfiles(icId);
+            Assert.NotEmpty(profiles);
+            foreach (LegacyCombinerPostbuildProfile profile in profiles)
+            {
+                Assert.True(BuiltInTpFlashMapCatalog.TrySelect(icId, profile.EffectiveCommonFwVersion.ToString(),
+                    out TpFlashMapProfile? flashMapProfile, out string? issue), issue);
+                Assert.NotNull(flashMapProfile);
+                Assert.NotEmpty(flashMapProfile.Regions);
+            }
         }
     }
 
-    /// <summary>Flash-map rows must be reachable through the IC support catalog instead of becoming hidden IC facts.</summary>
+    /// <summary>Flash-map rows have canonical authorable routes, including unverified candidates.</summary>
     [Fact]
     public void FlashMapProfilesHaveCanonicalRows()
     {
         HashSet<string> supportedIcIds = [.. BootstrapTestHost.Canonical.Projection.GetIcIds()];
+        HashSet<string> declaredIcIds = [.. BuiltInCanonicalCapabilityPolicy.Load().Routes
+            .Select(static route => route.Identity.IcId)];
 
         foreach (string icId in BuiltInTpFlashMapCatalog.IcIds)
         {
+            Assert.Contains(icId, declaredIcIds);
             Assert.Contains(icId, supportedIcIds);
         }
     }
@@ -57,24 +65,33 @@ public sealed class CanonicalCapabilityDependencyTests
     }
 
     /// <summary>
-    /// Every production postbuild profile must be exposed through CtrlRAM Replace support.
+    /// Every production postbuild profile has an authorable CtrlRAM Replace route.
     /// </summary>
     [Fact]
-    public void PostbuildProfilesHaveCtrlRamReplaceSupportOrExplicitBlockedRows()
+    public void PostbuildProfilesHaveAuthorableCtrlRamReplaceRows()
     {
         HashSet<string> ctrlRamReplaceIcIds =
         [
             .. GetAuthorableIcIds(ExperienceIds.CtrlRamReplace),
         ];
+        CanonicalCapabilityPolicyRoute[] declaredRoutes =
+        [
+            .. BuiltInCanonicalCapabilityPolicy.Load().Routes.Where(static route =>
+                route.Identity.WorkflowId == ExperienceIds.CtrlRamReplace),
+        ];
+        HashSet<string> declaredIcIds = [.. declaredRoutes.Select(static route => route.Identity.IcId)];
 
         foreach (string icId in LegacyCombinerPostbuildCatalog.All
                      .Select(profile => profile.IcId)
                      .Distinct(StringComparer.Ordinal))
         {
-            Assert.Contains(icId, ctrlRamReplaceIcIds);
+            Assert.Contains(icId, declaredIcIds);
         }
 
-        Assert.Equal(10, ctrlRamReplaceIcIds.Count);
+        Assert.Equal(11, ctrlRamReplaceIcIds.Count);
+        Assert.Contains("NT51925", ctrlRamReplaceIcIds);
+        Assert.All(declaredRoutes.Where(static route => route.Identity.IcId == "NT51925"),
+            static route => Assert.Equal(CapabilityAuthoringAvailability.Available, route.Authoring.Value));
     }
 
     /// <summary>Retired DP Replace has no authorable member or exact route.</summary>
@@ -102,8 +119,8 @@ public sealed class CanonicalCapabilityDependencyTests
                 foreach (IcNumberSelection selection in PostbuildSelectionTestCases.GetBranchSelections(profile))
                 {
                     LegacyCombinerPostbuildCommandPlan plan = profile.ResolvePlan(selection);
-                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegions(
-                        profile.IcId,
+                    IReadOnlyList<TpFlashMapRegion> regions = BuiltInTpFlashMapCatalog.GetRegionsOf(
+                        BuiltInCommonFwSelector.FindTpFlashMap(profile.IcId, profile.EffectiveCommonFwVersion.ToString()),
                         selection,
                         profile,
                         TpFlashMapRegionKind.CtrlRam);
