@@ -370,16 +370,58 @@ class ReleaseVersionHeadersTests(unittest.TestCase):
         ):
             self.assertEqual(0, self.run_cli("--write"))
 
+    def test_development_versions_update_both_headers_and_can_return_to_stable(self):
+        for version in (b"1.3.0-g.0", b"1.3.0-g.12"):
+            with self.subTest(version=version):
+                for path, raw in self.original.items():
+                    self.write(path, raw)
+                self.write("VERSION", version + b"\n")
+                self.assertEqual(1, self.run_cli())
+                self.assertEqual(0, self.run_cli("--write"))
+                for path, raw in self.original.items():
+                    expected = (
+                        version + b"\n"
+                        if path == "VERSION"
+                        else raw.replace(b"`1.1.2`", b"`" + version + b"`", 1)
+                    )
+                    self.assertEqual(expected, (self.root / path).read_bytes())
+                self.assertEqual(0, self.run_cli())
+
+                self.write("VERSION", b"1.3.0\n")
+                self.assertEqual(0, self.run_cli("--write"))
+                for path, raw in self.original.items():
+                    expected = (
+                        b"1.3.0\n"
+                        if path == "VERSION"
+                        else raw.replace(b"`1.1.2`", b"`1.3.0`", 1)
+                    )
+                    self.assertEqual(expected, (self.root / path).read_bytes())
+                self.assertEqual(0, self.run_cli())
+
     def test_invalid_versions_and_headers_fail_before_any_write(self):
+        invalid_versions = (
+            b"1.01.3",
+            b"v1.1.3",
+            b"bad",
+            b"1.3.0-g.01",
+            b"1.3.0-dev.0",
+            b"1.3.0-rc.1",
+            b"1.3.0.0",
+            b"1.3.0+build",
+        )
         for path, raw in self.original.items():
             replacements = (
-                (b"1.01.3\n", b"v1.1.3\n", b"1.1.3-rc.1\n", b"bad\n")
+                tuple(version + b"\n" for version in invalid_versions)
                 if path == "VERSION"
                 else (
                     b"# Missing header\n",
                     raw + raw,
                     raw.replace(b"`1.1.2`", b"`bad`", 1),
                     raw.replace(b"`1.1.2`", b"1.1.2", 1),
+                )
+                + tuple(
+                    raw.replace(b"`1.1.2`", b"`" + version + b"`", 1)
+                    for version in invalid_versions
                 )
             )
             for invalid in replacements:

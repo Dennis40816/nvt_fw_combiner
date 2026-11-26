@@ -11,6 +11,24 @@ from [`CHANGELOG.md`](../../CHANGELOG.md), and planned scope from the roadmap.
 An ordinary version bump does not require a new entry in this historical index.
 Actual tag creation and release-identity checks still follow the rules below.
 
+## Development Version Identity
+
+Owner decision: 2026-11-17, confirmed 2026-11-26.
+
+During development, `VERSION` is `X.Y.Z-g.N`, where `X.Y.Z` is the next release
+version and `N` is a non-negative decimal without leading zeros (for example,
+`1.3.0-g.0`). This replaces the `-dev.N` form for new work.
+
+Each development node receives an annotated Git tag `vX.Y.Z-g.N`. A development
+tag creates no GitHub Release and is never offered through the Launcher.
+The release PR only removes the `-g.N` suffix. The commit after a release starts
+the next version at `-g.1`.
+
+`main` and every release still use exactly `X.Y.Z`; the existing stable mapping
+from `VERSION` to tag, package, manifest, and Catalog remains unchanged.
+
+All existing `-dev.N` entries and tables below are historical records.
+
 ## Initial node
 
 - `v0.1.0-dev.0` — init/bootstrap and contract definition node. Includes specification, governance, .NET/Avalonia solution skeleton, installers, CI/release skeleton, two Python references, domain proof primitives, external combiner runner contracts, and no firmware-parity claim.
@@ -368,6 +386,7 @@ v1.0.0          stable
 
 - Create a tag only after its commit passes every gate available at that milestone.
 - Never move or reuse a tag; corrections receive a new prerelease number.
+- A `vX.Y.Z-g.N` tag points to a commit whose `VERSION` is exactly `X.Y.Z-g.N`.
 - `VERSION`, changelog, assembly/worker versions, manifest, commit, and tag must agree.
 - Development tags do not trigger stable publishing; only exact `vX.Y.Z` tags do.
 - Stable release tags are signed once the signing policy and key custody are approved.

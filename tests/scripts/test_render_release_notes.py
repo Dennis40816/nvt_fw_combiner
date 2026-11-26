@@ -118,6 +118,12 @@ class RenderReleaseNotesTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "incomplete release token"):
                     MODULE.render_release_notes(incomplete, "0.9.14")
 
+    def test_rejects_development_identity_with_a_matching_changelog_section(self) -> None:
+        changelog = complete_section().replace("0.9.14", "1.3.0-g.0")
+
+        with self.assertRaisesRegex(ValueError, "stable SemVer"):
+            MODULE.render_release_notes(changelog, "1.3.0-g.0")
+
     def test_rejects_prerelease_and_duplicate_sections(self) -> None:
         changelog = complete_section() + "\n" + complete_section()
 
