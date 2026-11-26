@@ -71,6 +71,17 @@ public sealed partial class HostInfrastructureBoundaryTests
         Assert.Contains("ProfileBundleSchemaValidator.LoadEmbeddedSchema(", savedRuleSchema, StringComparison.Ordinal);
     }
 
+    /// <summary>Saved Rule identity parsing reuses the one strict duplicate-key reader.</summary>
+    [Fact]
+    public void InfrastructureConvergenceReusesStrictJsonReader()
+    {
+        string identityReader = ReadText(
+            "src/NvtFwCombiner.Infrastructure/Files/SavedRuleDocumentIdentityReader.cs");
+
+        Assert.Contains("StrictJsonDocumentReader.Parse(", identityReader, StringComparison.Ordinal);
+        Assert.DoesNotContain("HasUniqueProperties", identityReader, StringComparison.Ordinal);
+    }
+
     /// <summary>Bundle snapshots keep only state consumed after construction.</summary>
     [Fact]
     public void InfrastructureConvergenceRemovesConstructionOnlyBundleState()
