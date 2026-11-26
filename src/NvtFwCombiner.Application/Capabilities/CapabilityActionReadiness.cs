@@ -391,23 +391,6 @@ public static class CapabilityActionReadinessResolver
             new CapabilityActionAvailability(build));
     }
 
-    /// <summary>
-    /// Resolves the canonical primary Build blocker before a runtime refresh
-    /// exists. Compiled plans with no external dependencies need no environment
-    /// snapshot; dependency-bearing plans fail closed with the shared stale
-    /// runtime blocker after higher-priority authoring and input checks.
-    /// </summary>
-    public static CapabilityActionBlocker? ResolvePrimaryBuildBlockerBeforeRuntimeRefresh(
-        CapabilityAdmissionSnapshot admission,
-        IEnumerable<CapabilityChildReadiness> inputChildren,
-        RuntimeDependencyReadinessRequest runtimeDependencyRequest)
-    {
-        return ResolveBuildAvailabilityBeforeRuntimeRefresh(
-            admission,
-            inputChildren,
-            runtimeDependencyRequest).PrimaryBlocker;
-    }
-
     /// <summary>Resolves all canonical Build blockers before a runtime refresh exists.</summary>
     public static CapabilityActionAvailability ResolveBuildAvailabilityBeforeRuntimeRefresh(
         CapabilityAdmissionSnapshot admission,

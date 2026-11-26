@@ -266,13 +266,6 @@ public sealed partial class XamlControlStyleContractTests
             element.Name.LocalName == "DataTemplate" &&
             (string?)element.Attribute("DataType") == "vm:DiffDlmPreservationDetailViewModel");
         Assert.Equal("3", (string?)Assert.Single(preservationDetails.Elements()).Attribute("Spacing"));
-        foreach (string key in new[] { "ReplaceMemoryMapRowTemplate", "MergeMemoryMapRowTemplate" })
-        {
-            XElement template = Assert.Single(shared.Descendants(), element =>
-                (string?)element.Attribute(x + "Key") == key);
-            XElement grid = Assert.Single(template.Descendants(), element => element.Name.LocalName == "Grid");
-            Assert.Equal("3", (string?)grid.Attribute("RowSpacing"));
-        }
     }
 
     /// <summary>Keeps the three Home preview headings on their shared semantic visual role.</summary>

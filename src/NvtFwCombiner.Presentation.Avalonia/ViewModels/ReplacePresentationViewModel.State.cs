@@ -315,14 +315,6 @@ internal sealed partial class ReplacePresentationViewModel
         PublishAcceptedModeContext();
     }
 
-    internal void SelectReplaceMode(string mode)
-    {
-        if (ReplaceModeChoices.Contains(mode, StringComparer.Ordinal))
-        {
-            SelectedReplaceMode = mode;
-        }
-    }
-
     internal bool StageAuthorableModeForCatalogReconciliation(
         Func<string, bool> isAuthorable)
     {

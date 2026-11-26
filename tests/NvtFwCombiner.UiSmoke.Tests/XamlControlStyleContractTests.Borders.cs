@@ -46,8 +46,6 @@ public sealed partial class XamlControlStyleContractTests
             ApprovedOutline("Resources/MainWindowPageTemplates.axaml", "Border", "IsVisible", "{Binding Settings.SupportMatrix.HasRows}"),
             Assert.IsType<XElement>(Assert.Single(XDocument.Parse(ReadPresentationFile("Resources/MainWindowPageTemplates.axaml")).Descendants(),
                 element => (string?)element.Attribute(xaml + "Name") == "SupportMatrixCatalogDetails").Parent),
-            ApprovedTemplateOutline("MemoryCoverageSegmentListTemplate"),
-            ApprovedTemplateOutline("MemoryCoveragePlainSegmentListTemplate"),
         ];
         Assert.Equal(
             approvedOutlines.Select(static outline => outline.ToString()).Order(StringComparer.Ordinal),
@@ -77,16 +75,6 @@ public sealed partial class XamlControlStyleContractTests
                   (string?)element.Parent?.Attribute(attribute) == value
                 : (string?)element.Attribute("BorderThickness") == "1" &&
                   (string?)element.Attribute(attribute) == value));
-    }
-
-    private static XElement ApprovedTemplateOutline(string key)
-    {
-        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
-        XElement template = Assert.Single(XDocument.Parse(ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml")).Descendants(),
-            element => element.Name.LocalName == "DataTemplate" && (string?)element.Attribute(xaml + "Key") == key);
-        return Assert.Single(template.Elements(), element => element.Name.LocalName == "Border" &&
-            (string?)element.Attribute("BorderThickness") == "1" &&
-            (string?)element.Attribute("Classes") == "surface memoryInfoRow memoryCoverageLinkedRow");
     }
 
     /// <summary>Every shared dropdown keeps a stable two-pixel outline before and during keyboard focus.</summary>

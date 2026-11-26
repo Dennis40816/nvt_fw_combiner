@@ -835,30 +835,6 @@ public sealed partial class MemoryCoveragePopupTests
         Assert.NotNull(FindNamed<Border>(window, "MemorySliceCard"));
     }
 
-    /// <summary>The shared flat row consumes the same primary flag as logical Merge/Replace rows.</summary>
-    [AvaloniaTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void FlatSupportingRowHidesOnlyTechnicalTrace(bool dark)
-    {
-        MemoryCoverageSegmentViewModel[] slices = MemoryCoverageBarProjectionTests.Example(withTrace: true);
-        Window window = CreateWindow(388, dark, slices, out MemoryCoverageBar bar);
-        try
-        {
-            var template = (global::Avalonia.Controls.Templates.IDataTemplate)bar.FindResource("MemoryCoverageSegmentListTemplate")!;
-            Control row = template.Build(slices[2])!;
-            row.DataContext = slices[2];
-            window.Content = row;
-            Render();
-            Assert.False(row.IsVisible);
-            row.DataContext = slices[0];
-            Render();
-            Assert.True(row.IsVisible);
-            Assert.True(row.Bounds.Height > 0);
-        }
-        finally { window.Close(); }
-    }
-
     /// <summary>Trace geometry is inert and crossing it dismisses stale direct or local cards.</summary>
     [AvaloniaTheory]
     [InlineData(false)]

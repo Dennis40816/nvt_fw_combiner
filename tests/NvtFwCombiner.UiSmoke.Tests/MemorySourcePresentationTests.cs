@@ -1,5 +1,4 @@
 using Avalonia;
-using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless;
@@ -35,7 +34,7 @@ public sealed class MemorySourcePresentationTests
         Assert.Equal(chinese ? "保留區" : "Reserved", text.GetMemoryContentTitle(MemoryContentRole.Reserved, CtrlRamRegionRole.Other));
     }
 
-    /// <summary>Both row variants and the tooltip render localized purpose and source without overlap.</summary>
+    /// <summary>Collapsed/expanded region cards and the tooltip render localized purpose and source without overlap.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -67,7 +66,7 @@ public sealed class MemorySourcePresentationTests
         var uri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
         var resources = new ResourceInclude(uri) { Source = uri };
         var stack = new StackPanel { Spacing = 16 };
-        string[] templates = ["MemoryCoveragePlainSegmentListTemplate", "MemoryCoverageSegmentListTemplate", "MemoryCoverageTooltipTemplate"];
+        string[] templates = ["MemoryCoverageRegionCardTemplate", "MemoryCoverageRegionCardTemplate", "MemoryCoverageTooltipTemplate"];
         foreach (string key in templates)
         {
             Assert.True(resources.TryGetResource(key, theme, out object? resource));
@@ -145,14 +144,6 @@ public sealed class MemorySourcePresentationTests
             Assert.True(technicalAt.Y + technical.Bounds.Height <= window.Bounds.Height);
             Assert.True(technicalAt.X + technical.Bounds.Width <= window.Bounds.Width);
             Assert.Contains(chinese ? "（寫入前）" : "(before writes)", technical.Text, StringComparison.Ordinal);
-            Border row = stack.Children[0].GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("memoryCoverageLinkedRow"));
-            Assert.Contains(title, AutomationProperties.GetName(row), StringComparison.Ordinal);
-            Assert.True(row.Focus());
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(segment.Interaction.IsActive);
-            window.Focusable = true;
-            Assert.True(window.Focus());
-            Assert.False(segment.Interaction.IsActive);
             Assert.True(stack.Children.Remove(tooltip));
             window.Height = 650;
             ContentControl[] cards = [.. stack.Children.OfType<ContentControl>()];
@@ -215,63 +206,6 @@ public sealed class MemorySourcePresentationTests
             {
                 _ = Directory.CreateDirectory(destination);
                 using FileStream stream = File.Create(Path.Combine(destination, $"memory-source-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png"));
-                frame.SavePng(stream);
-            }
-        }
-        finally { window.Close(); }
-    }
-
-    /// <summary>Generic processing labels remain readable in both existing Plan row templates.</summary>
-    [AvaloniaTheory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public void GenericPostprocessPlanLabelsFitSharedRows(bool dark, bool chinese)
-    {
-        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
-        ThemeVariant theme = dark ? ThemeVariant.Dark : ThemeVariant.Light;
-        var uri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
-        var resources = new ResourceInclude(uri) { Source = uri };
-        var stack = new StackPanel { Spacing = 16 };
-        MemoryPlanActionKind[] actions = [MemoryPlanActionKind.ReplaceAndCrc, MemoryPlanActionKind.Postbuild];
-        string[] keys = ["ReplaceMemoryMapRowTemplate", "MergeMemoryMapRowTemplate"];
-        for (int index = 0; index < keys.Length; index++)
-        {
-            Assert.True(resources.TryGetResource(keys[index], theme, out object? resource));
-            var row = new MemoryMapRowViewModel("0x37000-0x37FFF (len 0x1000)", new(MemoryPlanSourceKind.BaseFirmware), actions[index], new(MemoryPlanSourceKind.DpBin), "Declared external processing; operation identity retained.", text);
-            stack.Children.Add(new ContentControl { Content = row, ContentTemplate = Assert.IsType<IDataTemplate>(resource, exactMatch: false) });
-        }
-        var window = new Window { Width = 360, Height = 240, RequestedThemeVariant = theme, Content = new Border { Padding = new Thickness(16), Child = stack } };
-        window.Resources.MergedDictionaries.Add(resources);
-        var styleUri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml");
-        window.Styles.Add(new StyleInclude(styleUri) { Source = styleUri });
-        window.Show();
-        try
-        {
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            foreach (ContentControl card in stack.Children.OfType<ContentControl>())
-            {
-                MemoryMapRowViewModel row = Assert.IsType<MemoryMapRowViewModel>(card.Content);
-                TextBlock action = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == row.ActionLabel);
-                Assert.DoesNotContain("CRC", action.Text, StringComparison.Ordinal);
-                Assert.True(action.IsEffectivelyVisible && action.Bounds.Width > 0);
-                foreach (TextBlock block in card.GetVisualDescendants().OfType<TextBlock>())
-                {
-                    Point point = block.TranslatePoint(default, window)!.Value;
-                    Assert.True(point.X >= 0 && point.X + block.Bounds.Width <= window.Bounds.Width);
-                    Assert.True(point.Y >= 0 && point.Y + block.Bounds.Height <= window.Bounds.Height);
-                }
-                Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == row.FlowLabel);
-            }
-            using global::Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
-            Assert.NotNull(frame);
-            string? destination = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
-            if (!string.IsNullOrEmpty(destination))
-            {
-                _ = Directory.CreateDirectory(destination);
-                using FileStream stream = File.Create(Path.Combine(destination, $"memory-plan-{(dark ? "dark" : "light")}-{(chinese ? "zh" : "en")}.png"));
                 frame.SavePng(stream);
             }
         }

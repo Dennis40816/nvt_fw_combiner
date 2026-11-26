@@ -36,10 +36,6 @@ public sealed class SpaciousPanelTests
             element => element.Name.LocalName == "ItemsControl" &&
                 ((string?)element.Attribute("Classes"))?.Split(' ').Contains("spaciousList", StringComparer.Ordinal) == true);
         Assert.Equal("{Binding ReplaceSlotGroups}", (string?)slotGroups.Attribute("ItemsSource"));
-        Assert.DoesNotContain(
-            "<ItemsControl Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
-            outputTemplates,
-            StringComparison.Ordinal);
         // The approved hover-only layout keeps legends, not persistent detail lists.
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);

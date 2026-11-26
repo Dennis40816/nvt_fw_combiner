@@ -49,20 +49,8 @@ public sealed partial class XamlControlStyleContractTests
             "FocusToolTipBehavior.IsEnabled",
             ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentBarTemplate"),
             StringComparison.Ordinal);
-        Assert.Contains(
-            "FocusToolTipBehavior.IsEnabled",
-            ExtractDataTemplate(templates, "MemoryCoverageLogicalItemTemplate"),
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "FocusToolTipBehavior.IsEnabled",
-            ExtractDataTemplate(templates, "MemoryCoverageSegmentListTemplate"),
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "FocusToolTipBehavior.IsEnabled",
-            ExtractDataTemplate(templates, "MemoryCoveragePlainSegmentListTemplate"),
-            StringComparison.Ordinal);
         Assert.Equal(
-            5,
+            2,
             templates.Split(
                 "ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"",
                 StringSplitOptions.None).Length - 1);
@@ -72,7 +60,7 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcAccentStrongBrush", styles, StringComparison.Ordinal);
         Assert.Contains("linked.reducedMotion", styles, StringComparison.Ordinal);
         Assert.Equal(
-            5,
+            2,
             templates.Split(
                 "Classes.reducedMotion=\"{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}\"",
                 StringSplitOptions.None).Length - 1);
@@ -343,7 +331,7 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>Base templates do not pin selection; the interactive rail supplies keyboard card navigation.</summary>
     [Fact]
-    public void MemoryCoverageMapCannotPinSelectionButInformationRowsCan()
+    public void MemoryCoverageBaseTemplatesDoNotPinSelection()
     {
         string templates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         foreach (string templateName in new[]
@@ -363,22 +351,6 @@ public sealed partial class XamlControlStyleContractTests
             Assert.DoesNotContain(" Click=", mapTemplate, StringComparison.Ordinal);
             Assert.DoesNotContain("Tapped=", mapTemplate, StringComparison.Ordinal);
             Assert.DoesNotContain("PointerPressed=", mapTemplate, StringComparison.Ordinal);
-        }
-
-        foreach (string templateName in new[]
-        {
-            "MemoryCoverageSegmentListTemplate",
-            "MemoryCoveragePlainSegmentListTemplate",
-            "MemoryCoverageLogicalItemTemplate",
-        })
-        {
-            string rowTemplate = ExtractDataTemplate(templates, templateName);
-            Assert.Contains("Focusable=\"True\"", rowTemplate, StringComparison.Ordinal);
-            Assert.Contains("FocusToolTipBehavior.IsEnabled=\"True\"", rowTemplate, StringComparison.Ordinal);
-            Assert.Contains(
-                "MemoryCoverageInteractionBehavior.IsEnabled=\"True\"",
-                rowTemplate,
-                StringComparison.Ordinal);
         }
     }
 

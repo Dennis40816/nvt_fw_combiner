@@ -257,10 +257,7 @@ public sealed partial class XamlControlStyleContractTests
         string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
         string templates = sharedTemplates + workflowTemplates;
         string replaceBar = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentBarTemplate");
-        string replaceList = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentListTemplate");
         string mergeBar = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentBarTemplate");
-        string mergeList = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentListTemplate");
-        string logicalItem = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalItemTemplate");
         string logicalRange = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalRangeTemplate");
         string replacePanel = ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
         string mergePanel = ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate");
@@ -302,7 +299,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Text=\"{Binding ChangeLabel}\"", logicalRange, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasChangeState}\"", logicalRange, StringComparison.Ordinal);
         Assert.DoesNotContain("memoryCoverageMarker", mergeBar, StringComparison.Ordinal);
-        Assert.DoesNotContain("memoryCoverageMarker", mergeList, StringComparison.Ordinal);
         Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageMarker memoryCoverageBarSegment\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Classes=\"memoryCoverageFill memoryCoverageBarSegment\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.memoryCoverageBarSegment\"", styles, StringComparison.Ordinal);
@@ -327,19 +323,16 @@ public sealed partial class XamlControlStyleContractTests
         }
         Assert.Contains("Focusable=\"False\"", replaceBar, StringComparison.Ordinal);
         Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", replaceBar, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("Focusable=\"False\"", mergeBar, StringComparison.Ordinal);
         Assert.DoesNotContain("FocusToolTipBehavior.IsEnabled", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeBar, StringComparison.Ordinal);
-        Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", logicalItem, StringComparison.Ordinal);
-        Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", logicalItem, StringComparison.Ordinal);
-        foreach (string row in new[] { mergeList, replaceList })
-        {
-            Assert.Contains("MemoryCoverageRegionCardTemplate", row, StringComparison.Ordinal);
-            Assert.Contains("Padding=\"12\"", row, StringComparison.Ordinal);
-        }
+        Assert.Contains("MemoryCoverageInteractionBehavior.IsEnabled=\"True\"", mergeBar, StringComparison.Ordinal);
+        Assert.Contains("Classes.linked=\"{Binding Interaction.IsActive}\"", mergeBar, StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"94,*\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding SizeValue}\"", regionCard, StringComparison.Ordinal);
@@ -348,11 +341,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ItemsSource=\"{Binding ProcessingFacts}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("IsExpanded=\"False\"", regionCard, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(templates, "Classes=\"technicalValue\" Text=\"·\""));
-        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", mergeList, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.Name=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", replaceList, StringComparison.Ordinal);
-        Assert.DoesNotContain("<StackPanel Grid.Column=\"1\"", mergeList, StringComparison.Ordinal);
         Assert.Contains(XElement.Parse(replacePanel).Descendants(), element =>
             element.Name.LocalName == "MemoryCoverageBar" &&
             (string?)element.Attribute("ItemsSource") == "{Binding ReplaceCoverageSegments}");
@@ -367,26 +355,17 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", mergePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"surface memoryInfoRow memoryCoverageLinkedRow\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"surface memoryInfoRow memoryCoverageLinkedRow\"", mergeList, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "Classes=\"spaciousList\" ItemTemplate=\"{StaticResource MemoryCoverageSegmentListTemplate}\"",
-            replacePanel,
-            StringComparison.Ordinal);
         Assert.Contains("ShowLegend=\"True\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("ShowLegend=\"True\"", mergePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReplaceSelectedCoverageItems", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReplaceBaseCoverageItems", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding RangeSummaryLabel}\"", logicalItem, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding HasMultipleRanges}\"", logicalItem, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding AddressRangeLabel}\"", logicalRange, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding CompactDetail}\"", logicalRange, StringComparison.Ordinal);
         Assert.Contains("RowDefinitions=\"Auto,Auto\"", logicalRange, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding RegionGroupLabel}\"", logicalRange, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(logicalRange, "MemoryCoverageCompactMarkerTemplate"));
-        Assert.DoesNotContain("MemoryCoverageCompactMarkerTemplate", logicalItem, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.memoryInfoPanel\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"TextBlock.memoryInfoDescription\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"Border.memoryInfoAddress\"", styles, StringComparison.Ordinal);
@@ -400,15 +379,12 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("TileMode=\"Tile\"", templates, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding UsesKeptPattern}\"", replaceBar, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{ReflectionBinding UsesKeptPattern}\"", regionMarker, StringComparison.Ordinal);
-        Assert.Contains("Content=\"{Binding DetailsLabel}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding HasPreservationDetails}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("<Flyout Placement=\"RightEdgeAlignedTop\">", replaceList, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding PreservationDetails}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding ArtifactRangeLabel}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding FlashRangeLabel}\"", replaceList, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding DispositionLabel}\"", replaceList, StringComparison.Ordinal);
+        Assert.Contains("IsVisible=\"{Binding HasPreservationDetails}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("ItemsSource=\"{Binding PreservationDetails}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding ArtifactRangeLabel}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding FlashRangeLabel}\"", regionCard, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding DispositionLabel}\"", regionCard, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesKeptPattern", mergeBar, StringComparison.Ordinal);
-        Assert.DoesNotContain("UsesKeptPattern", mergeList, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ReplaceCoverageStateLegend\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding ShowsGenericCoverageStateLegend}\"", replacePanel, StringComparison.Ordinal);
         Assert.Contains("IsVisible=\"{Binding HasObservedMemoryChanges}\"", replacePanel, StringComparison.Ordinal);
