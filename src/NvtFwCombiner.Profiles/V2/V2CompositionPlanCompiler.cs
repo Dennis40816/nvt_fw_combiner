@@ -252,7 +252,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!TryResolveGoverningRegionChain(range, regionsById, out FirmwareRegion[] governingRegionChain))
+            if (!CompiledRegionAccessContract.TryResolveGoverningRegionChain(range, regionsById, out FirmwareRegion[] governingRegionChain))
             {
                 issues.Add(new CompositionIssue(
                     InvalidView,
@@ -314,7 +314,7 @@ internal static partial class V2CompositionPlanCompiler
                 }
             }
 
-            _ = TryResolveGoverningRegionChain(
+            _ = CompiledRegionAccessContract.TryResolveGoverningRegionChain(
                 region.Range,
                 regionsById,
                 out FirmwareRegion[] governingRegionChain);
@@ -364,36 +364,6 @@ internal static partial class V2CompositionPlanCompiler
         return true;
     }
 
-    private static bool TryResolveGoverningRegionChain(
-        ByteRange range,
-        IReadOnlyDictionary<string, FirmwareRegion> regionsById,
-        out FirmwareRegion[] governingRegionChain)
-    {
-        FirmwareRegion? deepestContainingRegion = regionsById.Values
-            .Where(region => region.Range.Contains(range))
-            .OrderBy(static region => region.Range.Length)
-            .ThenBy(static region => region.RegionId, StringComparer.Ordinal)
-            .FirstOrDefault();
-        if (deepestContainingRegion is null)
-        {
-            governingRegionChain = [];
-            return false;
-        }
-
-        var reverseChain = new List<FirmwareRegion>();
-        for (FirmwareRegion? current = deepestContainingRegion; current is not null;)
-        {
-            reverseChain.Add(current);
-            current = current.ParentRegionId is { } parentRegionId
-                ? regionsById[parentRegionId]
-                : null;
-        }
-
-        reverseChain.Reverse();
-        governingRegionChain = [.. reverseChain];
-        return true;
-    }
-
     private static bool TryAuthorizeTargetWrite(
         string operationId,
         string targetViewId,
@@ -415,44 +385,24 @@ internal static partial class V2CompositionPlanCompiler
             return true;
         }
 
-        ResolvedRegionAccessRule[] applicableRules = [.. regionAccess.Rules.Values
-            .Where(rule => rule.Region.Range.Contains(target.Range))
-            .OrderBy(rule => rule.Region.Range.Length)
-            .ThenBy(rule => rule.Region.RegionId, StringComparer.Ordinal)];
-        if (applicableRules.Length == 0)
+        CompiledReadOnlyRange? restriction = regionAccess.Contract.GetTargetWriteRestriction(
+            target.Range, target.SpaceId, regionAccess.RegionsById);
+        if (restriction is null)
         {
-            AddAccessDenied(
-                issues,
-                operationId,
-                $"target view '{targetViewId}' has no declared profile access rule");
-            return false;
+            return true;
         }
-
-        foreach (ResolvedRegionAccessRule rule in applicableRules)
+        string detail = restriction.ReasonKind switch
         {
-            if (!AllowsProfileTarget(rule, target.Range, regionAccess.RegionsById))
-            {
-                AddAccessDenied(
-                    issues,
-                    operationId,
-                    $"profile access '{rule.Requirement.Access}' for region '{rule.Region.RegionId}' does not authorize its target range");
-                return false;
-            }
-        }
-
-        foreach (FirmwareRegion region in target.GoverningRegionChain)
-        {
-            if (!AllowsPhysicalTarget(region, target.Range, regionAccess.RegionsById))
-            {
-                AddAccessDenied(
-                    issues,
-                    operationId,
-                    $"physical write constraint '{region.WriteConstraint}' for region '{region.RegionId}' does not authorize its target range");
-                return false;
-            }
-        }
-
-        return true;
+            CompiledReadOnlyReasonKind.NoAccessRule =>
+                $"target view '{targetViewId}' has no declared profile access rule",
+            CompiledReadOnlyReasonKind.ProfileAccess =>
+                $"profile access '{restriction.AccessRule!.Access}' for region '{restriction.GoverningRegion.RegionId}' does not authorize its target range",
+            CompiledReadOnlyReasonKind.PhysicalWriteConstraint =>
+                $"physical write constraint '{restriction.GoverningRegion.WriteConstraint}' for region '{restriction.GoverningRegion.RegionId}' does not authorize its target range",
+            _ => throw new InvalidOperationException("Unknown compiled authoring restriction."),
+        };
+        AddAccessDenied(issues, operationId, detail);
+        return false;
     }
 
     private static bool TryAuthorizeProcessorWrite(
@@ -507,7 +457,7 @@ internal static partial class V2CompositionPlanCompiler
 
         foreach (FirmwareRegion region in target.GoverningRegionChain)
         {
-            if (!AllowsPhysicalTarget(region, target.Range, regionAccess.RegionsById))
+            if (!CompiledRegionAccessContract.AllowsPhysicalTarget(region, target.Range, regionAccess.RegionsById))
             {
                 AddAccessDenied(
                     issues,
@@ -518,46 +468,6 @@ internal static partial class V2CompositionPlanCompiler
         }
 
         return true;
-    }
-
-    private static bool AllowsProfileTarget(
-        ResolvedRegionAccessRule rule,
-        ByteRange targetRange,
-        IReadOnlyDictionary<string, FirmwareRegion> regionsById)
-    {
-        return rule.Requirement.Access switch
-        {
-            RegionAccessKind.Hidden or RegionAccessKind.ReadOnly => false,
-            RegionAccessKind.Whole => rule.Region.Range == targetRange,
-            RegionAccessKind.Parts => rule.Requirement.AllowedSubregionIds.Any(subregionId =>
-                regionsById[subregionId].Range == targetRange &&
-                StringComparer.Ordinal.Equals(regionsById[subregionId].ParentRegionId, rule.Region.RegionId)),
-            RegionAccessKind.ExplicitRange =>
-                rule.Region.Range.Contains(targetRange) && IsAligned(targetRange, rule.Region.Alignment),
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown region access kind."),
-        };
-    }
-
-    private static bool AllowsPhysicalTarget(
-        FirmwareRegion region,
-        ByteRange targetRange,
-        IReadOnlyDictionary<string, FirmwareRegion> regionsById)
-    {
-        return region.WriteConstraint switch
-        {
-            FirmwareWriteConstraint.Forbidden => false,
-            FirmwareWriteConstraint.WholeRegion => region.Range == targetRange,
-            FirmwareWriteConstraint.DeclaredSubregions => regionsById.Values.Any(child =>
-                StringComparer.Ordinal.Equals(child.ParentRegionId, region.RegionId) && child.Range == targetRange),
-            FirmwareWriteConstraint.ExplicitRange =>
-                region.Range.Contains(targetRange) && IsAligned(targetRange, region.Alignment),
-            _ => throw new InvalidOperationException("Validated V2 lowering encountered an unknown firmware write constraint."),
-        };
-    }
-
-    private static bool IsAligned(ByteRange range, int alignment)
-    {
-        return range.Start % alignment == 0 && range.Length % alignment == 0;
     }
 
     private static void AddAccessDenied(

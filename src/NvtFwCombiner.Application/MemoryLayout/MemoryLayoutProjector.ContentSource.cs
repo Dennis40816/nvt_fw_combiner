@@ -65,22 +65,49 @@ public static partial class MemoryLayoutProjector
 
         public MemoryLayoutContentSource? Initial(ByteRange range)
         {
-            return Resolve(_plan.OutputSpaceId, range, 0, allowRoundTrip: false);
+            return Resolve(_plan.OutputSpaceId, range, 0, allowRoundTrip: false)?.Source;
         }
 
         public MemoryLayoutContentSource? After(ByteRange range)
         {
             return Resolve(_plan.OutputSpaceId, range, _plan.OrderedOperations.Count,
                 allowRoundTrip: _abMerge && _canonicalRegions.Any(region =>
-                    region.Kind == FirmwareRegionKind.Code && region.Range.Contains(range)));
+                    region.Kind == FirmwareRegionKind.Code && region.Range.Contains(range)))?.Source;
         }
 
-        private MemoryLayoutContentSource? Resolve(
-            string spaceId, ByteRange range, int before, bool allowRoundTrip)
+        public System.Collections.ObjectModel.ReadOnlyCollection<ByteRange> FindOutputLocations(
+            string sourceSpaceId, ByteRange sourceRange, IReadOnlyList<MemoryLayoutSegment> segments,
+            int operationCount)
+        {
+            List<ByteRange> locations = [];
+            foreach (MemoryLayoutSegment segment in segments)
+            {
+                ResolvedContentSlice? slice = Resolve(_plan.OutputSpaceId, segment.Range, operationCount,
+                    allowRoundTrip: _abMerge && segment.CanonicalRegion?.Kind == FirmwareRegionKind.Code);
+                if (slice is null || slice.Source.SourceSpaceId != sourceSpaceId || !slice.Range.Contains(sourceRange))
+                {
+                    continue;
+                }
+
+                var outputRange = new ByteRange(
+                    checked(segment.Range.Start + sourceRange.Start - slice.Range.Start), sourceRange.Length);
+                ResolvedContentSlice? exact = Resolve(_plan.OutputSpaceId, outputRange, operationCount,
+                    allowRoundTrip: false, traceKind: ContentTraceKind.ExactLocation);
+                if (exact is not null && exact.Source.SourceSpaceId == sourceSpaceId && exact.Range == sourceRange)
+                {
+                    locations.Add(outputRange);
+                }
+            }
+            return Array.AsReadOnly(locations.Distinct().OrderBy(static range => range.Start).ToArray());
+        }
+
+        private ResolvedContentSlice? Resolve(
+            string spaceId, ByteRange range, int before, bool allowRoundTrip,
+            ContentTraceKind traceKind = ContentTraceKind.Provenance)
         {
             if (_inputs.TryGetValue(spaceId, out MemoryLayoutContentSource? input))
             {
-                return input;
+                return new ResolvedContentSlice(input, range);
             }
 
             int writerIndex = LastWriter(spaceId, range, before);
@@ -89,7 +116,7 @@ public static partial class MemoryLayoutProjector
                 ImageInitialization? initialization = _plan.Initializations.FirstOrDefault(
                     candidate => candidate.TargetSpaceId == spaceId);
                 return initialization?.ReferenceSpaceId is { } reference && _inputs.TryGetValue(reference, out input)
-                    ? input
+                    ? new ResolvedContentSlice(input, range)
                     : null;
             }
 
@@ -97,7 +124,9 @@ public static partial class MemoryLayoutProjector
             if (writer.Kind is CompositionOperationKind.RunExternalProcessor or
                 CompositionOperationKind.PatchScalar or CompositionOperationKind.TransformScalar)
             {
-                return Resolve(spaceId, range, writerIndex, allowRoundTrip);
+                return traceKind == ContentTraceKind.ExactLocation
+                    ? null
+                    : Resolve(spaceId, range, writerIndex, allowRoundTrip, traceKind);
             }
 
             if (!OperationWritesRange(writer, range))
@@ -114,14 +143,15 @@ public static partial class MemoryLayoutProjector
             }
 
             var sourceSlice = new ByteRange(checked(sourceRange.Start + range.Start - writer.TargetRange.Start), range.Length);
-            MemoryLayoutContentSource? source = Resolve(sourceSpace, sourceSlice, writerIndex, allowRoundTrip: false);
+            ResolvedContentSlice? source = Resolve(sourceSpace, sourceSlice, writerIndex, allowRoundTrip: false,
+                traceKind: traceKind);
             return source ?? (allowRoundTrip && spaceId == _plan.OutputSpaceId &&
                 writer.Kind == CompositionOperationKind.CopyRange
                     ? RoundTripOwner(writerIndex, range, sourceSlice)
                     : null);
         }
 
-        private MemoryLayoutContentSource? RoundTripOwner(int importIndex, ByteRange outputSlice, ByteRange workSlice)
+        private ResolvedContentSlice? RoundTripOwner(int importIndex, ByteRange outputSlice, ByteRange workSlice)
         {
             CompositionOperation import = _plan.OrderedOperations[importIndex];
             string workSpace = import.SourceSpaceId!;
@@ -185,6 +215,14 @@ public static partial class MemoryLayoutProjector
             }
 
             return -1;
+        }
+
+        private sealed record ResolvedContentSlice(MemoryLayoutContentSource Source, ByteRange Range);
+
+        private enum ContentTraceKind
+        {
+            Provenance,
+            ExactLocation,
         }
     }
 }

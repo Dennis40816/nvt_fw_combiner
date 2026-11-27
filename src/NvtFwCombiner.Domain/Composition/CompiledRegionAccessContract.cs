@@ -106,7 +106,7 @@ public sealed class CompiledRegionAccessRequirement
 }
 
 /// <summary>Complete immutable V2 region-access policy and logical-to-physical view provenance.</summary>
-public sealed class CompiledRegionAccessContract
+public sealed partial class CompiledRegionAccessContract
 {
     internal CompiledRegionAccessContract(
         IEnumerable<CompiledRegionAccessRequirement> requirements,

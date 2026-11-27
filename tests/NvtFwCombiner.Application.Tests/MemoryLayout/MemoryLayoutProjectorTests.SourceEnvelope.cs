@@ -11,6 +11,7 @@ public sealed partial class MemoryLayoutProjectorTests
     /// <summary>Physical projection retains canonical template geometry and attributes the extra DP tail only to the typed extent.</summary>
     [Theory]
     [InlineData(10)]
+    [InlineData(16)]
     [InlineData(20)]
     public void SourceEnvelopeProjectsOpaquePreservedTailAtActualLength(int actualLength)
     {
@@ -65,6 +66,10 @@ public sealed partial class MemoryLayoutProjectorTests
         Assert.Same(envelope, snapshot.SourceEnvelope);
         if (actualLength > Capacity)
         {
+            Assert.Equal(MemoryLayoutFactStatus.Unavailable, snapshot.ReadOnlyRanges.Status);
+            Assert.Equal(MemoryLayoutFactUnavailableReason.OutputExtentNotCoveredByAccessPolicy,
+                snapshot.ReadOnlyRanges.UnavailableReason);
+            Assert.Empty(snapshot.ReadOnlyRanges.Values);
             MemoryLayoutSegment tail = Assert.Single(snapshot.AfterSegments,
                 segment => segment.Range == new ByteRange(Capacity, actualLength - Capacity));
             Assert.Null(tail.CanonicalRegion);
@@ -74,11 +79,14 @@ public sealed partial class MemoryLayoutProjectorTests
         }
         else
         {
+            Assert.Equal(MemoryLayoutFactStatus.KnownWithValues, snapshot.ReadOnlyRanges.Status);
+            Assert.Equal(MemoryLayoutFactUnavailableReason.None, snapshot.ReadOnlyRanges.UnavailableReason);
             Assert.DoesNotContain(snapshot.AfterSegments,
                 static segment => segment.CanonicalRegion is null);
         }
         Assert.DoesNotContain(snapshot.CanonicalRegions,
             static region => region.Range.EndExclusive > Capacity);
         Assert.Equal(actualLength, snapshot.AfterSegments[^1].Range.EndExclusive);
+        Assert.Equal(MemoryLayoutFactUnavailableReason.NotDeclared, snapshot.DpVersionLocations.UnavailableReason);
     }
 }

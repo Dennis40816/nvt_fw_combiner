@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-07-11
-- Last amended: 2026-09-23
+- Last amended: 2026-11-27
 - Owners: Product owner + architecture owner + firmware reviewers
 - Supersedes: ADR 0008 catalog-join ownership and the C# catalog ownership in
   ADR 0012/ADR 0013 after #194 compatibility migration; their firmware
@@ -125,6 +125,50 @@ compiles canonical family/profile definitions. Infrastructure loads and hash-val
 data through ports, while Bootstrap remains dependency injection only. The catalog is a
 read-only query/session snapshot over those compiled results; it does not redefine firmware
 facts, replace `CompiledComposition`, or become a second compiler.
+
+The 2026-11-27 NFC 1.3.0 layout-facts amendment extends the existing
+`MemoryLayoutSnapshot` with typed immutable fact collections. Their states are
+known with values, known empty, and unavailable with a typed reason; absent
+authority never means a known-empty declaration. Existing segments and byte
+execution retain their meanings.
+
+`CompiledRegionAccessContract` owns effective authoring prohibitions and the
+same target-write predicate used by the profile compiler. A prohibited byte
+range is one that no legal authoring target can cover, including default
+denial, access rules, canonical physical constraints, and alignment. Atomic
+whole-region and declared-part grants remain writable through their legal
+complete targets. Application only projects these restrictions into the output
+address space and retains the canonical region and denial provenance.
+Preservation and processor writes do not grant authoring access. A logical
+output has no physical access contract. An AB bank Replace context currently
+carries an AB Merge contract for layout authority only, so its complete active
+authoring policy is unavailable rather than inferred from selected or preserved
+banks.
+
+An actual output extent longer than its canonical access map also leaves the
+complete policy unavailable. A template anchor cannot give the extra tail a
+region identity or access rule; seeded or preserved tail bytes do not supply
+that missing authority.
+
+DP version output locations distinguish metadata fields from canonical
+extractor carriers. Metadata-field locations retain the existing binding,
+structure, and exact version fields. Application requires a current accepted
+metadata resolution and proves each complete byte carrier through the existing
+operation trace. Shifted and duplicated copies retain their actual output
+coordinates; an unproven or overwritten carrier is unavailable. Content-owner
+attribution through a processor does not prove an unchanged version field.
+AB extractor-carrier locations reuse the existing observation owner's exact
+A/B CMI region declarations in the complete output map, including the bank
+Replace layout. Each carrier includes tracker bits as well as version bits;
+known carrier geometry asserts no readable or valid version value. Its bounds
+must fit the actual output extent. This projection adds no version extractor
+or metadata declaration.
+
+Integrity coverage and stored-value locations require canonical declarations.
+The current base has processor integrity dispositions but no coverage contract
+or typed unknown coverage declaration. They cannot stand in for integrity
+ranges, and this amendment does not infer coverage from processor write ranges
+or introduce such a contract.
 
 The 2026-07-28 convergence amendment limits one firmware fact to three
 firmware-semantic forms:
