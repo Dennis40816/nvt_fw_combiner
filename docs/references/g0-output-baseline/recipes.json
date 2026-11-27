@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "purpose": "Baseline input recipes only; not Golden, parity or support evidence. Patterns use (seed + index * step) modulo 256; literal overlays are applied in order. General mappings are ordered CLI declarations; the CLI owns execution. Synthetic BINs exist only in the external test area at run time.",
+  "schemaVersion": 2,
+  "purpose": "Baseline input provenance only; not Golden, parity or support evidence. All 94 routes declare one kind. Derived operations execute in list order: copy half-open repository-artifact ranges to targetOrder offsets in the prepared input file, or apply declared fill/literal bytes; copyCount equals targetOrder length. No firmware-field interpretation. Synthetic patterns use (seed + index * step) modulo 256 and ordered literal overlays. CLI/Application own all Merge/Replace, bank, CRC/header and naming logic. Generated inputs exist only in the external test area.",
   "recipes": [
     {
       "routeId": "route-7-nt51917-13-general-merge-14-not-applicable-7-generic",
@@ -26,12 +26,46 @@
           "targetStart": 1,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51917-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+      "capabilityFingerprint": "6351833963be2342f52c23cb70943f42e3e62321a0b3a7eb37c931a91386f0a8",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+      "capabilityFingerprint": "6dd59cf7f685177874fdc329eae54a4a0111bf61952bfce7d5aac7f2a7388ac2",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51917-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+      "capabilityFingerprint": "0104f0c6342a84fd1939b33ba43b421bdd771e4358d372140e28431bb558d9b8",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
       "capabilityFingerprint": "3cc5d7fce990c68169e333222b25691c08dec251939eac04b2c5a5803f37469c",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51917-fw132-cascade2-nt51927-alias",
       "bindings": [
         {
@@ -68,12 +102,101 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-mp-slave-r"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k",
+      "capabilityFingerprint": "3d5160f6dc02ce4abb37690e478121a8f85c46dd684e7e37be0cb0179d4adcca",
+      "decision": "D2",
+      "kind": "derived",
+      "icCount": 2,
+      "members": {
+        "targetIc": "NT51917",
+        "referenceCaseId": "nt51917-fw132-cascade2-nt51927-alias",
+        "replacementCaseId": "nt51917-fw132-cascade2-nt51927-alias"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+                "artifactId": "reference-base"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        }
+      ],
+      "inventory": {
+        "reason": "D2: TP source view or cross-case reference/replacements; no untouched complete native route bundle.",
+        "nativeReplacement": "Exact IC/Common FW/count native TP or full reference with same-run role-labelled replacements; preserve route fingerprint."
+      }
     },
     {
       "routeId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
       "capabilityFingerprint": "cf559ad9a510bb5694268f6c244242fbd0c6fc947b943dde0b528719176babdd",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51917-fw140-cascade3-nt51927-alias",
       "bindings": [
         {
@@ -120,7 +243,108 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-mp-slave-l"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k",
+      "capabilityFingerprint": "eaad4cc6762263d05a472c8427903075a462ee50ad22dc9a9b6df6f222e2f2d7",
+      "decision": "D2",
+      "kind": "derived",
+      "icCount": 3,
+      "members": {
+        "targetIc": "NT51917",
+        "referenceCaseId": "nt51917-fw140-cascade3-nt51927-alias",
+        "replacementCaseId": "nt51917-fw140-cascade3-nt51927-alias"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+                "artifactId": "reference-base"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-normal-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-l"
+        },
+        {
+          "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+          "artifactId": "replace-ctrlram-mp-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-l"
+        }
+      ],
+      "inventory": {
+        "reason": "D2: TP source view or cross-case reference/replacements; no untouched complete native route bundle.",
+        "nativeReplacement": "Exact IC/Common FW/count native TP or full reference with same-run role-labelled replacements; preserve route fingerprint."
+      }
     },
     {
       "routeId": "route-7-nt51919-13-general-merge-14-not-applicable-7-generic",
@@ -146,12 +370,223 @@
           "targetStart": 1,
           "length": 2
         }
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51919-14-standard-merge-13-selector-free-27-nt51919-standard-merge-256k",
+      "capabilityFingerprint": "429c08c598de3a54ee6802b14ff1ff1ad2b334916364ef6d9882c53ff5462f84",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51919-15-ctrlram-replace-4-1-ic-21-nt51919-ab-merge-512k",
+      "capabilityFingerprint": "1700c3990a5e0e56a14dc19792605c60741c116fecf80e112ca509359f5f0791",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 1,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51919",
+        "referenceCaseId": "nt51929-ab-t05-d06",
+        "replacementCaseId": "nt51929-fw200-single-auto-prj-594-20260717"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51929-ab-t05-d06",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-nf-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-normal-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-vn-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+      "capabilityFingerprint": "86001c22d3565b02f5b97d200d7d8e94fd6ce2af2706a91f16d24ad39d2ee53f",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-21-nt51919-ab-merge-512k",
+      "capabilityFingerprint": "21b1ae586a078bfe4b867fd8d7adb8c1b059dce83818b238d052a73e49911da4",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 3,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51919",
+        "referenceCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+        "replacementCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 262144
+              },
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 0
+                },
+                {
+                  "bank": "b",
+                  "start": 262144
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00720400",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291172
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00F20500",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291176
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00D10600",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291180
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "diffdlm-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-diff"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
+      "capabilityFingerprint": "977ba00fa51838165f67375f52bd6c5243d7f16afac9bdf56f086ea60aec7051",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 2,
+      "inventory": {
+        "reason": "D4 round 2: input-unavailable; No usable same-IC NT51919 repository base: canonical NT51919 cases are fact-scoped aliases to NT51929 payloads, not NT51919 base artifacts. Round 2 requires the source IC to equal the route IC; a family alias cannot substitute.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "No usable same-IC NT51919 repository base: canonical NT51919 cases are fact-scoped aliases to NT51929 payloads, not NT51919 base artifacts. Round 2 requires the source IC to equal the route IC; a family alias cannot substitute."
       ]
     },
     {
       "routeId": "route-7-nt51919-8-ab-merge-13-selector-free-21-nt51919-ab-merge-512k",
       "capabilityFingerprint": "b26580794bd22159c0b708364ccd6bf61c49a758a8e9ba17d2a8bf281c7eea16",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51919-ab-t05-d06-alias",
       "bindings": [
         {
@@ -166,7 +601,11 @@
           "artifactId": "tp-b-input",
           "option": "--tp-b"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
@@ -192,7 +631,187 @@
           "targetStart": 1,
           "length": 2
         }
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+      "capabilityFingerprint": "c5e84d3c6fc703644d12eb790c0c9110c99b8f60f828ecdf4c4942b36370011c",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
+      "capabilityFingerprint": "bf1c79abfccb91b10c3dba4ebefb0703666a3cb5739c2d944e9abbe4ff81c1ac",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
+      "capabilityFingerprint": "9b1cf67899c2f111de4131666bd503312c8d72b7973c64808856027b8a62d80e",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
+      "capabilityFingerprint": "2b7c7a98a72d067cdbc7ad807e8a7cd16af4a6ef371f166ff145a9eedb849482",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+      "capabilityFingerprint": "e3ee550b3e7f5409986195b52009d3f0aec2541f8aed0eb84b2416edec13c7b0",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k",
+      "capabilityFingerprint": "548075cc65b1b65565cbae515571b6086172c26f14ad13d28f8fc6793ef9fecf",
+      "decision": "D1",
+      "kind": "private-native",
+      "missingInputs": [
+        "dp-input",
+        "tp-input"
+      ],
+      "inventory": {
+        "reason": "D1: original inputs stay private; CI reader is outside this phase. Status: input-unavailable.",
+        "nativeReplacement": "Private CI access plus owner-certified effective FW, native IC count, same-run slots and immutable reference."
+      }
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
+      "capabilityFingerprint": "9de3ec6b00efe03a985c175a8ebffc9c9f129ae2fa098a937e36c45e86b5f220",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 1,
+      "inventory": {
+        "reason": "Phase B round 2 result: input-unavailable. No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
       ]
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
+      "capabilityFingerprint": "162bd4a3249c2385da95f7ec7f4b83f7f7d844ce983bbf40e0beff1ff708199f",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 1,
+      "inventory": {
+        "reason": "Phase B round 2 result: input-unavailable. No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
+      "capabilityFingerprint": "5c2b7db1208d167f211298a80aa67089a6c0dce24fb001f9d00a6d152f4a5142",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 1,
+      "inventory": {
+        "reason": "Phase B round 2 result: input-unavailable. No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
+      "capabilityFingerprint": "a9adf96b75a4487d16cefbdee30489d655c5b1c1cb450b30b9c184ae92f1bc17",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 1,
+      "inventory": {
+        "reason": "Phase B round 2 result: input-unavailable. No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
+      "capabilityFingerprint": "ff82f409a421054e72494401b1723ffb691f718a37a1025781e6491cbfe47ebf",
+      "decision": "D1",
+      "kind": "private-native",
+      "missingInputs": [
+        "replace-base",
+        "ctrlram"
+      ],
+      "inventory": {
+        "reason": "D1: original inputs stay private; CI reader is outside this phase. Status: input-unavailable.",
+        "nativeReplacement": "Private CI access plus owner-certified effective FW, native IC count, same-run slots and immutable reference."
+      }
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
+      "capabilityFingerprint": "4452d1e32da36e78e6ed4d9b2bc1dba0149e28c7ed9375de04f4b1801202c9d4",
+      "decision": "D1",
+      "kind": "private-native",
+      "missingInputs": [
+        "replace-base",
+        "ctrlram"
+      ],
+      "inventory": {
+        "reason": "D1: original inputs stay private; CI reader is outside this phase. Status: input-unavailable.",
+        "nativeReplacement": "Private CI access plus owner-certified effective FW, native IC count, same-run slots and immutable reference."
+      }
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
+      "capabilityFingerprint": "5ceedf70b66c82ed9cb8e8c41e9d0eae36235d5818e8c7371c176f9042770bf9",
+      "decision": "D1",
+      "kind": "private-native",
+      "missingInputs": [
+        "replace-base",
+        "ctrlram"
+      ],
+      "inventory": {
+        "reason": "D1: original inputs stay private; CI reader is outside this phase. Status: input-unavailable.",
+        "nativeReplacement": "Private CI access plus owner-certified effective FW, native IC count, same-run slots and immutable reference."
+      }
+    },
+    {
+      "routeId": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k",
+      "capabilityFingerprint": "298360a930540c52e8e15315071c39f4a97df66507b190cf89378b446ca96ed0",
+      "decision": "D1",
+      "kind": "private-native",
+      "missingInputs": [
+        "replace-base",
+        "ctrlram"
+      ],
+      "inventory": {
+        "reason": "D1: original inputs stay private; CI reader is outside this phase. Status: input-unavailable.",
+        "nativeReplacement": "Private CI access plus owner-certified effective FW, native IC count, same-run slots and immutable reference."
+      }
     },
     {
       "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
@@ -218,7 +837,101 @@
           "targetStart": 1,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+      "capabilityFingerprint": "de219d01d10cdc051b793c4f0462262fe88af22db06c1a1f11a37e05faecac35",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+      "capabilityFingerprint": "9779b16acaf35f97803dabb15ea9453532972a03261b4aad64eebbf2f9c3abf7",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+      "capabilityFingerprint": "8130d6f57768093f35002cceed11fe70b98051bcf57d36a078b77714111c4dce",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
+      "capabilityFingerprint": "ef39f5028f35d54f3fac6c352f761b33f462e468f52c171a668c0ca7da72037f",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
+      "capabilityFingerprint": "a40614e3c02dbfc1d2b0e1a70cad141d3d7f939993802103532dcbfcc2e209fe",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+      "capabilityFingerprint": "153a1cde0f00d1acfb225c1340223e310f3f76f6e4b4d013cd9a2c4f4a39b331",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+      "capabilityFingerprint": "5e47f59eee9fb01e30576ae6995d2d99065a1634353de1a1b8ccb67ab3ff5afa",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
+      "capabilityFingerprint": "42012edc1b7dfef590b1fbe6a96b7f5dfaa5c5a671382e16b8d466a82fc493e9",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
+      "capabilityFingerprint": "51450d385ab7aff2c1573932a90cf77468cf84480805ce17ff903d171add1e23",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
     },
     {
       "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
@@ -254,7 +967,11 @@
           "targetStart": 253984,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     },
     {
       "routeId": "route-7-nt51927-13-general-merge-14-not-applicable-7-generic",
@@ -280,12 +997,46 @@
           "targetStart": 1,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51927-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+      "capabilityFingerprint": "5410bda76cf03f7862ff7007b44090d4d5bfa2bd12fb9c768bdaf11cebc77311",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+      "capabilityFingerprint": "1f898c2d9c70240d1696e42ade82069fe2a0f7f7364808368789a57573a82f99",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51927-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+      "capabilityFingerprint": "f407cf9d27893ee1c795e6ae7b9c3460a215f02333212502c9e1c53f5f03fc7f",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
       "capabilityFingerprint": "2108dafa5197b73b19231c1d5adf06449f51f08af1f2827e34f492404682005f",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51927-2chip-self-20260705",
       "bindings": [
         {
@@ -322,12 +1073,101 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-mp-slave-r"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k",
+      "capabilityFingerprint": "a0848a3025ad1ac0c94421592b2cbbb3274c030a50664d073d477d563397ca43",
+      "decision": "D2",
+      "kind": "derived",
+      "icCount": 2,
+      "members": {
+        "targetIc": "NT51927",
+        "referenceCaseId": "nt51927-2chip-self-20260705",
+        "replacementCaseId": "nt51927-2chip-self-20260705"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51927-2chip-self-20260705",
+                "artifactId": "reference-base"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        }
+      ],
+      "inventory": {
+        "reason": "D2: TP source view or cross-case reference/replacements; no untouched complete native route bundle.",
+        "nativeReplacement": "Exact IC/Common FW/count native TP or full reference with same-run role-labelled replacements; preserve route fingerprint."
+      }
     },
     {
       "routeId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
       "capabilityFingerprint": "214bfb282cbaf1a7e8df9bca92558d6ecf9519e217b271b26920f84fc8e4f502",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51927-3chip-self-20260705",
       "bindings": [
         {
@@ -374,7 +1214,108 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-mp-slave-l"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k",
+      "capabilityFingerprint": "e696fca2d62391d890a2b057a6803156468ba1858a6195e672abc5fdee1fe1cd",
+      "decision": "D2",
+      "kind": "derived",
+      "icCount": 3,
+      "members": {
+        "targetIc": "NT51927",
+        "referenceCaseId": "nt51927-3chip-self-20260705",
+        "replacementCaseId": "nt51927-3chip-self-20260705"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51927-3chip-self-20260705",
+                "artifactId": "reference-base"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-l"
+        },
+        {
+          "caseId": "nt51927-3chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-l"
+        }
+      ],
+      "inventory": {
+        "reason": "D2: TP source view or cross-case reference/replacements; no untouched complete native route bundle.",
+        "nativeReplacement": "Exact IC/Common FW/count native TP or full reference with same-run role-labelled replacements; preserve route fingerprint."
+      }
     },
     {
       "routeId": "route-7-nt51928-13-general-merge-14-not-applicable-7-generic",
@@ -400,12 +1341,16 @@
           "targetStart": 1,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     },
     {
       "routeId": "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",
       "capabilityFingerprint": "b0f1467758cf51fa55ad05aa2e6efccc5940bbb12ef7e414619dc2024dc697f7",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51928-gen-flash",
       "bindings": [
         {
@@ -420,7 +1365,537 @@
           "artifactId": "ldc-input",
           "option": "--ldc"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash",
+      "capabilityFingerprint": "d1b626ce332fed07e233c50a03035e63d251ba085e1801fb916759e688859c8d",
+      "decision": "D4-R2",
+      "kind": "derived",
+      "icCount": 1,
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51928-gen-flash",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "01",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213015
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "010401",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213018
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "vn.bin",
+          "size": 288,
+          "operations": [
+            {
+              "kind": "fill",
+              "length": 288,
+              "value": 90,
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "input": "vn.bin",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D4 round 2: derived from nt51928-gen-flash/expected-output, the only direct NT51928 canonical base. Its original Common FW 1.3.2 two-chip evidence is the closest same-IC FW line; no direct NT51928 FW 1.4.1 single or FW 1.4.0 three-chip base exists. Copy the full image or TP prefix, preserving CRC lengths, header and firmware structure; declare only backup count/version literals for the requested route. The primary config stays unchanged. VN is a declared fill. Behavior baseline only, never hardware parity.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51928-15-ctrlram-replace-4-1-ic-41-nt51928-ctrlram-fw141-single-tp-work-212k",
+      "capabilityFingerprint": "e68762b32ea1cd0ff5cce7f0829d136efa2c4baf324d0ed046106d7d774f26a7",
+      "decision": "D4-R2",
+      "kind": "derived",
+      "icCount": 1,
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51928-gen-flash",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "01",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213015
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "010401",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213018
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "vn.bin",
+          "size": 288,
+          "operations": [
+            {
+              "kind": "fill",
+              "length": 288,
+              "value": 90,
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "input": "vn.bin",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D4 round 2: derived from nt51928-gen-flash/expected-output, the only direct NT51928 canonical base. Its original Common FW 1.3.2 two-chip evidence is the closest same-IC FW line; no direct NT51928 FW 1.4.1 single or FW 1.4.0 three-chip base exists. Copy the full image or TP prefix, preserving CRC lengths, header and firmware structure; declare only backup count/version literals for the requested route. The primary config stays unchanged. VN is a declared fill. Behavior baseline only, never hardware parity.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51928-15-ctrlram-replace-4-2-ic-40-nt51928-ctrlram-fw132-twochip-full-flash",
+      "capabilityFingerprint": "a8af17e4e6588adc43c6ca7f05c6fec9405f3bbce47f490c0924bbcc302690ae",
+      "decision": "D2",
+      "kind": "derived",
+      "icCount": 2,
+      "members": {
+        "targetIc": "NT51928",
+        "referenceCaseId": "nt51928-gen-flash",
+        "replacementCaseId": "nt51927-2chip-self-20260705"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51928-gen-flash",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        }
+      ],
+      "inventory": {
+        "reason": "D2: TP source view or cross-case reference/replacements; no untouched complete native route bundle.",
+        "nativeReplacement": "Exact IC/Common FW/count native TP or full reference with same-run role-labelled replacements; preserve route fingerprint."
+      }
+    },
+    {
+      "routeId": "route-7-nt51928-15-ctrlram-replace-4-2-ic-42-nt51928-ctrlram-fw132-twochip-tp-work-212k",
+      "capabilityFingerprint": "1162434f0a58da9139470ac71a34237e6b3676f5066d4a667ffa86ef45784e08",
+      "decision": "D2",
+      "kind": "derived",
+      "icCount": 2,
+      "members": {
+        "targetIc": "NT51928",
+        "referenceCaseId": "nt51928-gen-flash",
+        "replacementCaseId": "nt51927-2chip-self-20260705"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51928-gen-flash",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "caseId": "nt51927-2chip-self-20260705",
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        }
+      ],
+      "inventory": {
+        "reason": "D2: TP source view or cross-case reference/replacements; no untouched complete native route bundle.",
+        "nativeReplacement": "Exact IC/Common FW/count native TP or full reference with same-run role-labelled replacements; preserve route fingerprint."
+      }
+    },
+    {
+      "routeId": "route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash",
+      "capabilityFingerprint": "56ee56b11bf612b5178fa96a961c5183fe8d5954ed1f6a10848ec57a6344e7e8",
+      "decision": "D4-R2",
+      "kind": "derived",
+      "icCount": 3,
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51928-gen-flash",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "03",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213015
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "010400",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213018
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "vn.bin",
+          "size": 288,
+          "operations": [
+            {
+              "kind": "fill",
+              "length": 288,
+              "value": 90,
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "input": "vn.bin",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D4 round 2: derived from nt51928-gen-flash/expected-output, the only direct NT51928 canonical base. Its original Common FW 1.3.2 two-chip evidence is the closest same-IC FW line; no direct NT51928 FW 1.4.1 single or FW 1.4.0 three-chip base exists. Copy the full image or TP prefix, preserving CRC lengths, header and firmware structure; declare only backup count/version literals for the requested route. The primary config stays unchanged. VN is a declared fill. Behavior baseline only, never hardware parity.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51928-15-ctrlram-replace-4-3-ic-44-nt51928-ctrlram-fw140-threechip-tp-work-212k",
+      "capabilityFingerprint": "333cbd44ca300610a7ea1998a7fe10a0e2ceb47df70cc988b5b9cb6287aeb918",
+      "decision": "D4-R2",
+      "kind": "derived",
+      "icCount": 3,
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 217088,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51928-gen-flash",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 217088
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "03",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213015
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "010400",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 213018
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "vn.bin",
+          "size": 288,
+          "operations": [
+            {
+              "kind": "fill",
+              "length": 288,
+              "value": 90,
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "input": "vn.bin",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D4 round 2: derived from nt51928-gen-flash/expected-output, the only direct NT51928 canonical base. Its original Common FW 1.3.2 two-chip evidence is the closest same-IC FW line; no direct NT51928 FW 1.4.1 single or FW 1.4.0 three-chip base exists. Copy the full image or TP prefix, preserving CRC lengths, header and firmware structure; declare only backup count/version literals for the requested route. The primary config stays unchanged. VN is a declared fill. Behavior baseline only, never hardware parity.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     },
     {
       "routeId": "route-7-nt51929-13-general-merge-14-not-applicable-7-generic",
@@ -446,12 +1921,223 @@
           "targetStart": 1,
           "length": 2
         }
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
+      "capabilityFingerprint": "6b52a0d6eb109e8b5b56843372a341bff7551da13609c1997d8ac4ad05ab0e65",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+      "capabilityFingerprint": "955beb03d21832fe503e7e39edffb057a1c73f0065adc973c2b2773e6108f5dc",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 1,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51929",
+        "referenceCaseId": "nt51929-ab-t05-d06",
+        "replacementCaseId": "nt51929-fw200-single-auto-prj-594-20260717"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51929-ab-t05-d06",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-nf-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-normal-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-vn-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+      "capabilityFingerprint": "a54b99cab398c15d6347cc1f651f4cd64b8db9d69a4606327b5cbd84a8f52b34",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-21-nt51929-ab-merge-512k",
+      "capabilityFingerprint": "9be64149842bd0d4afd9f692f5f571d9b0e3b948c47eef398c85ec52a63a4124",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 3,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51929",
+        "referenceCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+        "replacementCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 262144
+              },
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 0
+                },
+                {
+                  "bank": "b",
+                  "start": 262144
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00720400",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291172
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00F20500",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291176
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00D10600",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291180
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "diffdlm-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-diff"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
+      "capabilityFingerprint": "0f2e1dd97838668fa306a6260ea310d2313dc2e5d38d95a931897baa6b82fa07",
+      "decision": "D4-R2",
+      "kind": "derived",
+      "icCount": 2,
+      "inventory": {
+        "reason": "Phase B round 2 result: input-unavailable. The base derived from nt51929-gen-flash/expected-output was not accepted by the CRC processor: it changed bytes outside its declared write ranges at [0x2effd, 0x2f000). A real same-IC NT51929 FW1.x cascade base is required.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "The base derived from nt51929-gen-flash/expected-output was not accepted by the CRC processor: it changed bytes outside its declared write ranges at [0x2effd, 0x2f000). A real same-IC NT51929 FW1.x cascade base is required."
       ]
     },
     {
       "routeId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
       "capabilityFingerprint": "6c20b6e3f821d2cf3513048568a57bf9c1f411d3455ed85c585067fc261d5d94",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51929-ab-t05-d06",
       "bindings": [
         {
@@ -466,7 +2152,11 @@
           "artifactId": "tp-b-input",
           "option": "--tp-b"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51932-13-general-merge-14-not-applicable-7-generic",
@@ -492,12 +2182,223 @@
           "targetStart": 1,
           "length": 2
         }
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51932-14-standard-merge-13-selector-free-27-nt51932-standard-merge-256k",
+      "capabilityFingerprint": "6adbed984715fe4c5e418d95e14ebaecc284860319cbcb1e5aba3bc84253fe0f",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
+      "capabilityFingerprint": "f5d70bd1fd77fbf073e49af79f3feac533093b90ca0c7fe0176b2a09edcfbf68",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 1,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51932",
+        "referenceCaseId": "nt51929-ab-t05-d06",
+        "replacementCaseId": "nt51929-fw200-single-auto-prj-594-20260717"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51929-ab-t05-d06",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-nf-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-normal-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51929-fw200-single-auto-prj-594-20260717",
+          "artifactId": "postbuild-vn-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
+      "capabilityFingerprint": "d57a478f7fe2e886a5cc6c114249faab51b7cdf1ccec5286bc33a9e16c749697",
+      "decision": "D4-R2",
+      "kind": "derived",
+      "icCount": 1,
+      "inventory": {
+        "reason": "Phase B round 2 result: input-unavailable. The base derived from nt51932-gen-flash/expected-output was not accepted by the CRC processor: it changed bytes outside its declared write ranges at [0x7128, 0x7130) and [0x33ffd, 0x34000). A real same-IC NT51932 FW1.x single base is required.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      },
+      "missingInputs": [
+        "The base derived from nt51932-gen-flash/expected-output was not accepted by the CRC processor: it changed bytes outside its declared write ranges at [0x7128, 0x7130) and [0x33ffd, 0x34000). A real same-IC NT51932 FW1.x single base is required."
       ]
+    },
+    {
+      "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
+      "capabilityFingerprint": "53498eedec414fa363afc1cc23eec5eddb7b326e0135fe0e4d17f4f6964069f9",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 3,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51932",
+        "referenceCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+        "replacementCaseId": "nt51932-fw200-cascade3-auto-prj-525-20260718"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 262144
+              },
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 0
+                },
+                {
+                  "bank": "b",
+                  "start": 262144
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00720400",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291172
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00F20500",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291176
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00D10600",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 291180
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "diffdlm-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-diff"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51932-fw200-cascade3-auto-prj-525-20260718",
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
+      "capabilityFingerprint": "1f6553b4846694a97a88fb87c925e79d1736b0b92c5e2059d9ecb452b74ce743",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
     },
     {
       "routeId": "route-7-nt51932-8-ab-merge-13-selector-free-21-nt51932-ab-merge-512k",
       "capabilityFingerprint": "ce3f7597cbb3128e0044d795a36a5affb9c46e72c9780d5256b38cf9b9095d01",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51932-ab-t05-d06-alias",
       "bindings": [
         {
@@ -512,7 +2413,11 @@
           "artifactId": "tp-b-input",
           "option": "--tp-b"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51950-13-general-merge-14-not-applicable-7-generic",
@@ -538,7 +2443,21 @@
           "targetStart": 1,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
+      "capabilityFingerprint": "cb20344587586a7b2f1a23f0a980dc7740f7e2b48dca094598a7873e27d91e3f",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
@@ -585,7 +2504,11 @@
           "input": "tp.bin",
           "option": "--tp"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     },
     {
       "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
@@ -632,12 +2555,84 @@
           "input": "tp.bin",
           "option": "--tp"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
+      "capabilityFingerprint": "9e985b751b3ce598b7cdedb5cba1390cb7bc6c1a5538ae2636a57ee4f86508b8",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 1,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51950",
+        "referenceCaseId": "nt51950-ab-boe-d82t80",
+        "replacementCaseId": "nt51950-fw200-single-auto-prj-676-20260717"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 524288,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51950-ab-boe-d82t80",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "none",
+                  "start": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+          "artifactId": "postbuild-nf-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+          "artifactId": "postbuild-normal-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+          "artifactId": "postbuild-vn-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
     },
     {
       "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
       "capabilityFingerprint": "c29c0febb462a7f6dbdbc0341657fe4f6ad438454d09b7b682a58ea685de5da1",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
       "bindings": [
         {
@@ -659,12 +2654,167 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-vn"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-39-nt51950-ctrlram-fw200-single-full-flash",
+      "capabilityFingerprint": "86b14f49ae435faf101b5f36f5128d3aa42142f13df24919f5e471f91e738e06",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
+      "capabilityFingerprint": "389e0e7a56cfcd8f345e18b5a57264cfdf044d4db0bc1da5d98ad4795f6e868e",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 2,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51950",
+        "referenceCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+        "replacementCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 1048576,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 262144
+              },
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 0
+                },
+                {
+                  "bank": "b",
+                  "start": 524288
+                }
+              ]
+            },
+            {
+              "kind": "fill",
+              "length": 262144,
+              "value": 90,
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 262144
+                },
+                {
+                  "bank": "b",
+                  "start": 786432
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00A20800",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565504
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00220A00",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565520
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00000800",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565536
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+          "artifactId": "diffdlm-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-diff"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work",
+      "capabilityFingerprint": "084c0e108ebbbeb0240e5401d711f8533df0e62488615b8b2c9e74c13bae5269",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash",
+      "capabilityFingerprint": "a6f5bf72f9192846afdd98f8b346dba94229e2d3f9cda67cbdf9fdee93590091",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
     },
     {
       "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
       "capabilityFingerprint": "850fa2256876f45312cd22a08d31a9de99a452e24e54d3ab8f1e285a9565c5a8",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51950-ab-osd-d03t02-20260924",
       "bindings": [
         {
@@ -679,7 +2829,156 @@
           "artifactId": "tp-b-input",
           "option": "--tp-b"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
+      "capabilityFingerprint": "d2e3caabbd7ccb9347809b671b65ff710abc1cc4eec36b34ce78d62c510e0baa",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 2,
+      "inputs": [
+        {
+          "name": "dp-ab.bin",
+          "size": 1048576,
+          "fill": 0,
+          "overlays": [
+            {
+              "offset": 0,
+              "hex": "A1"
+            },
+            {
+              "offset": 524288,
+              "hex": "B2"
+            }
+          ]
+        },
+        {
+          "name": "tp-a.bin",
+          "size": 225280,
+          "fill": 0,
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "42BD"
+            },
+            {
+              "offset": 221207,
+              "hex": "02"
+            },
+            {
+              "offset": 221210,
+              "hex": "020000"
+            },
+            {
+              "offset": 221218,
+              "hex": "3412"
+            },
+            {
+              "offset": 221184,
+              "hex": "807F"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            },
+            {
+              "offset": 139776,
+              "hex": "31CE"
+            },
+            {
+              "offset": 139788,
+              "hex": "84"
+            },
+            {
+              "offset": 41216,
+              "hex": "00A20000"
+            },
+            {
+              "offset": 41232,
+              "hex": "00220200"
+            },
+            {
+              "offset": 41248,
+              "hex": "00000000"
+            }
+          ]
+        },
+        {
+          "name": "tp-b.bin",
+          "size": 225280,
+          "fill": 0,
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "42BD"
+            },
+            {
+              "offset": 221207,
+              "hex": "02"
+            },
+            {
+              "offset": 221210,
+              "hex": "020000"
+            },
+            {
+              "offset": 221218,
+              "hex": "3412"
+            },
+            {
+              "offset": 221184,
+              "hex": "817E"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            },
+            {
+              "offset": 139776,
+              "hex": "31CE"
+            },
+            {
+              "offset": 139788,
+              "hex": "84"
+            },
+            {
+              "offset": 41216,
+              "hex": "00A20000"
+            },
+            {
+              "offset": 41232,
+              "hex": "00220200"
+            },
+            {
+              "offset": 41248,
+              "hex": "00000000"
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "dp-ab.bin",
+          "option": "--dp-ab"
+        },
+        {
+          "input": "tp-a.bin",
+          "option": "--tp-a"
+        },
+        {
+          "input": "tp-b.bin",
+          "option": "--tp-b"
+        }
+      ],
+      "topology": "cascade",
+      "inventory": {
+        "reason": "D4: no exact native bundle established; owner authorized generated behavior inputs only, never hardware parity.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     },
     {
       "routeId": "route-7-nt51951-13-general-merge-14-not-applicable-7-generic",
@@ -705,7 +3004,11 @@
           "targetStart": 1,
           "length": 2
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     },
     {
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
@@ -752,7 +3055,21 @@
           "input": "tp.bin",
           "option": "--tp"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+      "capabilityFingerprint": "dae53cf2a04c475dc8f03c9fe741b214ae22287fccc7e174f6d74decb6bb8010",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
     },
     {
       "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
@@ -799,12 +3116,121 @@
           "input": "tp.bin",
           "option": "--tp"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Phase A: deterministic public behavior input generator; no native route bundle binding.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
+      "capabilityFingerprint": "a4ad18a29b179492d725464b7adfc54351d6ee9ed8c2a1b3fd1442fe4e8c8e8d",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 1,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51951",
+        "referenceCaseId": "nt51951-fw200-single-auto-prj-695-20260718",
+        "replacementCaseId": "nt51951-fw200-single-auto-prj-695-20260718"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 1048576,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 0
+                },
+                {
+                  "bank": "b",
+                  "start": 524288
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00A20800",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565504
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00220A00",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565520
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00000800",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565536
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+          "artifactId": "nf-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
     },
     {
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
       "capabilityFingerprint": "fdf46008a2f36edaa2f174c72cc81e052c27e8e855f4fe8f2a9e4ef983c4d57a",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
       "bindings": [
         {
@@ -826,12 +3252,131 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-vn"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-39-nt51951-ctrlram-fw200-single-full-flash",
+      "capabilityFingerprint": "57d9917ed2c76e7b61300052811ad120cb7db4b80ff1fef714f912ac37c3a320",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
+      "capabilityFingerprint": "c636736c7d8d8899d295ccc3e4aca7089c5106965d623914f290fdb84349dfef",
+      "decision": "D3",
+      "kind": "derived",
+      "icCount": 2,
+      "bank": "b",
+      "members": {
+        "targetIc": "NT51951",
+        "referenceCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+        "replacementCaseId": "nt51951-fw200-cascade2-auto-prj-599-20260731"
+      },
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 1048576,
+          "operations": [
+            {
+              "kind": "copy",
+              "source": {
+                "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+                "artifactId": "expected-output"
+              },
+              "sourceRange": {
+                "addressSpace": "repository-artifact",
+                "start": 0,
+                "endExclusive": 524288
+              },
+              "copyCount": 2,
+              "targetOrder": [
+                {
+                  "bank": "a",
+                  "start": 0
+                },
+                {
+                  "bank": "b",
+                  "start": 524288
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00A20800",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565504
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00220A00",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565520
+                }
+              ]
+            },
+            {
+              "kind": "literal",
+              "hex": "00000800",
+              "copyCount": 1,
+              "targetOrder": [
+                {
+                  "bank": "b",
+                  "start": 565536
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+          "artifactId": "diffdlm-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-diff"
+        }
+      ],
+      "inventory": {
+        "reason": "D3: AB reference and replacements assembled across named cases; repeated banks, padding and literal relocations are declared where needed.",
+        "nativeReplacement": "Owner-certified native AB reference for the exact member/count/map plus physical replacement slots and declared bank."
+      }
     },
     {
       "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
       "capabilityFingerprint": "18c1530938431e343412b85616c96a812200a1ab84aaf57962bfef4927ad3010",
-      "kind": "repo-case",
+      "kind": "native",
       "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
       "bindings": [
         {
@@ -853,7 +3398,169 @@
           "option": "--ctrlram",
           "slotId": "replace-ctrlram-diff"
         }
-      ]
+      ],
+      "inventory": {
+        "reason": "Unchanged repository artifacts; native input provenance.",
+        "nativeReplacement": "Already native; retain exact case, role and artifact hashes."
+      }
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
+      "capabilityFingerprint": "1fe44b8f8c3f2676c78b12cf8502b782281b0eed442724bf8fac0409677c3277",
+      "kind": "native",
+      "source": "route-evidence",
+      "inventory": {
+        "reason": "Original repository DP/TP and replacement artifacts are unchanged; the existing CLI assembles a separately recorded intermediate base_build.",
+        "nativeReplacement": "Source artifacts are native. Replacing the CLI intermediate requires an exact native full-Flash reference plus an approved baseline binding."
+      }
+    },
+    {
+      "routeId": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
+      "capabilityFingerprint": "13886377d9f088faba6194d52003b3349b8426ae3eeda289ac62a46ff1e0dc93",
+      "decision": "D4",
+      "kind": "synthetic",
+      "icCount": 1,
+      "inputs": [
+        {
+          "name": "dp-ab.bin",
+          "size": 1048576,
+          "fill": 0,
+          "overlays": [
+            {
+              "offset": 0,
+              "hex": "A1"
+            },
+            {
+              "offset": 524288,
+              "hex": "B2"
+            }
+          ]
+        },
+        {
+          "name": "tp-a.bin",
+          "size": 225280,
+          "fill": 0,
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "42BD"
+            },
+            {
+              "offset": 221207,
+              "hex": "01"
+            },
+            {
+              "offset": 221210,
+              "hex": "020000"
+            },
+            {
+              "offset": 221218,
+              "hex": "3412"
+            },
+            {
+              "offset": 221184,
+              "hex": "807F"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            },
+            {
+              "offset": 139776,
+              "hex": "31CE"
+            },
+            {
+              "offset": 139788,
+              "hex": "84"
+            },
+            {
+              "offset": 41216,
+              "hex": "00A20000"
+            },
+            {
+              "offset": 41232,
+              "hex": "00220200"
+            },
+            {
+              "offset": 41248,
+              "hex": "00000000"
+            }
+          ]
+        },
+        {
+          "name": "tp-b.bin",
+          "size": 225280,
+          "fill": 0,
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "42BD"
+            },
+            {
+              "offset": 221207,
+              "hex": "01"
+            },
+            {
+              "offset": 221210,
+              "hex": "020000"
+            },
+            {
+              "offset": 221218,
+              "hex": "3412"
+            },
+            {
+              "offset": 221184,
+              "hex": "817E"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            },
+            {
+              "offset": 139776,
+              "hex": "31CE"
+            },
+            {
+              "offset": 139788,
+              "hex": "84"
+            },
+            {
+              "offset": 41216,
+              "hex": "00A20000"
+            },
+            {
+              "offset": 41232,
+              "hex": "00220200"
+            },
+            {
+              "offset": 41248,
+              "hex": "00000000"
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "dp-ab.bin",
+          "option": "--dp-ab"
+        },
+        {
+          "input": "tp-a.bin",
+          "option": "--tp-a"
+        },
+        {
+          "input": "tp-b.bin",
+          "option": "--tp-b"
+        }
+      ],
+      "inventory": {
+        "reason": "D4: no exact native bundle established; owner authorized generated behavior inputs only, never hardware parity.",
+        "nativeReplacement": "Exact IC/workflow/map/count native input bundle with metadata, role bindings, sizes and hashes; General routes also need approved mappings."
+      }
     }
-  ]
+  ],
+  "inventorySource": {
+    "source": "G03 input-gaps.json and input-gaps.md, 2026-11-27",
+    "disposition": "Portable per-route summaries are stored as inventory; owner approved D2, D3 and synthetic D4 at 2026-11-27 12:37. D1 private CI reader is deferred."
+  }
 }

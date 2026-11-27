@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import hashlib
 import io
 import json
@@ -36,11 +37,12 @@ class OutputBaselineTests(unittest.TestCase):
             "schema_version": 1, "commit": "a" * 40, "tool_version": baseline.TOOL_VERSION,
             "product_version": "1.3.0-g.0", "route_count": 3,
             "counts": {"ok": 3, "input-unavailable": 0, "failed": 0},
+            "input_kind_counts": {"native": 3, "derived": 0, "synthetic": 0, "private-native": 0},
         })
         self.assertEqual([r["route_id"] for r in result["routes"]], ["route-a", "route-b", "route-c"])
         self.assertEqual(result["routes"][0], {
             "route_id": "route-a", "status": "ok", "inputs": [self.input], "outputs": [self.output],
-            "input_source": "route-evidence",
+            "input_source": "route-evidence", "input_kind": "native",
         })
 
     def test_same_fixture_twice_produces_identical_utf8_lf_bytes(self):
@@ -159,11 +161,39 @@ class OutputBaselineTests(unittest.TestCase):
             command = run.call_args.args[0]
             self.assertEqual(command[:4], ["dotnet", str(executor.cli), "standard-merge", "build"])
             self.assertIn("--report", command)
+            self.assertEqual(command[command.index("--output") + 1],
+                             str(baseline.REPO.parent / "fake-work/final/outputs/output.bin"))
             self.assertEqual(run.call_args.kwargs["env"]["TMPDIR"], str(executor.temp))
             report["Capability"]["RouteId"] = "another-route"
             with mock.patch.object(Path, "read_bytes", return_value=json.dumps(report).encode()):
                 with self.assertRaisesRegex(ValueError, "different route"):
                     executor(route, request, [])
+
+    def test_forbidden_filename_override_uses_cli_name_and_records_it(self):
+        routes = [r for r in baseline.load_routes()
+                  if r["icId"] == "NT51925" and r["workflowId"] == "ctrlram-replace"
+                  and r["icCountVariant"] == "1-ic"]
+        self.assertEqual(len(routes), 4)
+        executor = baseline.CliExecutor(Path("current.dll"), baseline.REPO.parent)
+        work = baseline.REPO.parent / "fake-work"
+        actual = dict(self.output, name="nt51925-ctrlram-replace_UNVERIFIED.bin")
+        output_file = mock.Mock()
+        output_file.open.side_effect = lambda *_: io.BytesIO(b"output")
+        output_file.relative_to.return_value = Path(actual["name"])
+        output_file.stat.return_value = SimpleNamespace(st_size=6)
+        for route in routes:
+            report = {"Capability": {"RouteId": route["routeId"],
+                                     "CapabilityFingerprint": route["capabilityFingerprint"]},
+                      "Output": {"Committed": True, "FileName": actual["name"],
+                                 "Sha256": actual["sha256"], "Size": actual["size"]}}
+            with (self.subTest(route=route["routeId"]), mock.patch.object(Path, "mkdir"),
+                  mock.patch.object(Path, "read_bytes", return_value=json.dumps(report).encode()),
+                  mock.patch.object(Path, "rglob", return_value=[output_file]),
+                  mock.patch.object(baseline.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run):
+                self.assertEqual(executor.build(route, ["ctrlram-replace", "build"], work), [actual])
+                self.assertNotIn("--output", run.call_args.args[0])
+                self.assertNotIn("output.bin", run.call_args.args[0])
+                self.assertEqual(run.call_args.kwargs["cwd"], work / "outputs")
 
     def test_denied_test_area_fails_before_tempfile_can_retry_windows_names(self):
         executor = baseline.CliExecutor(Path("current.dll"), baseline.REPO.parent)
@@ -172,6 +202,34 @@ class OutputBaselineTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 executor({}, [], [])
             temporary.assert_not_called()
+
+    def test_other_executable_routes_keep_the_exact_explicit_output_command(self):
+        recipes = baseline.load_recipes()
+        routes = [r for r in baseline.load_routes()
+                  if not recipes[r["routeId"]].get("missingInputs")
+                  and not (r["icId"] == "NT51925" and r["workflowId"] == "ctrlram-replace")]
+        self.assertEqual(len(routes), 82)
+        executor = baseline.CliExecutor(Path("current.dll"), baseline.REPO.parent)
+        work = baseline.REPO.parent / "fake-work"
+        output_file = mock.Mock()
+        output_file.open.side_effect = lambda *_: io.BytesIO(b"output")
+        output_file.relative_to.return_value = Path("output.bin")
+        output_file.stat.return_value = SimpleNamespace(st_size=6)
+        for route in routes:
+            args = [route["workflowId"], "build", "--profile", route["icId"]]
+            report = {"Capability": {"RouteId": route["routeId"],
+                                     "CapabilityFingerprint": route["capabilityFingerprint"]},
+                      "Output": {"Committed": True, "FileName": "output.bin",
+                                 "Sha256": self.output["sha256"], "Size": self.output["size"]}}
+            with (self.subTest(route=route["routeId"]), mock.patch.object(Path, "mkdir"),
+                  mock.patch.object(Path, "read_bytes", return_value=json.dumps(report).encode()),
+                  mock.patch.object(Path, "rglob", return_value=[output_file]),
+                  mock.patch.object(baseline.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run):
+                self.assertEqual(executor.build(route, args, work), [self.output])
+                self.assertEqual(run.call_args.args[0], ["dotnet", str(executor.cli), *args,
+                                 "--output", str(work / "outputs/output.bin"),
+                                 "--report", str(work / "report.json")])
+                self.assertEqual(run.call_args.kwargs["cwd"], work)
 
     def capture_ctrlram(self, choices, variant="2-plus-ic", count=2, profile="NT51926"):
         catalog = baseline.CanonicalInputs()
@@ -286,6 +344,7 @@ class OutputBaselineTests(unittest.TestCase):
         request, missing = catalog.prepare(route, inputs)
         self.assertEqual(missing, [])
         self.assertIn("<generated-base>", request["arguments"])
+        self.assertEqual(request["input_kind"], "native")
         self.assertEqual(request["base_build"]["route"]["routeId"],
                          catalog.bases[route["routeId"]]["standardMergeRouteId"])
         self.assertEqual(request["base_build"]["arguments"][:4],
@@ -364,18 +423,343 @@ class BaselineRecipeTests(unittest.TestCase):
     def recipe_route(self, kind, workflow=None):
         return next(self.routes[route_id] for route_id, recipe in self.catalog.recipes.items()
                     if recipe["kind"] == kind
+                    and recipe.get("source") != "route-evidence"
                     and (workflow is None or self.routes[route_id]["workflowId"] == workflow))
 
-    def test_recipe_inventory_has_exact_phase_a_scope_and_fingerprints(self):
+    def test_every_route_declares_one_input_kind_and_inventory_disposition(self):
         recipes = self.catalog.recipes
-        self.assertEqual(len(recipes), 27)
+        self.assertEqual(set(recipes), set(self.routes))
+        self.assertEqual({kind: sum(r["kind"] == kind for r in recipes.values())
+                          for kind in baseline.INPUT_KINDS},
+                         {"native": 45, "derived": 22, "synthetic": 22, "private-native": 5})
+        for recipe in recipes.values():
+            self.assertTrue(recipe["inventory"]["reason"])
+            self.assertTrue(recipe["inventory"]["nativeReplacement"])
+
+    def test_derived_byte_operations_copy_exact_half_open_views_in_declared_order(self):
+        spec = {"size": 8, "operations": [
+            {"kind": "copy", "source": {"caseId": "example", "artifactId": "source"},
+             "sourceRange": {"addressSpace": "repository-artifact", "start": 1, "endExclusive": 4},
+             "copyCount": 2, "targetOrder": [{"bank": "a", "start": 0}, {"bank": "b", "start": 4}]},
+            {"kind": "fill", "length": 1, "value": 90, "copyCount": 2,
+             "targetOrder": [{"bank": "a", "start": 3}, {"bank": "b", "start": 7}]},
+            {"kind": "literal", "hex": "FF", "copyCount": 1,
+             "targetOrder": [{"bank": "b", "start": 5}]},
+        ]}
+        self.assertEqual(baseline.derived_bytes(spec, lambda _: b"01234"), b"123Z1\xff3Z")
+        for start, end in [(-1, 3), (1, 6), (2, 2), (True, 3)]:
+            with self.subTest(start=start, end=end):
+                spec["operations"][0]["sourceRange"].update(start=start, endExclusive=end)
+                with self.assertRaisesRegex(ValueError, "source bounds"):
+                    baseline.derived_bytes(spec, lambda _: b"01234")
+
+    def test_input_kinds_markdown_matches_generator(self):
+        self.assertEqual(baseline.INPUT_KINDS_MARKDOWN.read_bytes(),
+                         baseline.render_input_kinds(self.catalog).encode("utf-8"))
+
+    def test_all_route_inputs_prepare_with_d1_and_missing_same_ic_base_unavailable_without_cli(self):
+        executed = []
+
+        def capture(route, request, inputs):
+            kind = self.catalog.recipes[route["routeId"]]["kind"]
+            self.assertEqual(request["input_kind"], kind)
+            self.assertTrue(inputs)
+            if kind == "native":
+                self.assertNotIn("synthetic", request)
+                self.assertNotIn("derived", request)
+                for row in inputs:
+                    self.assertTrue(row["path"].startswith("testdata/golden/canonical/"))
+                    self.assertEqual(hashlib.sha256((baseline.REPO / row["path"]).read_bytes()).hexdigest(), row["sha256"])
+            else:
+                self.assertTrue(request[kind])
+                self.assertTrue(any(row["path"].startswith(kind + "/") for row in inputs))
+                if kind == "synthetic":
+                    self.assertTrue(all(row["path"].startswith("synthetic/") for row in inputs))
+                else:
+                    self.assertTrue(all(spec["operations"] for spec in request["derived"]))
+            executed.append(route["routeId"])
+            return {"outputs": []}
+
+        result = baseline.collect(list(self.routes.values()), self.catalog.prepare, capture, "a" * 40, "version")
+        self.assertEqual(result["header"]["counts"], {"ok": 82, "input-unavailable": 12, "failed": 0})
+        self.assertEqual(len(executed), 82)
+        private = [row for row in result["routes"] if row["input_kind"] == "private-native"]
+        self.assertTrue(all(row["input_kind"] == "private-native" and row["inputs"] == [] for row in private))
+        self.assertTrue(all(self.routes[row["route_id"]]["icId"] == "NT51925" for row in private))
+        unavailable = [row for row in result["routes"] if row["input_kind"] != "private-native"
+                       and row["status"] == "input-unavailable"]
+        self.assertEqual(sorted(self.routes[row["route_id"]]["icId"] for row in unavailable),
+                         ["NT51919", "NT51925", "NT51925", "NT51925", "NT51925", "NT51929", "NT51932"])
+        for row in unavailable:
+            self.assertEqual(row["inputs"], [])
+            self.assertTrue(row["missing_inputs"][0].strip())
+        nt51919 = next(row for row in unavailable if self.routes[row["route_id"]]["icId"] == "NT51919")
+        self.assertIn("same-IC", nt51919["missing_inputs"][0])
+
+    def test_round2_crc_bases_preserve_same_ic_source_structure_and_declared_views(self):
+        round2 = [r for r in self.catalog.recipes.values() if r.get("decision") == "D4-R2"]
+        self.assertEqual(len(round2), 6)
+        # The NT51929 and NT51932 bases were still refused by the CRC processor, so they wait for real data.
+        refused = [r for r in round2 if r.get("missingInputs")]
+        self.assertEqual(sorted(self.routes[r["routeId"]]["icId"] for r in refused), ["NT51929", "NT51932"])
+        self.assertTrue(all(r["kind"] == "derived" and "inputs" not in r for r in refused))
+        converted = [r for r in round2 if not r.get("missingInputs")]
+        self.assertEqual(len(converted), 4)
+        for recipe in converted:
+            route = self.routes[recipe["routeId"]]
+            with self.subTest(route=route["routeId"]):
+                self.assertEqual(recipe["kind"], "derived")
+                request, missing = self.catalog.prepare(route, [])
+                self.assertEqual(missing, [])
+                spec = request["derived"][0]
+                data = baseline.derived_bytes(spec, self.catalog.read_derived_source)
+                for operation in spec["operations"]:
+                    if operation["kind"] != "copy":
+                        continue
+                    source = operation["source"]
+                    self.assertEqual(self.catalog.case(source["caseId"])["ic"], route["icId"])
+                    view = operation["sourceRange"]
+                    self.assertGreaterEqual(view["start"], 0)
+                    self.assertLessEqual(view["endExclusive"], source["size"])
+                original = self.catalog.read_derived_source(spec["operations"][0]["source"])
+                expected = bytearray(original[:spec["size"]])
+                if route["icId"] == "NT51928":
+                    expected[0x34017] = recipe["icCount"]
+                    expected[0x3401A:0x3401D] = (b"\x01\x04\x01" if recipe["icCount"] == 1
+                                                       else b"\x01\x04\x00")
+                    # In particular retain the nonzero CRC lengths and header structure.
+                    self.assertEqual(data[:0x16000], original[:0x16000])
+                elif route["icId"] == "NT51929":
+                    expected[0x2F000:0x30000] = original[0x2E000:0x2F000]
+                    expected[0x2EFFC:0x2F000] = b"\0" * 4
+                    expected[0x2F017] = 2
+                else:
+                    self.assertEqual(route["icId"], "NT51932")
+                    expected[0x2E000:0x2F000] = original[0x33000:0x34000]
+                    expected[0x33FFC:0x34000] = b"\0" * 4
+                    expected[0x2E017] = 1
+                self.assertEqual(data, bytes(expected))
+                self.assertEqual(data.count(b"\0NVT"), 1)
+
+    def test_unavailable_generated_recipe_keeps_kind_and_never_generates_or_executes(self):
+        route = next(r for r in self.routes.values() if r["icId"] == "NT51919"
+                     and r["mapVariant"] == "nt51929-ctrlram-fw1x-cascade-full-flash")
+        execute = mock.Mock()
+        with mock.patch.object(baseline, "synthetic_bytes") as generate:
+            result = baseline.collect([route], self.catalog.prepare, execute, "a" * 40, "version")
+        record = result["routes"][0]
+        self.assertEqual(record["status"], "input-unavailable")
+        self.assertEqual(record["input_kind"], "synthetic")
+        self.assertEqual(record["input_source"], "recipe-synthetic")
+        self.assertEqual(record["missing_inputs"], self.catalog.recipes[route["routeId"]]["missingInputs"])
+        execute.assert_not_called()
+        generate.assert_not_called()
+
+    def test_each_derived_source_view_is_bounded_and_refuses_one_byte_past_its_artifact(self):
+        for recipe in self.catalog.recipes.values():
+            if recipe["kind"] != "derived" or recipe.get("missingInputs"):
+                continue
+            for spec in recipe["inputs"]:
+                resolved = self.catalog.resolve_derived(spec, [])
+                original = baseline.derived_bytes(resolved, self.catalog.read_derived_source)
+                self.assertEqual(len(original), spec["size"])
+                for index, operation in enumerate(resolved["operations"]):
+                    if operation["kind"] != "copy":
+                        continue
+                    with self.subTest(route=recipe["routeId"], operation=index):
+                        changed = copy.deepcopy(resolved)
+                        changed["operations"][index]["sourceRange"]["endExclusive"] = operation["source"]["size"] + 1
+                        with self.assertRaisesRegex(ValueError, "source bounds"):
+                            baseline.derived_bytes(changed, self.catalog.read_derived_source)
+
+    def test_derived_operations_refuse_wrong_spaces_counts_banks_targets_and_undeclared_bytes(self):
+        original = {"size": 2, "operations": [{
+            "kind": "copy", "source": {},
+            "sourceRange": {"addressSpace": "repository-artifact", "start": 0, "endExclusive": 2},
+            "copyCount": 1, "targetOrder": [{"bank": "none", "start": 0}]}]}
+        mutations = [lambda s: s["operations"][0]["sourceRange"].update(addressSpace="flash"),
+                     lambda s: s["operations"][0].update(copyCount=2),
+                     lambda s: s["operations"][0].update(copyCount=True),
+                     lambda s: s["operations"][0]["targetOrder"][0].update(start=-1),
+                     lambda s: s["operations"][0]["targetOrder"][0].update(start=1),
+                     lambda s: s["operations"][0]["targetOrder"][0].update(bank="unknown"),
+                     lambda s: s.update(size=3),
+                     lambda s: s["operations"][0].update(kind="firmware-merge")]
+        for mutate in mutations:
+            spec = copy.deepcopy(original)
+            mutate(spec)
+            with self.subTest(spec=spec), self.assertRaises(ValueError):
+                baseline.derived_bytes(spec, lambda _: b"ab")
+
+    def test_kind_loader_rejects_input_source_disguised_as_another_kind(self):
+        invalid = [{"kind": "repo-case"}, {"kind": "private-native", "inputs": []},
+                   {"kind": "private-native", "caseId": "example"},
+                   {"kind": "native", "caseId": "example", "inputs": [{"size": 1, "fill": 0}]},
+                   {"kind": "derived", "inputs": [{"size": 1, "fill": 0}]},
+                   {"kind": "synthetic", "inputs": [{"operations": []}]},
+                   {"kind": "synthetic", "inputs": [{"source": "testdata/example.bin"}]}]
+        for row in invalid:
+            document = json.dumps({"schemaVersion": 2, "recipes": [dict(row, routeId="example")]}).encode()
+            with self.subTest(row=row), mock.patch.object(Path, "read_bytes", return_value=document), self.assertRaises(ValueError):
+                baseline.load_recipes()
+
+    def test_unavailable_generated_recipe_requires_nonempty_reasons_without_inputs(self):
+        for kind in ("derived", "synthetic"):
+            valid = {"routeId": "example", "kind": kind, "missingInputs": ["No usable same-IC base"]}
+            document = {"schemaVersion": 2, "recipes": [valid]}
+            with mock.patch.object(Path, "read_bytes", return_value=json.dumps(document).encode()):
+                self.assertEqual(baseline.load_recipes()["example"], valid)
+            for fields in ({"missingInputs": []}, {"missingInputs": [""]},
+                           {"missingInputs": "reason"}, {"missingInputs": [1]},
+                           {"inputs": []}, {"bindings": []}, {"caseId": "example"},
+                           {"source": "route-evidence"}):
+                invalid = dict(valid, **fields)
+                document = {"schemaVersion": 2, "recipes": [invalid]}
+                with (self.subTest(kind=kind, fields=fields),
+                      mock.patch.object(Path, "read_bytes", return_value=json.dumps(document).encode()),
+                      self.assertRaisesRegex(ValueError, "Unavailable generated recipe")):
+                    baseline.load_recipes()
+
+    def test_d2_tp_views_and_nt51928_own_reference_use_exact_original_source_prefixes(self):
+        for rid, recipe in self.catalog.recipes.items():
+            if recipe.get("decision") != "D2":
+                continue
+            with self.subTest(route=rid):
+                request, missing = self.catalog.prepare(self.routes[rid], [])
+                self.assertEqual(missing, [])
+                spec = request["derived"][0]
+                op = spec["operations"][0]
+                source = self.catalog.read_derived_source(op["source"])
+                expected_length = 0x80000 if self.routes[rid]["icId"] == "NT51928" and "full-flash" in rid else 0x35000
+                self.assertEqual(baseline.derived_bytes(spec, self.catalog.read_derived_source), source[:expected_length])
+                if self.routes[rid]["icId"] == "NT51928":
+                    self.assertEqual(op["source"]["caseId"], "nt51928-gen-flash")
+                    self.assertEqual(op["source"]["artifactId"], "expected-output")
+                    self.assertEqual({row["caseId"] for row in recipe["bindings"] if "caseId" in row},
+                                     {"nt51927-2chip-self-20260705"})
+
+    def test_d3_references_match_independent_bank_construction_and_declared_member_count(self):
+        for rid, recipe in self.catalog.recipes.items():
+            if recipe.get("decision") != "D3":
+                continue
+            route = self.routes[rid]
+            with self.subTest(route=rid):
+                request, missing = self.catalog.prepare(route, [])
+                self.assertEqual(missing, [])
+                self.assertEqual(request["arguments"][request["arguments"].index("--bank") + 1], "b")
+                self.assertEqual(recipe["members"]["targetIc"], route["icId"])
+                source_case = self.catalog.case(recipe["members"]["referenceCaseId"])
+                source = baseline.examples.artifact(source_case, "expected-output").read_bytes()
+                perfect = route["icId"] in {"NT51919", "NT51929", "NT51932"}
+                single = route["icCountVariant"] == "1-ic"
+                if single and (perfect or route["icId"] == "NT51950"):
+                    expected = source
+                else:
+                    bank_size = 0x40000 if perfect else 0x80000
+                    local_size = 0x40000 if perfect or route["icId"] == "NT51950" else 0x80000
+                    bank = source[:local_size] + b"\x5A" * (bank_size - local_size)
+                    expected = bytearray(bank * 2)
+                    for field in ([0x7164, 0x7168, 0x716C] if perfect else [0xA100, 0xA110, 0xA120]):
+                        value = int.from_bytes(bank[field:field + 4], "little") + bank_size
+                        expected[bank_size + field:bank_size + field + 4] = value.to_bytes(4, "little")
+                self.assertEqual(recipe["icCount"], 1 if single else 3 if perfect else 2)
+                self.assertEqual(baseline.derived_bytes(request["derived"][0], self.catalog.read_derived_source), expected)
+
+    def test_kinds_command_writes_the_same_document_without_test_area_or_cli(self):
+        with (mock.patch.object(Path, "write_bytes") as write,
+              mock.patch.object(baseline, "test_area", side_effect=AssertionError("not needed")),
+              mock.patch.object(baseline.subprocess, "run", side_effect=AssertionError("no CLI"))):
+            self.assertEqual(baseline.main(["kinds", "--output", "example.md"]), 0)
+        write.assert_called_once_with(baseline.render_input_kinds(self.catalog).encode("utf-8"))
+
+    def test_derived_source_hash_size_and_canonical_root_are_rechecked(self):
+        route = self.recipe_route("derived")
+        request, _ = self.catalog.prepare(route, [])
+        source = request["derived"][0]["operations"][0]["source"]
+        for field, value in [("sha256", "0" * 64), ("size", source["size"] + 1),
+                             ("path", "../example.bin")]:
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "changed|escapes"):
+                self.catalog.read_derived_source(dict(source, **{field: value}))
+
+    def test_derived_executor_uses_test_area_and_detects_prepared_or_source_mutation(self):
+        route = self.recipe_route("derived")
+        inputs = []
+        request, _ = self.catalog.prepare(route, inputs)
+        executor = baseline.CliExecutor(Path("current.dll"), baseline.REPO.parent)
+        work = executor.temp / "fake-work"
+        spec = request["derived"][0]
+        expected = baseline.derived_bytes(spec, self.catalog.read_derived_source)
+        for mutation in (None, "prepared", "source"):
+            files = {baseline.REPO / row["path"]: (baseline.REPO / row["path"]).read_bytes()
+                     for row in inputs if row["path"].startswith("testdata/")}
+
+            def write(path, payload):
+                self.assertEqual(path, work / "reference.bin")
+                self.assertEqual(payload, expected)
+                files[path] = payload
+                return len(payload)
+
+            def build(actual_route, arguments, final):
+                self.assertEqual(actual_route, route)
+                self.assertEqual(final, work / "final")
+                self.assertEqual(arguments[arguments.index("--base") + 1], str(work / "reference.bin"))
+                self.assertFalse(any("<derived:" in arg for arg in arguments))
+                if mutation:
+                    path = work / "reference.bin" if mutation == "prepared" else baseline.REPO / inputs[0]["path"]
+                    files[path] = b"changed"
+                return []
+
+            with (self.subTest(mutation=mutation),
+                  mock.patch.object(baseline.tempfile, "TemporaryDirectory", return_value=contextlib.nullcontext(str(work))) as temporary,
+                  mock.patch.object(Path, "mkdir"), mock.patch.object(Path, "rmdir"),
+                  mock.patch.object(Path, "write_bytes", autospec=True, side_effect=write),
+                  mock.patch.object(Path, "open", autospec=True, side_effect=lambda path, *_, **__: io.BytesIO(files[path])),
+                  mock.patch.object(executor, "build", side_effect=build)):
+                if mutation:
+                    with self.assertRaisesRegex(ValueError, "input changed"):
+                        executor(route, request, inputs)
+                else:
+                    self.assertEqual(executor(route, request, inputs), {"outputs": []})
+                temporary.assert_called_once_with(prefix="g0-baseline-", dir=executor.temp)
+            self.assertIn("<derived:reference.bin>", request["arguments"])
+
+    def test_d4_synthetic_inputs_declare_counts_versions_and_marker_envelopes(self):
+        for rid, recipe in self.catalog.recipes.items():
+            if recipe.get("decision") != "D4" or recipe.get("missingInputs"):
+                continue
+            with self.subTest(route=rid):
+                route = self.routes[rid]
+                request, missing = self.catalog.prepare(route, [])
+                self.assertEqual(missing, [])
+                data = {spec["name"]: baseline.synthetic_bytes(spec) for spec in request["synthetic"]}
+                if route["workflowId"] == "ab-merge":
+                    self.assertEqual(recipe["icCount"], 2 if route["icId"] == "NT51950" else 1)
+                    for name in ("tp-a.bin", "tp-b.bin"):
+                        self.assertEqual(data[name][0x36017], recipe["icCount"])
+                        self.assertEqual(data[name][0x36FFC:0x37000], b"\0NVT")
+                    continue
+                expected_count = 3 if route["icCountVariant"] == "3-ic" else 2 if route["icCountVariant"] == "2-8-ic" else 1
+                reference = data["reference.bin"]
+                marker = reference.index(b"\0NVT")
+                self.assertEqual(reference.count(b"\0NVT"), 1)
+                backup = marker - 0xFFC
+                self.assertEqual(reference[backup + 0x17], expected_count)
+                expected_fw = b"\x01\x04\x01" if "fw141" in rid else b"\x01\x04\x00" if "fw140" in rid else b"\x02\0\0"
+                self.assertEqual(reference[backup + 0x1A:backup + 0x1D], expected_fw)
+                self.assertEqual(recipe["icCount"], expected_count)
+
+    def test_recipe_inventory_has_exact_policy_fingerprints_and_honest_evidence_bindings(self):
+        recipes = self.catalog.recipes
+        self.assertEqual(len(recipes), 94)
         self.assertEqual(list(recipes), sorted(recipes))
-        self.assertEqual(sum(r["kind"] == "repo-case" for r in recipes.values()), 12)
-        self.assertEqual(sum(r["kind"] == "synthetic" for r in recipes.values()), 15)
         for route_id, recipe in recipes.items():
             with self.subTest(route=route_id):
                 self.assertEqual(recipe["capabilityFingerprint"], self.routes[route_id]["capabilityFingerprint"])
-                self.assertNotIn("caseId", self.catalog.evidence[route_id])
+                if recipe.get("source") == "route-evidence":
+                    self.assertEqual(recipe["kind"], "native")
+                    self.assertIn("caseId", self.catalog.evidence[route_id])
+                else:
+                    self.assertNotIn("caseId", self.catalog.evidence[route_id])
 
     def test_route_evidence_takes_precedence_even_over_invalid_recipe(self):
         route = self.route("standard-merge")
@@ -404,17 +788,17 @@ class BaselineRecipeTests(unittest.TestCase):
         generate.assert_not_called()
 
     def test_repo_recipe_uses_validated_artifacts_and_records_source(self):
-        route = self.recipe_route("repo-case", "standard-merge")
+        route = self.recipe_route("native", "standard-merge")
         inputs = []
         request, missing = self.catalog.prepare(route, inputs)
         self.assertEqual(missing, [])
-        self.assertEqual(request["input_source"], "recipe-repo-case")
+        self.assertEqual(request["input_source"], "recipe-native")
         self.assertEqual([row["name"] for row in inputs], ["dp-input", "tp-input", "ldc-input"])
         for row in inputs:
             self.assertEqual(row["sha256"], hashlib.sha256((baseline.REPO / row["path"]).read_bytes()).hexdigest())
 
     def test_repo_recipe_refuses_actual_manifest_hash_or_size_mismatch(self):
-        route = self.recipe_route("repo-case", "standard-merge")
+        route = self.recipe_route("native", "standard-merge")
         recipe = self.catalog.recipes[route["routeId"]]
         artifact = self.catalog.case(recipe["caseId"])["artifacts"][0]
         for field, value, diagnostic in [("sha256", "0" * 64, "SHA-256"), ("size", 1, "size")]:
@@ -426,14 +810,14 @@ class BaselineRecipeTests(unittest.TestCase):
                 execute.assert_not_called()
 
     def test_repo_recipe_requires_case_in_canonical_manifest(self):
-        route = self.recipe_route("repo-case")
+        route = self.recipe_route("native")
         self.catalog.recipes[route["routeId"]]["caseId"] = "unlisted-case"
         with self.assertRaisesRegex(ValueError, "canonical manifest"):
             self.catalog.prepare(route, [])
 
     def test_all_repo_recipes_prepare_without_generating_a_base_or_using_expected_output(self):
         for route_id, recipe in self.catalog.recipes.items():
-            if recipe["kind"] != "repo-case":
+            if recipe["kind"] != "native" or recipe.get("source") == "route-evidence":
                 continue
             with self.subTest(route=route_id):
                 inputs = []
@@ -451,7 +835,7 @@ class BaselineRecipeTests(unittest.TestCase):
                 "overlays": [{"offset": 2, "hex": "A55A"}]}
         self.assertEqual(baseline.synthetic_bytes(spec), b"\xFE\x01\xA5\x5A\x0A")
         for recipe in self.catalog.recipes.values():
-            if recipe["kind"] == "synthetic":
+            if recipe["kind"] == "synthetic" and not recipe.get("missingInputs"):
                 for spec in recipe["inputs"]:
                     self.assertEqual(baseline.synthetic_bytes(spec), baseline.synthetic_bytes(spec))
 
@@ -522,9 +906,9 @@ class BaselineRecipeTests(unittest.TestCase):
 
     def test_recipe_loader_refuses_duplicate_ids_unsorted_entries_and_unknown_schema(self):
         for rows, version, diagnostic in [
-                ([{"routeId": "a"}, {"routeId": "a"}], 1, "Duplicate route"),
-                ([{"routeId": "b"}, {"routeId": "a"}], 1, "sorted"),
-                ([], 2, "schema version")]:
+                ([{"routeId": "a"}, {"routeId": "a"}], 2, "Duplicate route"),
+                ([{"routeId": "b"}, {"routeId": "a"}], 2, "sorted"),
+                ([], 1, "schema version")]:
             document = json.dumps({"schemaVersion": version, "recipes": rows}).encode()
             with (self.subTest(rows=rows, version=version),
                   mock.patch.object(Path, "read_bytes", return_value=document),
@@ -571,16 +955,16 @@ class BaselineRecipeTests(unittest.TestCase):
             with self.subTest(spec=spec), self.assertRaises(ValueError):
                 baseline.synthetic_bytes(spec)
 
-    def test_collect_projects_each_available_input_source_and_null_for_unavailable(self):
-        routes = [self.route("standard-merge"), self.recipe_route("repo-case"),
-                  self.recipe_route("synthetic")]
-        unavailable = next(row for row in self.routes.values()
-                           if row["routeId"] not in self.catalog.recipes
-                           and "caseId" not in self.catalog.evidence[row["routeId"]])
+    def test_collect_projects_each_kind_and_source_including_private_unavailable(self):
+        routes = [self.route("standard-merge"), self.recipe_route("native"),
+                  self.recipe_route("synthetic"), self.recipe_route("derived")]
+        unavailable = self.recipe_route("private-native")
         result = baseline.collect([*routes, unavailable], self.catalog.prepare,
                                   lambda *_: {"outputs": []}, "a" * 40, "version")
         self.assertEqual({row["input_source"] for row in result["routes"]},
-                         {"route-evidence", "recipe-repo-case", "recipe-synthetic", None})
+                         {"route-evidence", "recipe-native", "recipe-synthetic", "recipe-derived", "recipe-private-native"})
+        self.assertEqual(result["header"]["input_kind_counts"],
+                         {"native": 2, "derived": 1, "synthetic": 1, "private-native": 1})
 
 
 if __name__ == "__main__":
