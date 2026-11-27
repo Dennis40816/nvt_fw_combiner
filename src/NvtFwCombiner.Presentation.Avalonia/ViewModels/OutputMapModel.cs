@@ -4,7 +4,7 @@ using NvtFwCombiner.Domain.Composition;
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 /// <summary>Display facts for one output address space; no firmware facts are inferred here.</summary>
-public sealed class OutputMapModel
+internal sealed class OutputMapModel
 {
     /// <summary>Copies ordered inputs into an immutable display snapshot. Keys must be unique across blocks and regions.</summary>
     public OutputMapModel(string addressSpaceId, long outputLength,
@@ -47,7 +47,7 @@ public sealed class OutputMapModel
 /// <param name="Name">Display name.</param>
 /// <param name="Range">Half-open output range.</param>
 /// <param name="IsReadOnly">Declared effective access, never inferred from contents.</param>
-public sealed record OutputMapRegion(string Key, string Name, ByteRange Range, bool IsReadOnly = false);
+internal sealed record OutputMapRegion(string Key, string Name, ByteRange Range, bool IsReadOnly = false);
 
 /// <summary>A step's declared write and optional source read.</summary>
 /// <param name="Key">Stable selection key, unique across regions and blocks.</param>
@@ -56,11 +56,11 @@ public sealed record OutputMapRegion(string Key, string Name, ByteRange Range, b
 /// <param name="Label">Step label.</param>
 /// <param name="SourceKey">Optional identity in Sources.</param>
 /// <param name="SourceRange">Optional half-open range in that source.</param>
-public sealed record OutputMapBlock(string Key, ByteRange TargetRange, OutputMapBlockKind Kind,
+internal sealed record OutputMapBlock(string Key, ByteRange TargetRange, OutputMapBlockKind Kind,
     string Label, string? SourceKey = null, ByteRange? SourceRange = null);
 
 /// <summary>Display operation kinds; these do not select an executor.</summary>
-public enum OutputMapBlockKind
+internal enum OutputMapBlockKind
 {
     /// <summary>Copy from an explicitly identified source.</summary>
     Copy,
@@ -76,22 +76,22 @@ public enum OutputMapBlockKind
 /// <param name="Key">Stable source key.</param>
 /// <param name="FileName">Display file name.</param>
 /// <param name="Length">Source length in bytes.</param>
-public sealed record OutputMapSource(string Key, string FileName, long Length);
+internal sealed record OutputMapSource(string Key, string FileName, long Length);
 
 /// <summary>CRC coverage and storage are independent optional facts.</summary>
 /// <param name="Name">Annotation name.</param>
 /// <param name="CoveredRange">Known half-open coverage; null produces no bracket.</param>
 /// <param name="StorageRange">Known half-open storage location; null produces no storage marker.</param>
-public sealed record OutputMapCrc(string Name, ByteRange? CoveredRange = null, ByteRange? StorageRange = null);
+internal sealed record OutputMapCrc(string Name, ByteRange? CoveredRange = null, ByteRange? StorageRange = null);
 
 /// <summary>A declared version field; the control never locates or decodes it.</summary>
 /// <param name="Name">Field name.</param>
 /// <param name="Range">Half-open output field range.</param>
 /// <param name="ValueText">Already decoded display value.</param>
-public sealed record OutputMapVersion(string Name, ByteRange Range, string ValueText);
+internal sealed record OutputMapVersion(string Name, ByteRange Range, string ValueText);
 
 /// <summary>Display severity supplied by an issue list.</summary>
-public enum OutputMapHighlightSeverity
+internal enum OutputMapHighlightSeverity
 {
     /// <summary>Warning.</summary>
     Warning,
@@ -100,7 +100,7 @@ public enum OutputMapHighlightSeverity
 }
 
 /// <summary>Immutable issue highlight, with no inferred overlaps or validation rules.</summary>
-public sealed class OutputMapHighlight
+internal sealed class OutputMapHighlight
 {
     /// <summary>Copies the explicitly supplied output ranges.</summary>
     public OutputMapHighlight(IEnumerable<ByteRange> ranges, OutputMapHighlightSeverity severity)

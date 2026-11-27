@@ -51,8 +51,10 @@ public sealed class OutputMapRenderTests
         Assert.InRange(Math.Abs(read.Bounds.Width - (source.Bounds.Width * 0.1)), 0, 1);
         Canvas lines = Assert.Single(host.Map.GetVisualDescendants().OfType<Canvas>(), c => c.Classes.Contains("outputMapConnectors"));
         Line first = Assert.IsType<Line>(lines.Children[0]);
-        Assert.InRange(Math.Abs(first.StartPoint.X - (lines.Bounds.Width * 0.2)), 0, 1);
-        Assert.InRange(Math.Abs(first.EndPoint.X - (lines.Bounds.Width * 0.05)), 0, 1);
+        // Compare in window coordinates: the lanes sit inside their track outline, the connector row does not.
+        Canvas zoom = host.Find<Canvas>("OutputMap.ZoomBar");
+        Assert.InRange(Math.Abs(host.Bounds(lines).Left + first.StartPoint.X - host.Bounds(source).Left - (source.Bounds.Width * 0.2)), 0, 1);
+        Assert.InRange(Math.Abs(host.Bounds(lines).Left + first.EndPoint.X - host.Bounds(zoom).Left - (zoom.Bounds.Width * 0.05)), 0, 1);
         Assert.InRange(Math.Abs(host.Bounds(lines).Top + first.StartPoint.Y - host.Bounds(source).Bottom), 0, 1);
         Assert.InRange(Math.Abs(first.EndPoint.Y - lines.Bounds.Height), 0, 1);
         TextBlock caption = Assert.Single(host.Map.GetVisualDescendants().OfType<TextBlock>(),

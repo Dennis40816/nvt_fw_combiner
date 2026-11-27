@@ -62,7 +62,7 @@ public sealed partial class OutputMap
                     "outputMapSourceOverflow", height: 22, width: 8);
             }
             AutomationProperties.SetName(sourceLane, $"{source.FileName} · {Text.Read} {RangeLabel(readRange)}");
-            parts.ZoomContent.Children.Add(Track(sourceLane, 22));
+            parts.ZoomContent.Children.Add(Track(sourceLane, 24));
             var sourceViewport = new Viewport(0, source.Length);
             sourceLane.SizeChanged += (_, _) => LayoutLane(sourceLane, sourceViewport);
             Canvas connectors = Connectors(sourceLane, output, source, readRange, block.TargetRange, viewport);
@@ -80,7 +80,7 @@ public sealed partial class OutputMap
         BuildRegions(regions, viewport, "ZoomRegion");
         parts.ZoomContent.Children.Add(regions);
         BuildBar(output, viewport, "ZoomBlock");
-        parts.ZoomContent.Children.Add(Track(output, 40));
+        parts.ZoomContent.Children.Add(Track(output, 42));
         regions.SizeChanged += (_, _) => LayoutLane(regions, viewport);
         output.SizeChanged += (_, _) => LayoutLane(output, viewport);
         UpdateZoomCaption(focus);

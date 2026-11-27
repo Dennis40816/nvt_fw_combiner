@@ -28,7 +28,7 @@
         <TextBlock Name="MapRange" Classes="outputMapAddress" />
       </WrapPanel>
       <Canvas Name="MapRegions" Height="18" />
-      <Border Classes="outputMapTrack" Height="40">
+      <Border Classes="outputMapTrack" Height="42">
         <Canvas Name="MapBar" AutomationProperties.AutomationId="OutputMap.Bar"
                 AutomationProperties.AccessibilityView="Content" AutomationProperties.ControlTypeOverride="Group" />
       </Border>

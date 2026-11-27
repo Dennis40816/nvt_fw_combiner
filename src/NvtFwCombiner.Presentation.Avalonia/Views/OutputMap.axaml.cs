@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Presentation.Avalonia.Views;
 public sealed partial class OutputMap : UserControl
 {
     /// <summary>Defines the immutable display snapshot.</summary>
-    public static readonly StyledProperty<OutputMapModel?> ModelProperty =
+    internal static readonly StyledProperty<OutputMapModel?> ModelProperty =
         AvaloniaProperty.Register<OutputMap, OutputMapModel?>(nameof(Model));
     /// <summary>Defines the externally bindable pinned block or region key.</summary>
     public static readonly StyledProperty<string?> SelectedKeyProperty =
@@ -55,7 +55,7 @@ public sealed partial class OutputMap : UserControl
     }
 
     /// <summary>Gets or sets supplied facts; changing them replaces the visual snapshot.</summary>
-    public OutputMapModel? Model { get => GetValue(ModelProperty); set => SetValue(ModelProperty, value); }
+    internal OutputMapModel? Model { get => GetValue(ModelProperty); set => SetValue(ModelProperty, value); }
     /// <summary>Gets or sets the pinned block or region key. Null clears the pin.</summary>
     public string? SelectedKey { get => GetValue(SelectedKeyProperty); set => SetValue(SelectedKeyProperty, value); }
     /// <summary>Gets or sets the preview key, including hover from an external step table.</summary>
