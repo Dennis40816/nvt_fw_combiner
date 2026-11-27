@@ -52,9 +52,12 @@ Download the Windows ZIP, SPDX SBOM, provenance, candidate manifest, and outer S
 
 
 class RenderReleaseNotesTests(unittest.TestCase):
-    def test_current_version_release_section_renders(self) -> None:
-        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    def test_latest_stable_release_section_renders(self) -> None:
         changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        version = next(
+            match["version"] for match in MODULE.SECTION_HEADING.finditer(changelog)
+            if MODULE.STABLE_VERSION.fullmatch(match["version"])
+        )
 
         notes = MODULE.render_release_notes(changelog, version)
 

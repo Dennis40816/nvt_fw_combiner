@@ -182,9 +182,7 @@ public sealed class ManagedDistributionLauncherHostServices : IDisposable
             throw new InvalidOperationException("The running Launcher path is unavailable.");
         Assembly launcherAssembly = Assembly.GetEntryAssembly() ??
             throw new InvalidOperationException("The running Launcher assembly is unavailable.");
-        string launcherVersion = launcherAssembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ??
-            throw new InvalidOperationException("The running Launcher version is unavailable.");
+        string launcherVersion = ManagedAppVersion.FromAssembly(launcherAssembly).ToString();
         return Create(
             launcherPath,
             launcherVersion,

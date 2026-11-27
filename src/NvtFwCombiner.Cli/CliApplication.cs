@@ -1,5 +1,6 @@
 using System.Reflection;
 using NvtFwCombiner.Application.Diagnostics;
+using NvtFwCombiner.Application.VersionManagement;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Cli;
@@ -68,7 +69,7 @@ public static partial class CliApplication
                     output,
                     error,
                     locators => CompositionHostServices.CreateVersionManagementExperience(
-                        Version,
+                        ManagedAppVersion.FromAssembly(typeof(CliApplication).Assembly).ToString(),
                         managedRoot: null,
                         statePath: versionManagerStatePath,
                         updateSourceRegistryPaths: locators),

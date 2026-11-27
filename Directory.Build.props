@@ -34,6 +34,9 @@
     <NuGetAuditMode>all</NuGetAuditMode>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="VersionCore" Value="$(VersionCore)" />
+  </ItemGroup>
   <!--
     Locked restore. The committed lock files of exactly these projects carry a net10.0/win-x64 target,
     because the packaging restores use -r win-x64. NuGet sets ExcludeRestorePackageImports only while it

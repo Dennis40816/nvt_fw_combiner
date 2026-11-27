@@ -9,6 +9,12 @@ assignments, use the [canonical roadmap](docs/architecture/nfc_roadmap.md).
 
 Later changes remain assigned by the canonical roadmap.
 
+## [1.3.0-g.0] - Unreleased
+
+### Added
+
+- Start NFC 1.3.0 development with the `1.3.0-g.0` display identity and `1.3.0` managed identity.
+
 ## [1.2.2]
 
 ### Summary
