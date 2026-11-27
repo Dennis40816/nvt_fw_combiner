@@ -263,109 +263,13 @@ public sealed class FirmwareImageMap
 
     private static void ValidateRegionGraph(IReadOnlyList<FirmwareRegion> regions, long capacityBytes)
     {
-        var regionsById = regions.ToDictionary(
-            static region => region.RegionId,
-            StringComparer.Ordinal);
-
-        foreach (FirmwareRegion region in regions)
+        IReadOnlyList<FirmwareRegionGraphViolation> violations = FirmwareRegionGraph.Validate(
+            [.. regions.Select(static region => new FirmwareRegionGraphNode(
+                region.RegionId, region.ParentRegionId, region.Range))], capacityBytes);
+        if (violations.Count != 0)
         {
-            DomainInvariant.Reject(
-                region.Range.EndExclusive > capacityBytes,
-                $"Firmware region '{region.RegionId}' exceeds the map capacity.",
-                nameof(regions));
-
-            if (region.ParentRegionId is not { } parentId)
-            {
-                continue;
-            }
-
-            DomainInvariant.Reject(
-                !regionsById.ContainsKey(parentId),
-                $"Firmware region '{region.RegionId}' references unknown parent '{parentId}'.",
-                nameof(regions));
+            throw violations[0].CreateException();
         }
-
-        ValidateAcyclicParents(regions, regionsById);
-        foreach (FirmwareRegion region in regions)
-        {
-            if (region.ParentRegionId is not { } parentId)
-            {
-                continue;
-            }
-
-            FirmwareRegion parent = regionsById[parentId];
-            DomainInvariant.Reject(
-                parent.Range == region.Range || !parent.Range.Contains(region.Range),
-                $"Firmware parent '{parentId}' must properly contain child '{region.RegionId}'.",
-                nameof(regions));
-        }
-
-        ValidateCompletePartitions(regions, regionsById, capacityBytes);
-    }
-
-    private static void ValidateAcyclicParents(
-        IEnumerable<FirmwareRegion> regions,
-        Dictionary<string, FirmwareRegion> regionsById)
-    {
-        _ = AcyclicDependencyGraph.Sort(
-            regions.Select(static region => region.RegionId),
-            regionId => regionsById[regionId].ParentRegionId is { } parentId ? [parentId] : [],
-            static (_, _) => new ArgumentException(
-                "Firmware region parent relationships cannot contain cycles.", nameof(regions)),
-            StringComparer.Ordinal);
-    }
-
-    private static void ValidateCompletePartitions(
-        IEnumerable<FirmwareRegion> regions,
-        Dictionary<string, FirmwareRegion> regionsById,
-        long capacityBytes)
-    {
-        List<FirmwareRegion> roots = [];
-        Dictionary<string, List<FirmwareRegion>> childrenByParent = new(StringComparer.Ordinal);
-        foreach (FirmwareRegion region in regions)
-        {
-            if (region.ParentRegionId is not { } parentId)
-            {
-                roots.Add(region);
-                continue;
-            }
-
-            if (!childrenByParent.TryGetValue(parentId, out List<FirmwareRegion>? children))
-            {
-                children = [];
-                childrenByParent.Add(parentId, children);
-            }
-
-            children.Add(region);
-        }
-
-        ValidatePartition(roots, new ByteRange(0, capacityBytes), "the map root");
-        foreach (KeyValuePair<string, List<FirmwareRegion>> entry in childrenByParent)
-        {
-            ValidatePartition(entry.Value, regionsById[entry.Key].Range, $"region '{entry.Key}'");
-        }
-    }
-
-    private static void ValidatePartition(
-        List<FirmwareRegion> regions,
-        ByteRange expectedRange,
-        string subject)
-    {
-        long coveredUntil = expectedRange.Start;
-        foreach (FirmwareRegion region in regions)
-        {
-            DomainInvariant.Reject(
-                region.Range.Start != coveredUntil,
-                $"Firmware children of {subject} must partition its range without overlap or implicit gaps.",
-                nameof(regions));
-
-            coveredUntil = region.Range.EndExclusive;
-        }
-
-        DomainInvariant.Reject(
-            regions.Count == 0 || coveredUntil != expectedRange.EndExclusive,
-            $"Firmware children of {subject} must cover its exact range.",
-            nameof(regions));
     }
 
 }
