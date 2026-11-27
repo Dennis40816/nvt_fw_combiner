@@ -98,5 +98,6 @@ public sealed class MemoryLayoutFactTests
         Assert.Empty(layout.SectionLocators);
         Assert.Empty(layout.Banks);
         Assert.False(layout.CanViewIndividualBanks);
+        Assert.Equal(fixture.Composition.Plan.OrderedOperations, layout.Steps.Values);
     }
 }

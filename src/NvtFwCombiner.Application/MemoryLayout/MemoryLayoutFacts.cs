@@ -34,6 +34,8 @@ public enum MemoryLayoutFactUnavailableReason
     MetadataNotResolved,
     /// <summary>The current plan does not prove a complete output location.</summary>
     OutputLocationNotResolved,
+    /// <summary>No compiled operation overlay was supplied for this snapshot.</summary>
+    CompiledPlanNotResolved,
 }
 
 /// <summary>Owned immutable values with distinct known-empty and unavailable states.</summary>
