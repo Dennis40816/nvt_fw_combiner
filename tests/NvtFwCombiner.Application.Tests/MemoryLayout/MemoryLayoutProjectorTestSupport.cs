@@ -306,7 +306,9 @@ internal static class MemoryLayoutProjectorTestSupport
 
     internal static ResolvedCapability Capability(
         CapabilityRouteIdentity route,
-        CompiledComposition composition)
+        CompiledComposition composition,
+        MetadataPlanDefinition? metadataPlan = null,
+        CanonicalCapabilityCompilationContract? compilationContract = null)
     {
         const string fingerprint =
             "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
@@ -329,8 +331,9 @@ internal static class MemoryLayoutProjectorTestSupport
                 route,
                 fingerprint,
                 CapabilityEvidenceStatus.SyntheticOracle),
-            MetadataPlanDefinition.Empty.Resolve(Token),
-            Token);
+            (metadataPlan ?? MetadataPlanDefinition.Empty).Resolve(Token),
+            Token,
+            compilationContract);
     }
 
     internal static PinnedCapabilityDecision<T> Decision<T>(
@@ -353,6 +356,23 @@ internal static class MemoryLayoutProjectorTestSupport
         params AuthoringSlotState[] slots)
     {
         return CreateSession(fixture, fixture.Capability.CapabilityFingerprint, slots);
+    }
+
+    internal static ActiveSessionSnapshot CreateInspectedSession(ProjectionFixture fixture)
+    {
+        CompositionPlan plan = fixture.Composition.Plan;
+        ActiveSessionSnapshot session = CreateSession(fixture,
+            Slot("dp-input", AuthoringSlotLifecycle.Verified, plan.OutputInitialization.Capacity),
+            Slot("tp-input", AuthoringSlotLifecycle.Verified, plan.OutputInitialization.Capacity));
+        MetadataInspectionSnapshot inspection = FirmwareMetadataInspector.Inspect(new MetadataInspectionRequest(
+            fixture.Capability.MetadataPlan, session.AuthoringRevision.Value,
+            [new FirmwareArtifactPayload("dp-input", new byte[checked((int)plan.OutputInitialization.Capacity)]),
+             new FirmwareArtifactPayload("tp-input", new byte[checked((int)plan.OutputInitialization.Capacity)])]));
+        return new ActiveSessionSnapshot(session.WorkflowId, session.ResolutionToken, session.AuthoringRevision,
+            session.SelectedRouteId, session.CapabilityFingerprint, session.ExecutionAdmitted, session.SelectedIc,
+            session.SelectedIcCount, session.SelectedMapVariant, session.IcChoices, session.IcCountChoices, session.Slots,
+            session.DraftState, session.DraftCapabilityFingerprint, session.DerivedPublications,
+            fixture.Composition.CompilationFingerprint, fixture.Capability, metadataInspection: inspection);
     }
 
     internal static ActiveSessionSnapshot CreateSession(

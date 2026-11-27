@@ -482,6 +482,8 @@ public sealed record MemoryLayoutBankLocator
 /// <summary>One disposable immutable layout projection for an authoring revision.</summary>
 public sealed class MemoryLayoutSnapshot
 {
+    private readonly MemoryLayoutProjectedFacts _facts;
+
     internal MemoryLayoutSnapshot(
         ResolvedCapability capability,
         ActiveSessionSnapshot authoring,
@@ -491,7 +493,8 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems,
         IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators,
-        IReadOnlyList<MemoryLayoutBankLocator> banks)
+        IReadOnlyList<MemoryLayoutBankLocator> banks,
+        MemoryLayoutProjectedFacts? facts = null)
         : this(
             capability,
             authoring,
@@ -504,7 +507,8 @@ public sealed class MemoryLayoutSnapshot
             afterSegments,
             pendingItems,
             sectionLocators,
-            banks)
+            banks,
+            facts)
     {
     }
 
@@ -515,7 +519,8 @@ public sealed class MemoryLayoutSnapshot
         long capacity,
         IReadOnlyList<MemoryLayoutSegment> beforeSegments,
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
-        IEnumerable<MemoryLayoutPendingItem> pendingItems)
+        IEnumerable<MemoryLayoutPendingItem> pendingItems,
+        MemoryLayoutProjectedFacts? facts = null)
         : this(
             capability,
             authoring,
@@ -528,7 +533,8 @@ public sealed class MemoryLayoutSnapshot
             afterSegments,
             pendingItems,
             [],
-            [])
+            [],
+            facts)
     {
     }
 
@@ -544,7 +550,8 @@ public sealed class MemoryLayoutSnapshot
         IReadOnlyList<MemoryLayoutSegment> afterSegments,
         IEnumerable<MemoryLayoutPendingItem> pendingItems,
         IReadOnlyList<MemoryLayoutSectionLocator> sectionLocators,
-        IReadOnlyList<MemoryLayoutBankLocator> banks)
+        IReadOnlyList<MemoryLayoutBankLocator> banks,
+        MemoryLayoutProjectedFacts? facts)
     {
         ArgumentNullException.ThrowIfNull(capability);
         ArgumentNullException.ThrowIfNull(authoring);
@@ -651,6 +658,7 @@ public sealed class MemoryLayoutSnapshot
         SectionLocators = Array.AsReadOnly(sections);
         Banks = Array.AsReadOnly(banks.ToArray());
         CanViewIndividualBanks = capability.CompiledComposition.V2Details.Ab?.IsFullySymmetric == true && Banks.Count == 2;
+        _facts = facts ?? MemoryLayoutFactProjection.Create(capability, authoring, map, addressSpaceId, capacity);
     }
 
     /// <summary>Exact canonical route identity.</summary>
@@ -694,6 +702,12 @@ public sealed class MemoryLayoutSnapshot
 
     /// <summary>Single presentation decision for bank switching, cropping and focus filtering.</summary>
     public bool CanViewIndividualBanks { get; }
+
+    /// <summary>Active profile authoring prohibitions, independent of kept or processor-written segments.</summary>
+    public MemoryLayoutFactSet<MemoryLayoutReadOnlyRange> ReadOnlyRanges => _facts.ReadOnlyRanges;
+
+    /// <summary>Declared DP version fields or extractor carriers; location does not assert a readable version value.</summary>
+    public MemoryLayoutFactSet<MemoryLayoutVersionLocation> DpVersionLocations => _facts.DpVersionLocations;
 
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,

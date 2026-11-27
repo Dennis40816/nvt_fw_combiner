@@ -19,7 +19,7 @@ public sealed partial class PresentationBoundaryTests
                     Path.Combine(
                         Root.FullName,
                         "src/NvtFwCombiner.Application/MemoryLayout"),
-                    "MemoryLayoutProjector*.cs",
+                    "MemoryLayout*.cs",
                     SearchOption.TopDirectoryOnly)
                 .Order(StringComparer.Ordinal)
                 .Select(File.ReadAllText));

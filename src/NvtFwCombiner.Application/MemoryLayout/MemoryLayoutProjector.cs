@@ -165,6 +165,11 @@ public static partial class MemoryLayoutProjector
                 statesById,
                 contentSources);
 
+        MemoryLayoutProjectedFacts facts = MemoryLayoutFactProjection.Create(
+            capability, authoring, map, map?.AddressSpaceId ?? plan.OutputSpaceId, capacity,
+            (sourceSpaceId, range) => contentSources.FindOutputLocations(sourceSpaceId, range, after,
+                compiledOverlay is null ? 0 : plan.OrderedOperations.Count));
+
         return map is null
             ? new MemoryLayoutSnapshot(
                 capability,
@@ -173,7 +178,8 @@ public static partial class MemoryLayoutProjector
                 capacity,
                 before,
                 after,
-                pendingItems)
+                pendingItems,
+                facts)
             : new MemoryLayoutSnapshot(
                 capability,
                 authoring,
@@ -183,7 +189,8 @@ public static partial class MemoryLayoutProjector
                 after,
                 pendingItems,
                 ProjectSections(capability, map.AddressSpaceId, capacity),
-                ProjectBanks(composition, map.AddressSpaceId, capacity));
+                ProjectBanks(composition, map.AddressSpaceId, capacity),
+                facts);
     }
 
     private static void ValidateIdentity(

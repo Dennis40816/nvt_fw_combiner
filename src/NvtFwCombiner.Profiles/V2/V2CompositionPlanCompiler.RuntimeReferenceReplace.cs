@@ -273,8 +273,8 @@ internal static partial class V2CompositionPlanCompiler
             shape.ProcessorOperation is null ||
             edit.SourceFirmwareVersionAndBarRange.Length != 2 ||
             edit.SourceFirmwareSubVersionRange.Length != 1 ||
-            !TryResolveGoverningRegionChain(edit.SourceFirmwareVersionAndBarRange, regionAccess.RegionsById, out FirmwareRegion[] versionChain) ||
-            !TryResolveGoverningRegionChain(edit.SourceFirmwareSubVersionRange, regionAccess.RegionsById, out FirmwareRegion[] subVersionChain) ||
+            !CompiledRegionAccessContract.TryResolveGoverningRegionChain(edit.SourceFirmwareVersionAndBarRange, regionAccess.RegionsById, out FirmwareRegion[] versionChain) ||
+            !CompiledRegionAccessContract.TryResolveGoverningRegionChain(edit.SourceFirmwareSubVersionRange, regionAccess.RegionsById, out FirmwareRegion[] subVersionChain) ||
             versionChain[^1] is not { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } sourceRegion ||
             subVersionChain[^1] is not { Owner: FirmwareRegionOwner.Tp, Kind: FirmwareRegionKind.FirmwareConfig } subVersionRegion ||
             !StringComparer.Ordinal.Equals(sourceRegion.RegionId, subVersionRegion.RegionId) ||
@@ -480,7 +480,7 @@ internal static partial class V2CompositionPlanCompiler
                 continue;
             }
 
-            if (!TryResolveGoverningRegionChain(
+            if (!CompiledRegionAccessContract.TryResolveGoverningRegionChain(
                     mapping.TargetRange,
                     regionAccess.RegionsById,
                     out FirmwareRegion[] governingRegionChain))

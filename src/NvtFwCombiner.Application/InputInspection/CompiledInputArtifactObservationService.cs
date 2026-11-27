@@ -98,6 +98,25 @@ internal static class CompiledInputArtifactObservationService
     private const string ReferenceBaseRole = "reference-base";
     private const string TpARole = "tp-a";
     private const string TpBRole = "tp-b";
+    private static readonly IReadOnlyList<(CompiledInputVersionKind Kind, string RegionId)> s_dpVersionCarriers =
+        Array.AsReadOnly<(CompiledInputVersionKind Kind, string RegionId)>(
+        [
+            (CompiledInputVersionKind.DpA, "a-cmi-dp-version"),
+            (CompiledInputVersionKind.DpB, "b-cmi-dp-version"),
+        ]);
+
+    /// <summary>Returns exact declared extractor carriers, without asserting readable version values.</summary>
+    internal static IReadOnlyList<(CompiledInputVersionKind Kind, FirmwareRegion? Region)> GetDeclaredDpVersionCarriers(
+        CompiledComposition composition)
+    {
+        CompiledComposition layout = composition.V2Details.Provenance.Context is RuntimeReferenceBankReplaceV2CompilationContext bank
+            ? bank.LayoutComposition : composition;
+        return layout.V2Details.OutputNamingRequirement.RendererKind != CompiledOutputNameRendererKind.AbCodeV1 ||
+            layout.V2Details.Provenance.Context is not MapBoundV2CompilationContext
+            ? []
+            : Array.AsReadOnly(s_dpVersionCarriers.Select(carrier =>
+                (carrier.Kind, Region: FindDpVersionCarrier(layout, carrier.RegionId))).ToArray());
+    }
 
     internal static CompiledInputArtifactObservationResult Observe(
         CompiledComposition composition,
@@ -156,19 +175,15 @@ internal static class CompiledInputArtifactObservationService
         CompiledInputArtifactInspectionResult? inspection)
     {
         ReadOnlyMemory<byte> snapshot = GetAcceptedSnapshot(sourceBytes, inspection);
-        return
-        [
-            DecodeDpRegion(
-                composition,
-                CompiledInputVersionKind.DpA,
-                "a-cmi-dp-version",
-                snapshot),
-            DecodeDpRegion(
-                composition,
-                CompiledInputVersionKind.DpB,
-                "b-cmi-dp-version",
-                snapshot),
-        ];
+        return [.. s_dpVersionCarriers.Select(carrier =>
+            DecodeDpRegion(composition, carrier.Kind, carrier.RegionId, snapshot))];
+    }
+
+    private static FirmwareRegion? FindDpVersionCarrier(CompiledComposition composition, string regionId)
+    {
+        FirmwareRegion? region = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions
+            .SingleOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
+        return region is { Range.Length: 3 } ? region : null;
     }
 
     internal static CompiledInputVersionObservation DecodeDpRegion(
@@ -177,9 +192,8 @@ internal static class CompiledInputArtifactObservationService
         string regionId,
         ReadOnlyMemory<byte> snapshot)
     {
-        FirmwareRegion? region = composition.V2Details.Provenance.ResolvedMap.ImageMap.Regions
-            .SingleOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.RegionId, regionId));
-        if (region is null || region.Range.Length != 3 || region.Range.Start < 0 ||
+        FirmwareRegion? region = FindDpVersionCarrier(composition, regionId);
+        if (region is null || region.Range.Start < 0 ||
             region.Range.EndExclusive > snapshot.Length || region.Range.Start > int.MaxValue)
         {
             return Unknown(kind);

@@ -22,6 +22,10 @@
              Link="ManualTimeProvider.cs" />
     <Compile Include="..\NvtFwCombiner.TestSupport\CompiledInputSlotTestFactory.cs"
              Link="CompiledInputSlotTestFactory.cs" />
+    <Compile Include="..\NvtFwCombiner.Application.Tests\MemoryLayout\MemoryLayoutProjectorTestSupport.cs"
+             Link="MemoryLayout\MemoryLayoutProjectorTestSupport.cs" />
+    <Compile Include="..\NvtFwCombiner.Application.Tests\MemoryLayout\MemoryLayoutProjectorSerialGroup.cs"
+             Link="MemoryLayout\MemoryLayoutProjectorSerialGroup.cs" />
     <Compile Include="..\Shared\TrustedProfileBundleCatalogTestExtensions.cs"
              Link="TrustedProfileBundleCatalogTestExtensions.cs" />
   </ItemGroup>

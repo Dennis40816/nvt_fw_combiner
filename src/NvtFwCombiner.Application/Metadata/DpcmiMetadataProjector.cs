@@ -44,6 +44,19 @@ public sealed record DpcmiMetadataFacts(
 /// <summary>Projects DPCMI raw fields into their accepted derived semantic facts.</summary>
 public static class DpcmiMetadataProjector
 {
+    /// <summary>Selects the declared version carriers through the existing DPCMI field contract.</summary>
+    internal static IReadOnlyList<FirmwareMetadataField> GetVersionFields(MetadataPlanEntry entry)
+    {
+        return entry.StructureDefinition.Definition.DefinitionId != DpcmiMetadataContract.StructureId ||
+            !entry.Purposes.Contains(MetadataReferencePurpose.Version)
+            ? []
+            : Array.AsReadOnly(entry.StructureDefinition.Fields.Where(field =>
+                (field.FieldId == DpcmiMetadataContract.MajorVersionFieldId ||
+                 field.FieldId == DpcmiMetadataContract.MinorVersionFieldId) &&
+                entry.TargetReferences.Any(target =>
+                    entry.StructureDefinition.Definition.ReferenceTargetContainsField(target, field))).ToArray());
+    }
+
     /// <summary>Projects exactly one successful DPCMI result.</summary>
     public static bool TryProject(
         MetadataInspectionSnapshot snapshot,

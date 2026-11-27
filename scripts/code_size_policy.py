@@ -39,7 +39,7 @@ HOTSPOT_LINES: dict[str, int] = {
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 3_212,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.SettingsViewModel": 2_191,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_833,
-    "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 3_900,
+    "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 3_819,
 }
 HOTSPOT_ENTRY_LINES = 2_000
 HOTSPOT_EXIT_LINES = 1_500
