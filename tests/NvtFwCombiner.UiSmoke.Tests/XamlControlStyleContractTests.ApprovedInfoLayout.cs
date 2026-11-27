@@ -129,9 +129,9 @@ public sealed partial class XamlControlStyleContractTests
             new("IC Count", "1", priority: FirmwareSlotFactPriority.Details),
             new("DP Version", "D06-00", priority: FirmwareSlotFactPriority.Details),
             new(text.GetCtrlRamBaseBankRangeLabel("A"), text.GetCtrlRamBaseReferenceRangeValue("[0x00000,0x40000)"), priority: FirmwareSlotFactPriority.Details),
-            new(text.GetCtrlRamBaseBackupOffsetLabel("A"), text.GetCtrlRamBaseBackupOffsetValue(0x23000), priority: FirmwareSlotFactPriority.Details),
+            new(chinese ? "A FWConfig 備份" : "A FWConfig Backup", chinese ? "Bank 內 +0x23000" : "bank-local +0x23000", priority: FirmwareSlotFactPriority.Details),
             new(text.GetCtrlRamBaseBankRangeLabel("B"), text.GetCtrlRamBaseReferenceRangeValue("[0x40000,0x80000)"), priority: FirmwareSlotFactPriority.Details),
-            new(text.GetCtrlRamBaseBackupOffsetLabel("B"), text.GetCtrlRamBaseBackupOffsetValue(0x23020), priority: FirmwareSlotFactPriority.Details),
+            new(chinese ? "B FWConfig 備份" : "B FWConfig Backup", chinese ? "Bank 內 +0x23020" : "bank-local +0x23020", priority: FirmwareSlotFactPriority.Details),
         ]);
         var card = new FirmwareSlotCard { DataContext = slot, BrowseLabel = text.BrowseLabel, Width = 900 };
         (Window host, _, _) = HostWithProductionFirmwareSlotStyles(card);

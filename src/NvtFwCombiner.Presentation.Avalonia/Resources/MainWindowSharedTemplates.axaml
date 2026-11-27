@@ -289,67 +289,6 @@
   </StackPanel>
 </DataTemplate>
 
-<DataTemplate x:Key="MemoryCoverageSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
-  <Border IsVisible="{Binding IsPrimaryContent}" Classes="surface memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
-      Padding="12" Margin="0,0,0,8" BorderThickness="1" CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
-      AutomationProperties.HelpText="{Binding AccessibleDetail}" AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
-    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
-    <StackPanel>
-      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageRegionCardTemplate}" />
-        <Button
-            Margin="0,8,0,0"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            AutomationProperties.HelpText="{Binding AccessibleDetail}"
-            AutomationProperties.Name="{Binding DetailsLabel}"
-            Classes="semanticAction secondary"
-            Content="{Binding DetailsLabel}"
-            IsVisible="{Binding HasPreservationDetails}">
-          <Button.Flyout>
-            <Flyout Placement="RightEdgeAlignedTop">
-              <Border Classes="surface" MaxWidth="420" Padding="12">
-                <StackPanel Spacing="{DynamicResource NfcSpace8}">
-                  <TextBlock Classes="panelTitle" Text="{Binding PreservationSummary}" TextWrapping="Wrap" />
-                  <ItemsControl ItemsSource="{Binding PreservationDetails}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate DataType="vm:DiffDlmPreservationDetailViewModel" x:DataType="vm:DiffDlmPreservationDetailViewModel">
-                        <Border Classes="subtleSurface" Margin="0,0,0,6" Padding="9,7">
-                          <StackPanel Spacing="{DynamicResource NfcSpace2}">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
-                              <TextBlock Classes="bodyEmphasisText" Text="{Binding IcLabel}" />
-                              <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding BlockLabel}" />
-                            </Grid>
-                            <TextBlock Classes="technicalValue" Text="{Binding ArtifactRangeLabel}" TextWrapping="Wrap" />
-                            <TextBlock Classes="technicalValue" Text="{Binding FlashRangeLabel}" TextWrapping="Wrap" />
-                            <TextBlock Classes="captionText" Text="{Binding DispositionLabel}" />
-                          </StackPanel>
-                        </Border>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </Border>
-            </Flyout>
-          </Button.Flyout>
-        </Button>
-    </StackPanel>
-  </Border>
-</DataTemplate>
-
-<DataTemplate x:Key="MemoryCoveragePlainSegmentListTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
-  <Border Classes="surface memoryInfoRow memoryCoverageLinkedRow" Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
-      Padding="12" Margin="0,0,0,8" BorderThickness="1" CornerRadius="{DynamicResource NfcSurfaceCornerRadius}"
-      AutomationProperties.HelpText="{Binding AccessibleDetail}" AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True" Focusable="True">
-    <ToolTip.Tip><ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
-    <StackPanel>
-      <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MemoryCoverageRegionCardTemplate}" />
-
-    </StackPanel>
-  </Border>
-</DataTemplate>
-
 <DataTemplate x:Key="MemoryCoverageLogicalRangeTemplate" DataType="vm:MemoryCoverageSegmentViewModel">
   <Border
       Padding="0,6"
@@ -422,70 +361,6 @@
           Classes="captionText memoryInfoDescription"
           Text="{Binding PrimaryRange.CompactDetail}"
           TextWrapping="Wrap" />
-    </Grid>
-  </Border>
-</DataTemplate>
-
-<DataTemplate x:Key="MemoryCoverageLogicalItemTemplate" DataType="vm:MemoryCoverageLogicalItemViewModel">
-  <Border
-      Classes="listRow memoryInfoRow memoryCoverageLinkedRow"
-      Classes.linked="{Binding Interaction.IsActive}" Classes.reducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}"
-      Padding="0,10"
-      AutomationProperties.HelpText="{Binding AccessibleDetail}"
-      AutomationProperties.Name="{Binding AccessibleDetail}"
-      behaviors:FocusToolTipBehavior.IsEnabled="True" behaviors:MemoryCoverageInteractionBehavior.IsEnabled="True"
-      Focusable="True">
-    <ToolTip.Tip><ContentControl Content="{Binding PrimaryRange}" ContentTemplate="{StaticResource MemoryCoverageTooltipTemplate}" /></ToolTip.Tip>
-    <StackPanel>
-      <ContentControl
-          Content="{Binding}"
-          ContentTemplate="{StaticResource MemoryCoverageLogicalSingleRangeTemplate}"
-          IsVisible="{Binding HasSingleRange}" />
-      <Grid IsVisible="{Binding HasMultipleRanges}" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace2}">
-        <TextBlock
-            VerticalAlignment="Center"
-            Classes="bodyEmphasisText"
-            Text="{Binding SourceLabel}"
-            TextWrapping="Wrap" />
-        <TextBlock
-            Grid.Row="1"
-            Classes="microInfoText memoryInfoRangeSummary"
-            IsVisible="{Binding HasMultipleRanges}"
-            Text="{Binding RangeSummaryLabel}"
-            TextWrapping="Wrap" />
-      </Grid>
-      <Border
-          Classes="memoryInfoRangeList"
-          Classes.multiple="{Binding HasMultipleRanges}"
-          IsVisible="{Binding HasMultipleRanges}">
-        <ItemsControl
-            ItemContainerTheme="{StaticResource StretchContentPresenterTheme}"
-            ItemTemplate="{StaticResource MemoryCoverageLogicalRangeTemplate}"
-            ItemsSource="{Binding Ranges}" />
-      </Border>
-    </StackPanel>
-  </Border>
-</DataTemplate>
-
-<DataTemplate x:Key="ReplaceMemoryMapRowTemplate" DataType="vm:MemoryMapRowViewModel">
-  <Border Classes="listRow" Padding="0,9" ToolTip.Tip="{Binding Detail}">
-    <Grid ColumnDefinitions="118,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
-      <StackPanel Spacing="{DynamicResource NfcSpace2}">
-        <TextBlock Classes="bodyStrongText" Text="{Binding PrimaryLabel}" TextWrapping="Wrap" />
-        <TextBlock Classes="microInfoText" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
-      </StackPanel>
-      <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="1" Grid.Column="1" Classes="memoryFlowText" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
-    </Grid>
-  </Border>
-</DataTemplate>
-
-<DataTemplate x:Key="MergeMemoryMapRowTemplate" DataType="vm:MemoryMapRowViewModel">
-  <Border Classes="listRow" Padding="0,9" ToolTip.Tip="{Binding Detail}">
-    <Grid ColumnDefinitions="62,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="3">
-      <TextBlock Classes="microInfoText" Text="{Binding ActionLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="1" Classes="technicalValue" Text="{Binding RangeLabel}" TextWrapping="Wrap" />
-      <TextBlock Grid.Row="1" Grid.Column="1" Classes="memoryFlowText" Text="{Binding FlowLabel}" TextWrapping="Wrap" />
     </Grid>
   </Border>
 </DataTemplate>

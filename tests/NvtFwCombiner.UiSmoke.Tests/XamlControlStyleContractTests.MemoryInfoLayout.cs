@@ -191,11 +191,11 @@ public sealed partial class XamlControlStyleContractTests
         }
     }
 
-    /// <summary>The fixed 430 px rail stacks technical ranges and leaves the optional action its own row.</summary>
+    /// <summary>The live region card stacks its title, range, size and summary within the fixed 430 px rail.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public void MemoryCoverageRowStacksRangeWithoutDetailsCompetitionAtFixedRailWidth(
+    public void MemoryCoverageRegionCardStacksRangeAtFixedRailWidth(
         bool useDarkTheme)
     {
         ThemeVariant theme = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
@@ -204,7 +204,7 @@ public sealed partial class XamlControlStyleContractTests
             Source = ProductionSharedTemplatesUri,
         };
         Assert.True(resources.TryGetResource(
-            "MemoryCoverageSegmentListTemplate",
+            "MemoryCoverageRegionCardTemplate",
             theme,
             out object? templateResource));
         IDataTemplate template = Assert.IsType<IDataTemplate>(templateResource, exactMatch: false);
@@ -239,8 +239,10 @@ public sealed partial class XamlControlStyleContractTests
         {
             Width = 430,
             RequestedThemeVariant = theme,
+            DataContext = new { Text = ShellTextResources.For(ShellLanguage.English) },
             Content = rail,
         };
+        host.Resources.MergedDictionaries.Add(resources);
         var buttonStyles = new StyleInclude(ProductionButtonStylesUri)
         {
             Source = ProductionButtonStylesUri,
@@ -258,149 +260,25 @@ public sealed partial class XamlControlStyleContractTests
             candidate => candidate.Text == segment.AddressRangeLabel);
         TextBlock length = Assert.Single(
             row.GetVisualDescendants().OfType<TextBlock>(),
-            candidate => candidate.Text == segment.LengthLabel);
+            candidate => candidate.Text == segment.SizeValue);
         TextBlock description = Assert.Single(
             row.GetVisualDescendants().OfType<TextBlock>(),
-            candidate => candidate.Text == segment.PreservationSummary);
-        Button details = Assert.Single(
-            row.GetVisualDescendants().OfType<Button>(),
-            candidate => Equals(candidate.Content, segment.DetailsLabel));
+            candidate => candidate.Text == segment.PreservationSummary && candidate.Classes.Contains("memoryInfoDescription"));
         Point sourceOrigin = Assert.IsType<Point>(source.TranslatePoint(default, row));
         Point addressOrigin = Assert.IsType<Point>(address.TranslatePoint(default, row));
         Point lengthOrigin = Assert.IsType<Point>(length.TranslatePoint(default, row));
         Point descriptionOrigin = Assert.IsType<Point>(description.TranslatePoint(default, row));
-        Point detailsOrigin = Assert.IsType<Point>(details.TranslatePoint(default, row));
 
         Assert.True(addressOrigin.Y >= sourceOrigin.Y + source.Bounds.Height);
         Assert.True(addressOrigin.X > sourceOrigin.X);
         Assert.True(lengthOrigin.Y >= addressOrigin.Y + address.Bounds.Height);
         Assert.Equal(addressOrigin.X, lengthOrigin.X, precision: 3);
         Assert.True(descriptionOrigin.Y >= addressOrigin.Y + address.Bounds.Height);
-        Assert.True(detailsOrigin.Y >= descriptionOrigin.Y + description.Bounds.Height);
-        Assert.True(detailsOrigin.X + details.Bounds.Width <= row.Bounds.Width);
+        AssertControlFitsWidth(source, row);
+        AssertControlFitsWidth(address, row);
+        AssertControlFitsWidth(length, row);
+        AssertControlFitsWidth(description, row);
         Assert.Equal(ProductionButtonStylesUri, buttonStyles.Source);
-        Assert.NotNull(details.Theme);
-        Assert.Null(details.FocusAdorner);
-        Assert.Equal(34, details.MinHeight);
-
-        Assert.True(resources.TryGetResource(
-            "MemoryCoverageLogicalItemTemplate",
-            theme,
-            out object? logicalTemplateResource));
-        IDataTemplate logicalTemplate = Assert.IsType<IDataTemplate>(logicalTemplateResource, exactMatch: false);
-        var keptTail = new MemoryCoverageSegmentViewModel(
-            "0x23700-0x2560F",
-            "NF CtrlRAM",
-            "Output range keeps bytes from the base firmware.",
-            MemoryCoverageFillRole.CtrlRamNf,
-            20,
-            disposition: MemoryWorkflowDisposition.Kept,
-            usesBaseFirmwarePattern: true,
-            regionId: "nf-ctrlram",
-            sourceSlotId: "replace-base",
-            rangeStart: 0x23700,
-            rangeEndExclusive: 0x25610,
-            addressRangeLabel: "0x23700-0x2560F",
-            lengthLabel: "len 0x1F10",
-            addressSpaceId: "output");
-        var writtenHead = new MemoryCoverageSegmentViewModel(
-            "0x22C00-0x236FF",
-            "NF CtrlRAM",
-            "Output range will be written from NF CtrlRAM.",
-            MemoryCoverageFillRole.CtrlRamNf,
-            20,
-            disposition: MemoryWorkflowDisposition.WillReplace,
-            regionId: "nf-ctrlram",
-            sourceSlotId: "replace-ctrlram-nf",
-            rangeStart: 0x22C00,
-            rangeEndExclusive: 0x23700,
-            addressRangeLabel: "0x22C00-0x236FF",
-            lengthLabel: "len 0xB00",
-            addressSpaceId: "output");
-        var logicalItem = new MemoryCoverageLogicalItemViewModel(
-            "slot:replace-ctrlram-nf",
-            [writtenHead, keptTail],
-            ShellTextResources.For(ShellLanguage.English));
-        var logicalRow = new ContentControl
-        {
-            Content = logicalItem,
-            ContentTemplate = logicalTemplate,
-        };
-        var logicalHost = new Window
-        {
-            Width = 430,
-            RequestedThemeVariant = theme,
-            Content = new Border
-            {
-                Width = 430,
-                Padding = new Thickness(18, 16, 20, 18),
-                Child = logicalRow,
-            },
-        };
-
-        logicalHost.Measure(new Size(430, 1_000));
-        logicalHost.Arrange(new Rect(0, 0, 430, logicalHost.DesiredSize.Height));
-
-        _ = Assert.Single(
-            logicalRow.GetVisualDescendants().OfType<TextBlock>(),
-            candidate => candidate.Text == "NF CtrlRAM" && candidate.Bounds.Width > 0);
-        _ = Assert.Single(
-            logicalRow.GetVisualDescendants().OfType<TextBlock>(),
-            candidate => candidate.Text == "0x22C00-0x2560F");
-        Assert.DoesNotContain(
-            logicalRow.GetVisualDescendants().OfType<Label>(),
-            candidate => Equals(candidate.Content, "2 ranges"));
-        _ = Assert.Single(
-            logicalRow.GetVisualDescendants().OfType<Border>(),
-            candidate => candidate.Classes.Contains("memoryCoverageMarker"));
-        Assert.DoesNotContain(
-            logicalRow.GetVisualDescendants().OfType<ItemsControl>(),
-            candidate => candidate.Bounds is { Width: > 0, Height: > 0 });
-        Assert.True(logicalRow.Bounds.Width <= 392);
-
-        var separatedTail = new MemoryCoverageSegmentViewModel(
-            "0x26000-0x26FFF",
-            "NF CtrlRAM",
-            "A second non-contiguous range.",
-            MemoryCoverageFillRole.CtrlRamNf,
-            10,
-            disposition: MemoryWorkflowDisposition.WillReplace,
-            regionId: "nf-ctrlram-tail",
-            sourceSlotId: "replace-ctrlram-nf",
-            rangeStart: 0x26000,
-            rangeEndExclusive: 0x27000,
-            addressRangeLabel: "0x26000-0x26FFF",
-            lengthLabel: "len 0x1000");
-        var multiRangeItem = new MemoryCoverageLogicalItemViewModel(
-            "slot:replace-ctrlram-nf",
-            [writtenHead, separatedTail],
-            ShellTextResources.For(ShellLanguage.English));
-        var multiRangeRow = new ContentControl
-        {
-            Content = multiRangeItem,
-            ContentTemplate = logicalTemplate,
-        };
-        var multiRangeHost = new Window
-        {
-            Width = 430,
-            RequestedThemeVariant = theme,
-            Content = new Border
-            {
-                Width = 430,
-                Padding = new Thickness(18, 16, 20, 18),
-                Child = multiRangeRow,
-            },
-        };
-        multiRangeHost.Measure(new Size(430, 1_000));
-        multiRangeHost.Arrange(new Rect(0, 0, 430, multiRangeHost.DesiredSize.Height));
-        Assert.True(multiRangeItem.HasMultipleRanges);
-        _ = Assert.Single(
-            multiRangeRow.GetVisualDescendants().OfType<ItemsControl>(),
-            candidate => candidate.Bounds is { Width: > 0, Height: > 0 });
-        Assert.Equal(
-            2,
-            multiRangeRow.GetVisualDescendants().OfType<Border>()
-                .Count(candidate => candidate.Classes.Contains("memoryCoverageMarker")));
 
         var inlineDisclosure = new Expander
         {

@@ -165,7 +165,7 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("MergeOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoveragePlainSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("MemoryCoverageLogicalItemTemplate", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("MemoryCoverageRegionCardTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains(
             "ItemsSource=\"{Binding ReplaceCoverageSegments}\"",
@@ -175,8 +175,6 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("ItemsSource=\"{Binding CtrlRamOverview}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ShowLegend=\"True\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ReplaceMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("MergeMemoryMapRowTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource MemoryCoverageTooltipTemplate}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("AutomationProperties.HelpText=\"{Binding AccessibleDetail}\"", sharedTemplates, StringComparison.Ordinal);
@@ -219,10 +217,6 @@ public sealed partial class PresentationBoundaryTests
         Assert.DoesNotContain("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:MemoryCoverageBar", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ShowLegend=\"True\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "ItemTemplate=\"{StaticResource MemoryCoveragePlainSegmentListTemplate}\" ItemsSource=\"{Binding VisibleRows}\"",
-            sharedTemplates,
-            StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);

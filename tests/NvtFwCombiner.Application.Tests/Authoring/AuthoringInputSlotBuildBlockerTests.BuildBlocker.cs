@@ -43,20 +43,23 @@ public sealed partial class AuthoringInputSlotBuildBlockerTests
             new CapabilityChildReadiness(SourceSlot, ResolvedChildReadiness.Ready),
         ];
 
-        CapabilityActionBlocker? missingRuntime =
-            CapabilityActionReadinessResolver.ResolvePrimaryBuildBlockerBeforeRuntimeRefresh(
+        CapabilityActionAvailability missingRuntimeAvailability =
+            CapabilityActionReadinessResolver.ResolveBuildAvailabilityBeforeRuntimeRefresh(
                 CapabilityAdmissionSnapshot.FromResolvedCapability(withDependency, revision),
                 readyInputs,
                 RuntimeDependencyReadinessRequest.FromResolvedCapability(
                     withDependency,
                     revision));
-        CapabilityActionBlocker? noRuntimeRequired =
-            CapabilityActionReadinessResolver.ResolvePrimaryBuildBlockerBeforeRuntimeRefresh(
+        CapabilityActionAvailability noRuntimeRequiredAvailability =
+            CapabilityActionReadinessResolver.ResolveBuildAvailabilityBeforeRuntimeRefresh(
                 CapabilityAdmissionSnapshot.FromResolvedCapability(withoutDependency, revision),
                 readyInputs,
                 RuntimeDependencyReadinessRequest.FromResolvedCapability(
                     withoutDependency,
                     revision));
+
+        CapabilityActionBlocker? missingRuntime = missingRuntimeAvailability.PrimaryBlocker;
+        CapabilityActionBlocker? noRuntimeRequired = noRuntimeRequiredAvailability.PrimaryBlocker;
 
         Assert.Equal(
             CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale,
@@ -66,15 +69,7 @@ public sealed partial class AuthoringInputSlotBuildBlockerTests
             missingRuntime.NextAction);
         Assert.Null(noRuntimeRequired);
 
-        CapabilityActionAvailability missingRuntimeAvailability =
-            CapabilityActionReadinessResolver.ResolveBuildAvailabilityBeforeRuntimeRefresh(
-                CapabilityAdmissionSnapshot.FromResolvedCapability(withDependency, revision),
-                readyInputs,
-                RuntimeDependencyReadinessRequest.FromResolvedCapability(
-                    withDependency,
-                    revision));
-        Assert.Equal(missingRuntime, missingRuntimeAvailability.PrimaryBlocker);
-        _ = Assert.Single(missingRuntimeAvailability.Blockers);
+        Assert.Equal(missingRuntime, Assert.Single(missingRuntimeAvailability.Blockers));
     }
 
     /// <summary>A current canonical runtime observation is consumed instead of being recomputed.</summary>

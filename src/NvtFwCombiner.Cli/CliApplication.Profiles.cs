@@ -56,14 +56,6 @@ public static partial class CliApplication
         return Success;
     }
 
-    internal static string FormatIcNumberPolicy(CapabilityProfileSummary profile)
-    {
-        return profile.IcNumberInputMode is not { } mode
-            ? profile.CompileSucceeded || profile.DeclarationReady ? "none" : "compile-error"
-            : Enum.IsDefined(mode) ? mode.ToString() : throw new ArgumentOutOfRangeException(
-                nameof(profile), mode, "Unknown IC-number input mode.");
-    }
-
     private static string FormatProfileIssues(CapabilityProfileSummary profile)
     {
         return profile.CompileSucceeded

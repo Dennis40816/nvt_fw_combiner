@@ -14,10 +14,6 @@ internal sealed partial class ShellTextResources
         "預覽顯示發生錯誤。此錯誤不會阻擋 Build；輸入檔案仍須通過驗證。");
 
     public string MemoryShowFewerRegionsLabel => SelectLanguage("Show fewer regions", "收合區域列表");
-    public string FormatMemoryShowAllRegions(int count)
-    {
-        return SelectLanguage($"Show all {count} regions", $"展開全部 {count} 個區域");
-    }
 
     public string MemoryFlashOverviewLabel => SelectLanguage("Flash overview", "Flash 全圖");
     public string MemoryCtrlRamDetailLabel => SelectLanguage("CtrlRAM detail", "CtrlRAM 局部位置");
