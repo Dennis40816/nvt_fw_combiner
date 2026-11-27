@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
@@ -23,8 +24,13 @@ public sealed partial class OutputMap
         if (previews)
         {
             button.PointerEntered += (_, _) => _preview.Execute(key);
-            button.PointerExited += (_, _) => ClearPreview(key);
-            button.GotFocus += (_, _) => _preview.Execute(key);
+            button.GotFocus += (_, e) =>
+            {
+                if (_zoomRebuildDepth == 0 && e.NavigationMethod is NavigationMethod.Tab or NavigationMethod.Directional)
+                {
+                    _preview.Execute(key);
+                }
+            };
             button.LostFocus += (_, _) => ClearPreview(key);
         }
         else { button.Classes.Add(StripTargetClass); }
@@ -37,16 +43,19 @@ public sealed partial class OutputMap
 
     private void ClearPreview(string key)
     {
-        if (_zoomRebuildDepth == 0 && string.Equals(HoveredKey, key, StringComparison.Ordinal)) { _preview.Execute(FocusedKey); }
+        if (_zoomRebuildDepth == 0 && !IsPointerOver && string.Equals(HoveredKey, key, StringComparison.Ordinal))
+        {
+            _preview.Execute(FocusedKey);
+        }
     }
 
     private string? FocusedKey => this.GetVisualDescendants().OfType<Button>()
-        .FirstOrDefault(b => b.IsFocused && !b.Classes.Contains(StripTargetClass))?.CommandParameter as string;
+        .FirstOrDefault(b => b.IsFocused && b.Classes.Contains(":focus-visible") && !b.Classes.Contains(StripTargetClass))?.CommandParameter as string;
 
     private void RefreshInteraction()
     {
         if (_parts is null) { return; }
-        foreach (Button button in this.GetVisualDescendants().OfType<Button>())
+        foreach (Button button in this.GetLogicalDescendants().OfType<Button>())
         {
             UpdateTarget(button);
         }
@@ -73,7 +82,7 @@ public sealed partial class OutputMap
     {
         ArgumentNullException.ThrowIfNull(e);
         base.OnKeyDown(e);
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape && (SelectedKey is not null || HoveredKey is not null))
         {
             _clear.Execute(null);
             e.Handled = true;
@@ -90,5 +99,27 @@ public sealed partial class OutputMap
             _ = targets[next].Focus(NavigationMethod.Directional);
             e.Handled = true;
         }
+    }
+
+    private static (string Key, string? Id, NavigationMethod Navigation)? CaptureFocus(Control root)
+    {
+        Button? button = root.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.IsFocused);
+        return button?.CommandParameter is not string key
+            ? null
+            : (key, AutomationProperties.GetAutomationId(button),
+                button.Classes.Contains(":focus-visible") ? NavigationMethod.Directional : NavigationMethod.Unspecified);
+    }
+
+    private void RestoreFocus((string Key, string? Id, NavigationMethod Navigation)? focus)
+    {
+        if (focus is not { } saved) { return; }
+        Button[] targets = [.. this.GetLogicalDescendants().OfType<Button>()
+            .Where(b => string.Equals(b.CommandParameter as string, saved.Key, StringComparison.Ordinal))];
+        Button? target = targets.FirstOrDefault(b => string.Equals(AutomationProperties.GetAutomationId(b), saved.Id, StringComparison.Ordinal))
+            ?? targets.FirstOrDefault(b => !b.Classes.Contains(StripTargetClass) &&
+                (b.Classes.Contains("outputMapBlock") || b.Classes.Contains("outputMapRegion")));
+        _zoomRebuildDepth++;
+        try { _ = target?.Focus(saved.Navigation); }
+        finally { _zoomRebuildDepth--; }
     }
 }

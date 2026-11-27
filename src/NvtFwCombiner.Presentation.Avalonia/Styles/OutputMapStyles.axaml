@@ -41,6 +41,10 @@
   <Style Selector="Border.outputMapHighlight"><Setter Property="BorderThickness" Value="2" /></Style>
   <Style Selector="Border.outputMapVersion"><Setter Property="Background" Value="{DynamicResource NfcMemoryTpBackupFillBrush}" /></Style>
   <Style Selector="Border.outputMapCrcStorage"><Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" /></Style>
+  <Style Selector="Border.outputMapEnd"><Setter Property="Background" Value="{DynamicResource NfcTextStrongBrush}" /></Style>
+  <Style Selector="Border.outputMapSourceOverflow">
+    <Setter Property="Background" Value="{DynamicResource NfcCriticalBorderBrush}" />
+  </Style>
   <Style Selector="Button.outputMapTarget">
     <Setter Property="MinWidth" Value="0" /><Setter Property="MinHeight" Value="0" />
     <Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" />

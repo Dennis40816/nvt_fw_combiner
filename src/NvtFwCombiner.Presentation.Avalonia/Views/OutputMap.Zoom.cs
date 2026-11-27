@@ -2,9 +2,8 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Shapes;
 using Avalonia.Input;
-using Avalonia.VisualTree;
+using Avalonia.Controls.Shapes;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
@@ -16,26 +15,20 @@ public sealed partial class OutputMap
     {
         if (_parts is null || _zoomRebuildDepth > 0) { return; }
         FocusTarget? focus = FocusedTarget;
-        var identity = new ZoomIdentity(Model, Labels, focus?.Key);
+        var identity = new ZoomIdentity(Model, Labels, focus?.Key, focus?.Block?.Key);
         if (_zoomIdentity == identity)
         {
             if (focus is not null) { UpdateZoomCaption(focus); }
             return;
         }
-        string? focusedId = _parts.Zoom.GetVisualDescendants().OfType<Button>()
-            .Where(b => b.IsFocused).Select(AutomationProperties.GetAutomationId).FirstOrDefault();
+        (string Key, string? Id, NavigationMethod Navigation)? savedFocus = CaptureFocus(_parts.Zoom);
         _zoomRebuildDepth++;
         try
         {
             BuildZoom(focus);
             // One invalidation point; pinning an existing preview must not replace the pressed button.
             _zoomIdentity = identity;
-            if (focusedId is not null)
-            {
-                Button? target = _parts.Zoom.GetVisualDescendants().OfType<Button>().FirstOrDefault(b =>
-                    string.Equals(AutomationProperties.GetAutomationId(b), focusedId, StringComparison.Ordinal));
-                _ = target?.Focus(NavigationMethod.Directional);
-            }
+            RestoreFocus(savedFocus);
         }
         finally { _zoomRebuildDepth--; }
     }
@@ -45,7 +38,7 @@ public sealed partial class OutputMap
         if (_parts is not { } parts) { return; }
         parts.ZoomContent.Children.Clear();
         AutomationProperties.SetName(parts.Zoom, Text.ZoomStrip);
-        if (focus is null || Model is null || Model.OutputLength == 0 || !focus.Ranges.Any(r => Intersects(r, Overview)))
+        if (focus is null || Model is null || Overview.Length == 0 || !focus.Ranges.Any(r => Intersects(r, Overview)))
         {
             parts.ZoomContent.Children.Add(Label(Text.Hint, "outputMapCaption"));
             return;
@@ -55,7 +48,7 @@ public sealed partial class OutputMap
         OutputMapSource? source = block is { Kind: OutputMapBlockKind.Copy, SourceKey: { } sourceKey }
             ? Model.Sources.FirstOrDefault(s => string.Equals(s.Key, sourceKey, StringComparison.Ordinal)) : null;
         Canvas output = Lane("OutputMap.ZoomBar", 40);
-        if (source is { Length: > 0 } && block is { SourceRange: { } readRange })
+        if (source is { Length: >= 0 } && block is { SourceRange: { } readRange })
         {
             parts.ZoomContent.Children.Add(Label($"{source.FileName} · {Text.Read} {RangeLabel(readRange)}", "outputMapAddress"));
             Canvas sourceLane = Lane("OutputMap.SourceStrip", 22);
@@ -63,6 +56,11 @@ public sealed partial class OutputMap
             sourceFill.Classes.Add("outputMapFill");
             Resource(sourceFill, Border.BackgroundProperty, SourceBrush(block));
             AddRange(sourceLane, sourceFill, readRange, 12, top: 4);
+            if (readRange.EndExclusive > source.Length)
+            {
+                AddMarker(sourceLane, source.Length, $"{Text.Error} · {Text.Read} {RangeLabel(readRange)}",
+                    "outputMapSourceOverflow", height: 22, width: 8);
+            }
             AutomationProperties.SetName(sourceLane, $"{source.FileName} · {Text.Read} {RangeLabel(readRange)}");
             parts.ZoomContent.Children.Add(Track(sourceLane, 22));
             var sourceViewport = new Viewport(0, source.Length);
@@ -92,9 +90,9 @@ public sealed partial class OutputMap
     {
         // Fractional display coordinates keep even a one-byte focus at 90%, without inventing byte ranges.
         double start = Math.Max(0, focus.Ranges.Min(r => r.Start));
-        double end = Math.Min(Model?.OutputLength ?? 0, focus.Ranges.Max(r => r.EndExclusive));
+        double end = Math.Min(ScaleEnd, focus.Ranges.Max(r => r.EndExclusive));
         double padding = (end - start) / 18d;
-        return new(Math.Max(0, start - padding), Math.Min(Model?.OutputLength ?? 0, end + padding));
+        return new(Math.Max(0, start - padding), Math.Min(ScaleEnd, end + padding));
     }
 
     private void UpdateZoomCaption(FocusTarget focus)
@@ -133,16 +131,18 @@ public sealed partial class OutputMap
         Line right = AddLine();
         void ArrangeLines()
         {
-            PlaceLine(left, Math.Clamp(readRange.Start / (double)source.Length, 0, 1),
+            PlaceLine(left, source.Length > 0 ? Math.Clamp(readRange.Start / (double)source.Length, 0, 1) : 1,
                 (Math.Max(targetRange.Start, viewport.Start) - viewport.Start) / viewport.Length);
-            PlaceLine(right, Math.Clamp(readRange.EndExclusive / (double)source.Length, 0, 1),
+            PlaceLine(right, source.Length > 0 ? Math.Clamp(readRange.EndExclusive / (double)source.Length, 0, 1) : 1,
                 (Math.Min(targetRange.EndExclusive, viewport.End) - viewport.Start) / viewport.Length);
         }
         void PlaceLine(Line line, double sourceFraction, double targetFraction)
         {
             Point? start = sourceLane.TranslatePoint(new Point(sourceFraction * sourceLane.Bounds.Width, sourceLane.Bounds.Height), canvas);
             Point? end = outputLane.TranslatePoint(new Point(targetFraction * outputLane.Bounds.Width, 0), canvas);
-            if (start is not { } a || end is not { } b) { return; }
+            if (start is not { } a || end is not { } target) { return; }
+            // The lines stop in their own row, so they never cross the output caption or region names.
+            var b = new Point(target.X, canvas.Bounds.Height);
             if (line.StartPoint != a) { line.StartPoint = a; }
             if (line.EndPoint != b) { line.EndPoint = b; }
         }

@@ -54,7 +54,21 @@ public sealed class OutputMapRenderTests
         Assert.InRange(Math.Abs(first.StartPoint.X - (lines.Bounds.Width * 0.2)), 0, 1);
         Assert.InRange(Math.Abs(first.EndPoint.X - (lines.Bounds.Width * 0.05)), 0, 1);
         Assert.InRange(Math.Abs(host.Bounds(lines).Top + first.StartPoint.Y - host.Bounds(source).Bottom), 0, 1);
-        Assert.InRange(Math.Abs(host.Bounds(lines).Top + first.EndPoint.Y - host.Bounds(host.Find<Canvas>("OutputMap.ZoomBar")).Top), 0, 1);
+        Assert.InRange(Math.Abs(first.EndPoint.Y - lines.Bounds.Height), 0, 1);
+        TextBlock caption = Assert.Single(host.Map.GetVisualDescendants().OfType<TextBlock>(),
+            t => t.Classes.Contains("outputMapZoomCaption"));
+        Assert.True(host.Bounds(lines).Bottom <= host.Bounds(caption).Top);
+    }
+
+    /// <summary>Lane labels built before the control is attached still get the caption style.</summary>
+    [AvaloniaFact]
+    public void LaneLabelsBuiltBeforeAttachmentKeepTheCaptionStyle()
+    {
+        using var host = new OutputMapTestHost();
+        TextBlock region = Assert.Single(host.Region("tp-region").GetVisualDescendants().OfType<TextBlock>());
+        TextBlock crc = Assert.Single(host.Map.FindControl<Canvas>("MapCrc")!.Children.OfType<TextBlock>());
+        Assert.Equal(region.FontSize, crc.FontSize);
+        Assert.Equal(region.Foreground, crc.Foreground);
     }
 
     /// <summary>Mutating the caller's list cannot mutate a published map snapshot.</summary>
@@ -76,7 +90,13 @@ public sealed class OutputMapRenderTests
         Assert.InRange(host.Bounds(host.Map).Right, 0, host.Window.ClientSize.Width);
         Assert.All(host.Map.GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("outputMapTrack")),
             b => Assert.InRange(host.Bounds(b).Right, 0, host.Window.ClientSize.Width));
-        Assert.DoesNotContain(host.Map.GetVisualDescendants().OfType<ScrollViewer>(), s => s.Extent.Width > s.Viewport.Width);
+        global::Avalonia.Rect mapBounds = host.Bounds(host.Map);
+        Assert.All(host.Map.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible), c =>
+        {
+            global::Avalonia.Rect bounds = host.Bounds(c);
+            Assert.InRange(bounds.Left, mapBounds.Left - 1, mapBounds.Right + 1);
+            Assert.InRange(bounds.Right, mapBounds.Left - 1, mapBounds.Right + 1);
+        });
     }
 
     private static void Capture(OutputMapTestHost host, string name)

@@ -174,6 +174,8 @@ public sealed partial class OutputMapInteractionTests
         using var host = new OutputMapTestHost(chinese: true);
         host.Map.SelectedKey = "customer";
         host.Map.ReducedMotion = false;
+        host.Layout();
+        Assert.All(host.Map.GetVisualDescendants().OfType<Button>(), b => Assert.NotEmpty(b.Transitions!));
         host.Map.ReducedMotion = true;
         host.Layout();
         Assert.Equal("輸出地圖", host.Map.FindControl<TextBlock>("MapTitle")!.Text);

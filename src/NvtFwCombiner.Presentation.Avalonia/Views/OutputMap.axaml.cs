@@ -66,7 +66,10 @@ public sealed partial class OutputMap : UserControl
     public bool ReducedMotion { get => GetValue(ReducedMotionProperty); set => SetValue(ReducedMotionProperty, value); }
 
     private OutputMapTextResources Text => new((Labels as ShellTextResources)?.Language ?? ShellLanguage.English);
-    private Viewport Overview => new(0, Model?.OutputLength ?? 0);
+    private long ScaleEnd => Model is { } model ? Math.Max(model.OutputLength,
+        Math.Max(model.Blocks.Select(b => b.TargetRange.EndExclusive).DefaultIfEmpty().Max(),
+            model.Highlight?.Ranges.Select(r => r.EndExclusive).DefaultIfEmpty().Max() ?? 0)) : 0;
+    private Viewport Overview => new(0, ScaleEnd);
 
     /// <inheritdoc />
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -91,16 +94,22 @@ public sealed partial class OutputMap : UserControl
     }
 
     private FocusTarget? HighlightTarget => Model?.Highlight is { Ranges.Count: > 0 } highlight
-        ? new(null, highlight.Ranges, highlight.Severity == OutputMapHighlightSeverity.Error ? Text.Error : Text.Warning, null, null) : null;
-    private FocusTarget? FocusedTarget => Resolve(HoveredKey) ?? Resolve(SelectedKey) ?? HighlightTarget;
+        ? new(null, highlight.Ranges, highlight.Severity == OutputMapHighlightSeverity.Error ? Text.Error : Text.Warning, PinnedBlockIn(highlight.Ranges), null) : null;
+    private FocusTarget? FocusedTarget => Resolve(HoveredKey) ?? HighlightTarget ?? Resolve(SelectedKey);
+    // As in the reference, an issue keeps the source strip of the pinned block it concerns.
+    private OutputMapBlock? PinnedBlockIn(IReadOnlyList<ByteRange> ranges)
+    {
+        OutputMapBlock? block = Resolve(SelectedKey)?.Block;
+        return block is not null && ranges.Any(r => r.Start < block.TargetRange.EndExclusive && r.EndExclusive > block.TargetRange.Start)
+            ? block : null;
+    }
     private static string Hex(long address)
     {
         return FormattableString.Invariant($"0x{address:X5}");
     }
     private string CoordinateLabel(double address)
     {
-        return Hex(address >= (Model?.OutputLength ?? 0)
-        ? Model?.OutputLength ?? 0 : (long)Math.Max(0, address));
+        return Hex(address >= ScaleEnd ? ScaleEnd : (long)Math.Max(0, address));
     }
     private static string RangeLabel(ByteRange range)
     {
@@ -113,8 +122,8 @@ public sealed partial class OutputMap : UserControl
 
     private sealed record MapParts(Canvas Regions, Canvas Bar, Canvas Crc, WrapPanel Jump, Border Zoom, StackPanel ZoomContent);
     private sealed record FocusTarget(string? Key, IReadOnlyList<ByteRange> Ranges, string Name, OutputMapBlock? Block, OutputMapRegion? Region);
-    private sealed record Placement(ByteRange Range, double MinimumWidth, bool Marker);
-    private sealed record ZoomIdentity(OutputMapModel? Model, object? Labels, string? FocusKey);
+    private sealed record Placement(double Start, double End, double MinimumWidth, bool Marker);
+    private sealed record ZoomIdentity(OutputMapModel? Model, object? Labels, string? FocusKey, string? BlockKey);
     private readonly record struct Viewport(double Start, double End)
     {
         internal double Length => End - Start;

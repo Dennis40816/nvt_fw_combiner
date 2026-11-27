@@ -14,13 +14,16 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 
 internal sealed class OutputMapTestHost : IDisposable
 {
-    internal OutputMapTestHost(OutputMapModel? model = null, int width = 960, bool dark = false, bool chinese = false)
+    internal OutputMapTestHost(OutputMapModel? model = null, int width = 960, bool dark = false, bool chinese = false,
+        string? selectedKey = null, string? hoveredKey = null)
     {
         Map = new OutputMap
         {
             Model = model ?? Example(),
-            ReducedMotion = true,
             Labels = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English),
+            SelectedKey = selectedKey,
+            HoveredKey = hoveredKey,
+            ReducedMotion = true,
         };
         Window = new Window
         {
