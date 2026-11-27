@@ -32,7 +32,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         {
             byte[] goldenBytes = File.ReadAllBytes(FindGoldenExpectedOutput("51927"));
             ExternalCombinerToolManifest manifest = LoadManifest(
-                Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
+                Path.Combine(toolRoot, "legacy-combiner", "1.14.0", "manifest.json"));
             Assert.Equal(
                 manifest.Sha256,
                 Sha256(Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName)));
@@ -46,11 +46,11 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             var smokeProfile = new LegacyCombinerPostbuildProfile(
                 "nfc.nt51927.real-tool-crc-smoke-v1",
                 "NT51927",
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 "nt51927_fw.bin",
                 [crcOnlyCommand],
                 [crcOnlyCommand],
-                "Windows smoke test for the committed Combiner 1.13.0 binding.");
+                "Windows smoke test for the committed Combiner 1.14.0 binding.");
             var registry = new ExternalCombinerToolRegistry([manifest]);
             ExternalRuntimeDeployment? deployment = null;
             if (useSelectedRuntime)
@@ -73,7 +73,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
             var request = new ExternalProcessorRequest(
                 "real-tool-nt51927-crc-smoke",
                 smokeProfile.ProcessorId,
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 goldenBytes,
                 [],
                 new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),

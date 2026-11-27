@@ -58,7 +58,7 @@ CAPABILITY_POLICY_RELATIVE_PATH = Path(
 )
 CAPABILITY_POLICY_ROLE = "capabilityPolicy"
 CAPABILITY_POLICY_SHA256 = (
-    "130e44e4c5ce8b23fce5150438c6df1292aca0e0067e776c96cc7d84796d23fb"
+    "b68a808550c8d294ba2a969c007770d524c49930038bc7cf2fcb24472175fac2"
 )
 RUNTIME_CAPABILITY_POLICY = (
     ROOT
@@ -71,9 +71,9 @@ APPROVED_EXTERNAL_TOOL_PATHS = (
     "external-tools/README.md",
     "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
     "external-tools/legacy-combiner/README.md",
-    "external-tools/legacy-combiner/1.13.0/Combiner.exe",
-    "external-tools/legacy-combiner/1.13.0/manifest.json",
-    "external-tools/legacy-combiner/1.13.0/vcruntime140.dll",
+    "external-tools/legacy-combiner/1.14.0/Combiner.exe",
+    "external-tools/legacy-combiner/1.14.0/manifest.json",
+    "external-tools/legacy-combiner/1.14.0/vcruntime140.dll",
 )
 HISTORICAL_EXTERNAL_TOOL_PATHS = tuple(
     path for path in APPROVED_EXTERNAL_TOOL_PATHS if not path.endswith("/vcruntime140.dll")

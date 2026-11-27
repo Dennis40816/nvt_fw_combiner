@@ -12,7 +12,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51950AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
+    private const string BundleContentHash = "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1";
     private const int Capacity = 0x80000;
     private const int BankLength = 0x40000;
     private const int TpInputLength = 0x37000;
@@ -74,7 +74,7 @@ public sealed class Nt51950AbMergeCandidateProfileTests
         ExternalProcessorInvocation invocation = Assert.IsType<ExternalProcessorInvocation>(postbuild.ExternalProcessorInvocation);
         Assert.Equal("ab-combiner-work", postbuild.TargetSpaceId);
         Assert.Equal("nfc-nt51950-ab-merge-combiner-v1", invocation.ProcessorId);
-        Assert.Equal("legacy-combiner-1.13.0", invocation.ToolBindingId);
+        Assert.Equal("legacy-combiner-1.14.0", invocation.ToolBindingId);
         Assert.Equal(
             [new ByteRange(0x4A100, 4), new ByteRange(0x4A110, 4), new ByteRange(0x4A130, 4)],
             invocation.AllowedWriteRanges);

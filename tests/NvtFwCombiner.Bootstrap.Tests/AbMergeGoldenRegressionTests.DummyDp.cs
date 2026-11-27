@@ -50,7 +50,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         using var workspace = TempWorkspace.Create("dummy-ab-real-processor");
         string repository = RepositoryPaths.FindRepositoryRoot();
         ExternalCombinerToolManifest manifest = LoadManifest(Path.Combine(repository,
-            "external-tools", "legacy-combiner", "1.13.0", "manifest.json"));
+            "external-tools", "legacy-combiner", "1.14.0", "manifest.json"));
         var processor = new ExternalCombinerProcessor(new ExternalCombinerToolRegistry([manifest]),
             Path.Combine(repository, "external-tools"), workspace.PathFor("staging"),
             new SystemExternalProcessRunner(), ExternalCombinerInvocationCatalog.All);

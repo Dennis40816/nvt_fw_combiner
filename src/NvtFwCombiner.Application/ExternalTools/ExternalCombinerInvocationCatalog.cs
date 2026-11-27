@@ -3,7 +3,7 @@ namespace NvtFwCombiner.Application.ExternalTools;
 /// <summary>Closed profile-selected Combiner invocations that differ from a tool package default command.</summary>
 public static class ExternalCombinerInvocationCatalog
 {
-    private const string ToolBindingId = "legacy-combiner-1.13.0";
+    private const string ToolBindingId = "legacy-combiner-1.14.0";
 
     /// <summary>Exact NT51950 AB merge command extracted from Combiner 1.13.0 source.</summary>
     public static ExternalCombinerInvocationProfile Nt51950AbMerge { get; } = new(

@@ -43,7 +43,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         AssertSameBytes(baseBytes, tpBytes, 0x26590, 0x1960);
 
         ExternalCombinerToolManifest manifest = LoadManifest(
-            Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
+            Path.Combine(toolRoot, "legacy-combiner", "1.14.0", "manifest.json"));
         Assert.True(LegacyCombinerPostbuildCatalog.TryGetDefaultProfile(
             "NT51929",
             out LegacyCombinerPostbuildProfile? profile));

@@ -3,8 +3,8 @@
   "repositoryFiles": [
     {
       "path": "external-tools/README.md",
-      "size": 2495,
-      "sha256": "a3d535bd34a1e00b65959143037fc179c7aca3e42a18283657f1e4d35d285752"
+      "size": 2693,
+      "sha256": "89bb34bba6c7df42b53cf1d6f0e4848ecfce9c26283677873b3a214dc5132750"
     },
     {
       "path": "external-tools/diff-nf-merge/1.0.0/CommandLine.dll",
@@ -52,30 +52,45 @@
       "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
     },
     {
+      "path": "external-tools/legacy-combiner/1.14.0/Combiner.exe",
+      "size": 34816,
+      "sha256": "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.14.0/manifest.json",
+      "size": 559,
+      "sha256": "d756026c9711401fb6f07d3404930f2f7f70778dc3eb5176f934742621e03181"
+    },
+    {
+      "path": "external-tools/legacy-combiner/1.14.0/vcruntime140.dll",
+      "size": 124544,
+      "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+    },
+    {
       "path": "external-tools/legacy-combiner/README.md",
-      "size": 1721,
-      "sha256": "85a79ffe33122b60d4b70cebd0dd3808c7b191105a446953149f0f3f10df03ae"
+      "size": 1901,
+      "sha256": "e301b97206294b220db7f9651abca6366e687207390ccd95fc8c454a754a7a01"
     }
   ],
   "releasePackagePaths": [
     "external-tools/README.md",
     "external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe",
     "external-tools/legacy-combiner/README.md",
-    "external-tools/legacy-combiner/1.13.0/Combiner.exe",
-    "external-tools/legacy-combiner/1.13.0/manifest.json",
-    "external-tools/legacy-combiner/1.13.0/vcruntime140.dll"
+    "external-tools/legacy-combiner/1.14.0/Combiner.exe",
+    "external-tools/legacy-combiner/1.14.0/manifest.json",
+    "external-tools/legacy-combiner/1.14.0/vcruntime140.dll"
   ],
   "tools": [
     {
       "logicalId": "legacy-combiner",
-      "version": "1.13.0",
+      "version": "1.14.0",
       "platform": "win-x64",
       "artifactOrigin": "repository",
       "runtimeStatus": "registered",
       "releaseStatus": "included",
-      "manifestPath": "external-tools/legacy-combiner/1.13.0/manifest.json",
-      "executablePath": "external-tools/legacy-combiner/1.13.0/Combiner.exe",
-      "executableSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+      "manifestPath": "external-tools/legacy-combiner/1.14.0/manifest.json",
+      "executablePath": "external-tools/legacy-combiner/1.14.0/Combiner.exe",
+      "executableSha256": "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5",
       "commandAuthority": "application-invocation-profile-catalog",
       "argvStatus": "registered-profile-specific",
       "workingDirectoryStatus": "host-created-staging-directory",

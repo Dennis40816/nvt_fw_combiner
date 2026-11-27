@@ -4,14 +4,16 @@ Each subfolder is one exact Combiner version. Version strings are never parsed a
 
 Current binding:
 
-- `1.13.0`: `toolBindingId = legacy-combiner-1.13.0`
+- `1.14.0`: `toolBindingId = legacy-combiner-1.14.0`
+
+The `1.13.0/` directory remains repository-only, including its original manifest and runtime. It is not registered or shipped; removal requires a separate owner-approved list.
 
 Runtime profiles should reference `toolBindingId`; they must not reference absolute executable paths.
 
 ## App-local Microsoft runtime
 
-From application version 1.1.8, `1.13.0/vcruntime140.dll` is shipped beside
-`Combiner.exe`; the executable and processor manifest remain unchanged.
+The current package ships `1.14.0/vcruntime140.dll` beside `Combiner.exe`,
+using the same approved runtime bytes first shipped with application 1.1.8.
 Windows loads this dependency from the executable directory, not the firmware
 staging directory. No system installation is required on supported Windows x64.
 

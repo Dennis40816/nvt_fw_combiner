@@ -55,7 +55,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-selected-runtime",
             LegacyCombinerPostbuildCatalog.Nt51926.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(0x32A70, 1)],
             selectionInput,
@@ -111,7 +111,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-nt51926",
             LegacyCombinerPostbuildCatalog.Nt51926.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(0x32A70, 1)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -156,7 +156,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-staged-source",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(1, 2)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -191,7 +191,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-short-exact-staged-file",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2 })],
@@ -217,7 +217,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-short-offset-staged-file",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts: [new ExternalProcessorStagedArtifact("replacement", new byte[] { 0xA1, 0xA2, 0xA3, 0xA4 })],
@@ -258,7 +258,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-staged-artifacts",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(6, 1)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -290,7 +290,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-missing-staged-artifact",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts: [new ExternalProcessorStagedArtifact("b-bank", new byte[] { 0xB1, 0xB2, 0xB3, 0xB4 })],
@@ -317,7 +317,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-unused-staged-artifact",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts:
@@ -349,7 +349,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-staged-artifact-range",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts:
@@ -387,7 +387,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-modified-staged-artifact",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts:
@@ -418,7 +418,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-later-staged-artifact",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             new byte[8],
             [],
             stagedArtifacts:
@@ -470,7 +470,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-nt51923-cascade",
             LegacyCombinerPostbuildCatalog.Nt51923.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(0x30310, 1)],
             new IcNumberSelection(IcNumberInputMode.CascadeSelector, ["cascade"]),
@@ -512,7 +512,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-nt51927-2chip",
             LegacyCombinerPostbuildCatalog.Nt51927.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.NumericSelector, ["2"]),
@@ -563,7 +563,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-copy-then-restore",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -600,7 +600,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-shortened",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(0x12, 1)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -637,7 +637,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         var profile = new LegacyCombinerPostbuildProfile(
             $"nfc.test.{commandCount}-command-pipeline-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "counted_pipeline_fw.bin",
             commands,
             commands,
@@ -647,7 +647,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             $"run-{commandCount}-command-pipeline",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -693,7 +693,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         var profile = new LegacyCombinerPostbuildProfile(
             "nfc.test.pipeline-shortened-output-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "pipeline_shortened_fw.bin",
             [first, second],
             [first, second],
@@ -723,7 +723,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-pipeline-shortened",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(0x12, 1), new ByteRange(0x30, 1)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),

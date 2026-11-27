@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "toolBindingId": "legacy-combiner-1.14.0",
+  "toolId": "legacy-combiner",
+  "toolVersion": "1.14.0",
+  "displayName": "Legacy CRC/Header Combiner 1.14.0",
+  "platform": "win-x64",
+  "executableName": "Combiner.exe",
+  "sha256": "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5",
+  "adapterId": "legacy-combiner-postbuild-v1",
+  "inputMode": "in-place",
+  "argumentTemplate": [
+    "{staging.runDir}"
+  ],
+  "workingDirectoryPolicy": "staging-directory",
+  "timeoutSeconds": 30,
+  "allowedExtraOutputFiles": []
+}

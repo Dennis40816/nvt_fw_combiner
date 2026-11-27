@@ -96,7 +96,7 @@ public sealed class RuntimeTrustProbeTests
             return;
         }
 
-        string bundled = RepositoryPaths.FromRepositoryRoot("external-tools", "legacy-combiner", "1.13.0", "vcruntime140.dll");
+        string bundled = RepositoryPaths.FromRepositoryRoot("external-tools", "legacy-combiner", "1.14.0", "vcruntime140.dll");
         string system = Path.Combine(Environment.SystemDirectory, "vcruntime140.dll");
         foreach (string path in new[] { bundled, system }.Distinct(StringComparer.OrdinalIgnoreCase))
         {

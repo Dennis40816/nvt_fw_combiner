@@ -208,7 +208,7 @@ public sealed class Nt51923CtrlRamFw141EvidenceTests
     {
         JsonElement session = ReadProcessorSession(report);
         Assert.Equal("nfc.nt51923.ctrlram-postbuild-v1", session.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("legacy-combiner-1.14.0", session.GetProperty("ToolBindingId").GetString());
         Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
         Assert.Equal([new ByteRange(0, 0x3C000)], ReadRanges(session, "ProcessorAllowedReadRanges"));
         ByteRange[] expectedWrites = StringComparer.Ordinal.Equals(topology, "cascade")

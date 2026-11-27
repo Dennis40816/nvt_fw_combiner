@@ -9,15 +9,17 @@ from pathlib import Path, PurePosixPath
 ALLOWED_EXTERNAL_TOOL_BINARY_PAYLOADS = {
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/CommandLine.dll"),
     PurePosixPath("external-tools/diff-nf-merge/1.0.0/DiffNFMerge.exe"),
+    PurePosixPath("external-tools/legacy-combiner/1.14.0/Combiner.exe"),
+    PurePosixPath("external-tools/legacy-combiner/1.14.0/vcruntime140.dll"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
     PurePosixPath("external-tools/legacy-combiner/1.13.0/vcruntime140.dll"),
 }
 APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS = {
     PurePosixPath("external-tools/README.md"),
     PurePosixPath("external-tools/legacy-combiner/README.md"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
-    PurePosixPath("external-tools/legacy-combiner/1.13.0/vcruntime140.dll"),
+    PurePosixPath("external-tools/legacy-combiner/1.14.0/Combiner.exe"),
+    PurePosixPath("external-tools/legacy-combiner/1.14.0/manifest.json"),
+    PurePosixPath("external-tools/legacy-combiner/1.14.0/vcruntime140.dll"),
 }
 APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = (
     APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS
@@ -25,8 +27,14 @@ APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS = (
         PurePosixPath("external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe"),
     }
 )
+RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS = {
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/Combiner.exe"),
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/manifest.json"),
+    PurePosixPath("external-tools/legacy-combiner/1.13.0/vcruntime140.dll"),
+}
 APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS = (
     APPROVED_REPOSITORY_EXTERNAL_TOOL_PACKAGE_PATHS
+    | RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS
     | {
         PurePosixPath("external-tools/catalog.json"),
         PurePosixPath("external-tools/diff-nf-merge/README.md"),
@@ -199,26 +207,26 @@ def validate_external_tool_catalog(
         return
 
     legacy_manifest_path = PurePosixPath(
-        "external-tools/legacy-combiner/1.13.0/manifest.json"
+        "external-tools/legacy-combiner/1.14.0/manifest.json"
     )
     legacy_manifest = _read_json_object(
         root / legacy_manifest_path, "legacy Combiner manifest", errors
     )
     if legacy_manifest is not None:
         legacy_executable_path = PurePosixPath(
-            "external-tools/legacy-combiner/1.13.0/Combiner.exe"
+            "external-tools/legacy-combiner/1.14.0/Combiner.exe"
         )
         _require_fields(
             "legacy Combiner manifest",
             legacy_manifest,
             {
                 "schemaVersion": "1.0",
-                "toolBindingId": "legacy-combiner-1.13.0",
+                "toolBindingId": "legacy-combiner-1.14.0",
                 "toolId": "legacy-combiner",
-                "toolVersion": "1.13.0",
+                "toolVersion": "1.14.0",
                 "platform": "win-x64",
                 "executableName": "Combiner.exe",
-                "sha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+                "sha256": "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5",
                 "adapterId": "legacy-combiner-postbuild-v1",
                 "inputMode": "in-place",
                 "argumentTemplate": ["{staging.runDir}"],
@@ -232,14 +240,14 @@ def validate_external_tool_catalog(
             tools["legacy-combiner"],
             {
                 "logicalId": "legacy-combiner",
-                "version": "1.13.0",
+                "version": "1.14.0",
                 "platform": "win-x64",
                 "artifactOrigin": "repository",
                 "runtimeStatus": "registered",
                 "releaseStatus": "included",
                 "manifestPath": str(legacy_manifest_path),
                 "executablePath": str(legacy_executable_path),
-                "executableSha256": "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf",
+                "executableSha256": "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5",
                 "commandAuthority": "application-invocation-profile-catalog",
                 "argvStatus": "registered-profile-specific",
                 "workingDirectoryStatus": "host-created-staging-directory",
@@ -396,6 +404,10 @@ def validate_external_tool_catalog(
                     errors.append(
                         f"CRC Worker source contract {relative_path} is missing {literal!r}"
                     )
+    if package_paths & RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS:
+        errors.append(
+            "retained Legacy Combiner 1.13.0 is repository-only and cannot enter the release allowlist"
+        )
     if any(
         path.parts[:2] == ("external-tools", "diff-nf-merge") for path in package_paths
     ):

@@ -14,7 +14,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Decisions 192 and 195 declare the DP complement and CMI positions while preserving AB writes.</summary>
 public sealed class Nt51950AbDpRegionTests
 {
-    private const string BundleHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
+    private const string BundleHash = "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1";
 
     /// <summary>Publication pins follow the existing dynamic compiler without changing route decisions.</summary>
     [Fact]

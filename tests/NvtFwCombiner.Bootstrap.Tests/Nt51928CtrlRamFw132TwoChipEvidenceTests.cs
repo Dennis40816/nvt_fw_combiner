@@ -165,7 +165,7 @@ public sealed class Nt51928CtrlRamFw132TwoChipEvidenceTests
     {
         JsonElement session = ReadProcessorSession(report);
         Assert.Equal("nfc.nt51928.ctrlram-postbuild-v1", session.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("legacy-combiner-1.14.0", session.GetProperty("ToolBindingId").GetString());
         Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
         Assert.Equal(ExpectedArguments(), ReadArguments(session));
     }

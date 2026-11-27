@@ -7,7 +7,7 @@ namespace NvtFwCombiner.Infrastructure.ExternalTools;
 internal static class BuiltInPostbuildProfileCatalog
 {
     private const string RelativePath = "profiles/built-in/ctrlram-postbuild-v2/catalog.json";
-    private const string ExpectedSha256 = "03aa989b4834f51b3a57eaaa5648b11d73b933360ca4341df3223767ab9297d9";
+    private const string ExpectedSha256 = "6f67b76637235efb7dda15881d57529981f1d352714a3f05bd16b221c48db124";
     private static readonly Lazy<IReadOnlyList<LegacyCombinerPostbuildProfile>> Profiles = new(Load);
 
     internal static IReadOnlyList<LegacyCombinerPostbuildProfile> All => Profiles.Value;

@@ -54,12 +54,12 @@ public sealed class CompositionProfileV2ProcessorNormalizerTests
                 Legacy(
                     "relocation",
                     "none",
-                    toolBindingId: "legacy-combiner-1.13.0",
+                    toolBindingId: "legacy-combiner-1.14.0",
                     invocationProfileId: "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
                     targetView: true),
                 "processorStages[0]"));
 
-        Assert.Equal("legacy-combiner-1.13.0", stage.ToolBindingId);
+        Assert.Equal("legacy-combiner-1.14.0", stage.ToolBindingId);
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", stage.InvocationProfileId);
         Assert.Equal("output-image", stage.TargetViewId);
     }

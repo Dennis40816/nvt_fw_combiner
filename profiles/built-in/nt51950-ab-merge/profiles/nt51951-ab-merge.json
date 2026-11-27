@@ -122,7 +122,7 @@
     {
       "processorStageId": "nt51951-ab-combiner",
       "kind": "legacy-combiner-v1",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "invocationProfileId": "nfc-nt51951-ab-merge-combiner-v1",
       "targetSpaceId": "ab-combiner-work",
       "targetViewId": "ab-combiner-work-image",

@@ -72,7 +72,7 @@ public sealed class GeneralReplaceDiagnosticPreviewTests
         GeneralAuthoringAdmissionResult admission = CreateAdmission();
         var dependency = RuntimeDependencyEntry.Blocked(
             "general-postbuild",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "external-tool.executable.missing",
             "The required tool is unavailable.");
         CapabilityActionReadinessSnapshot readiness = CreateReadiness(

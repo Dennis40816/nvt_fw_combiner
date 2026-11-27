@@ -572,7 +572,7 @@ public sealed class AbCtrlRamReferencePlanTests
         V2RuntimeReferenceBankReplacePlan prepared = Prepare(original, requests);
         using TempWorkspace workspace = TempWorkspace.Create("nfc-ab-bank-real-tool");
         string toolRoot = Path.Combine(RepositoryPaths.FindRepositoryRoot(), "external-tools");
-        using JsonDocument manifestJson = JsonDocument.Parse(File.ReadAllText(Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json")));
+        using JsonDocument manifestJson = JsonDocument.Parse(File.ReadAllText(Path.Combine(toolRoot, "legacy-combiner", "1.14.0", "manifest.json")));
         JsonElement m = manifestJson.RootElement;
         string S(string name)
         {
@@ -669,7 +669,7 @@ public sealed class AbCtrlRamReferencePlanTests
             caseName,
             source = "AB Merge NT51929 t05-d06 output; B 0x61000 XOR 0x34, B 0x5F200..0x5F201 set to bytes 0x29, 0xD6",
             replacement = "single byte 0xA5 at selected bank NF start (A 0x1FC00, B 0x5FC00)",
-            toolVersion = "1.13.0",
+            toolVersion = "1.14.0",
             toolSha256,
             referenceSha256 = Convert.ToHexString(SHA256.HashData(reference)).ToLowerInvariant(),
             outputSha256 = Convert.ToHexString(SHA256.HashData(output)).ToLowerInvariant(),
@@ -698,7 +698,7 @@ public sealed class AbCtrlRamReferencePlanTests
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]);
         Assert.True(compiled.IsCompiled);
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51929-ctrlram-replace-candidate", "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a");
+            "nt51929-ctrlram-replace-candidate", "27783ca3eb047c831675a0139a3bc624df20238e168debe46c1ab2a7c93fd4fa");
         BankReferenceReplaceDefinition definition = ab.CreateBankReplaceDefinition(local, "NT51929",
             "nt51929-ab-merge", "0.4.0", "nt51929-ab-merge-512k",
             "nt51929-ctrlram-replace-fw200-single", "0.3.0", "nt51929-ctrlram-fw200-single-full-flash");

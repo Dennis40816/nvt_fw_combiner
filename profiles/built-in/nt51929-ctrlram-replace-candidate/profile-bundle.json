@@ -3,7 +3,7 @@
   "bundleId": "nt51929-ctrlram-replace-candidate",
   "bundleVersion": "1.1.13-tp-svn.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a",
+  "contentHash": "27783ca3eb047c831675a0139a3bc624df20238e168debe46c1ab2a7c93fd4fa",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,28 +32,28 @@
       "kind": "composition-profile",
       "path": "profiles/nt51919-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "d299c52cb2ea5cf855e31eb7131867de2a52a6e6497205da6018c6f4ce982810"
+      "contentHash": "8604956141da30de60d6cc9ee4e4dcbb893fb63029da37ecbe519b866b31f219"
     },
     {
       "entryId": "nt51919-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51919-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "a10f34c974ddddc991f6d6131fe7ef6fedd0fcc92865cfd7edccd320e709a8af"
+      "contentHash": "69fc6edeb9411b4a204a0ec5f3160c3617ec9641365047ffdf47eb16393b62a3"
     },
     {
       "entryId": "nt51929-ctrlram-replace-fw200-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ctrlram-replace-fw200-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "52f64bfab73f70fb37e0359b9fd83b5c90123b3e6e6ecda92fe667f1f1e3140f"
+      "contentHash": "259c8e3b977d5e039737fd0598b4e177811eb4c53cc2d75ca117911f876b4f80"
     },
     {
       "entryId": "nt51929-ctrlram-replace-fw1x-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51929-ctrlram-replace-fw1x-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "debe5c67a678627aa9f912f7af2d54143cd4400bb9ac23de0e482bf03841e4c1"
+      "contentHash": "12781a304cba64c66243e200e9aa1f2d1656abf19fac85ec0600b44f957583d4"
     }
   ]
 }

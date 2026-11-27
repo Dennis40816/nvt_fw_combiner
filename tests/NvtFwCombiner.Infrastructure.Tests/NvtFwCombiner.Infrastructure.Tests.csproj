@@ -28,14 +28,14 @@
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\external-tools\legacy-combiner\1.13.0\manifest.json"
-          Link="external-tools\legacy-combiner\1.13.0\manifest.json"
+    <None Include="..\..\external-tools\legacy-combiner\1.14.0\manifest.json"
+          Link="external-tools\legacy-combiner\1.14.0\manifest.json"
           CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\external-tools\legacy-combiner\1.13.0\Combiner.exe"
-          Link="external-tools\legacy-combiner\1.13.0\Combiner.exe"
+    <None Include="..\..\external-tools\legacy-combiner\1.14.0\Combiner.exe"
+          Link="external-tools\legacy-combiner\1.14.0\Combiner.exe"
           CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\external-tools\legacy-combiner\1.13.0\vcruntime140.dll"
-          Link="external-tools\legacy-combiner\1.13.0\vcruntime140.dll"
+    <None Include="..\..\external-tools\legacy-combiner\1.14.0\vcruntime140.dll"
+          Link="external-tools\legacy-combiner\1.14.0\vcruntime140.dll"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="CopyReadyProbe" AfterTargets="Build">

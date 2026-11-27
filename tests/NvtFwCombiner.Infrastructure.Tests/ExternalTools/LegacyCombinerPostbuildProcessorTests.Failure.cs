@@ -429,7 +429,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-projection-conflict",
             "nfc.test.projection-conflict-v1",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -462,7 +462,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-unexpected-file",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -495,7 +495,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-unexpected-file-before-next-command",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -529,7 +529,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-unexpected-directory",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -571,7 +571,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-nt51950-out-of-range",
             LegacyCombinerPostbuildCatalog.Nt51950.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [new ByteRange(0x2D30C, 1)],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -609,7 +609,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         var profile = new LegacyCombinerPostbuildProfile(
             "nfc.test.non-merge-shortened-output-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "non_merge_shortened_fw.bin",
             [command],
             [command],
@@ -625,7 +625,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-non-merge-shortened",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),
@@ -669,7 +669,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         var profile = new LegacyCombinerPostbuildProfile(
             "nfc.test.later-staging-failure-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [firstCommand, invalidSecondCommand],
             [firstCommand, invalidSecondCommand],
@@ -679,7 +679,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         ExternalProcessorRequest request = new(
             "run-later-staging-failure",
             profile.ProcessorId,
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             firmware,
             [],
             new IcNumberSelection(IcNumberInputMode.SingleSelector, ["single"]),

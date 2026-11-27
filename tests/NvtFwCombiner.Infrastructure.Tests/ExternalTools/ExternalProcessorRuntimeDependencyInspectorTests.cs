@@ -62,16 +62,16 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
         string executablePath = Path.Combine(
             toolRoot,
             "legacy-combiner",
-            "1.13.0",
+            "1.14.0",
             "combiner.exe");
         var registry = new ExternalCombinerToolRegistry(
         [
             new ExternalCombinerToolManifest(
                 "1.0",
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 "legacy-combiner",
-                "1.13.0",
-                "Legacy Combiner 1.13.0",
+                "1.14.0",
+                "Legacy Combiner 1.14.0",
                 platform,
                 "combiner.exe",
                 sha256,
@@ -104,7 +104,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
             [
                 new ExternalProcessorDependencyReference(
                     "legacy-combiner-postbuild",
-                    "legacy-combiner-1.13.0"),
+                    "legacy-combiner-1.14.0"),
             ]);
 
         RuntimeDependencyReadinessSnapshot missing = await inspector.RefreshAsync(
@@ -172,7 +172,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
         string executablePath = Path.Combine(
             toolRoot,
             "legacy-combiner",
-            "1.13.0",
+            "1.14.0",
             "combiner.exe");
         _ = Directory.CreateDirectory(Path.GetDirectoryName(executablePath)!);
         await File.WriteAllBytesAsync(
@@ -183,10 +183,10 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
         [
             new ExternalCombinerToolManifest(
                 "1.0",
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 "legacy-combiner",
-                "1.13.0",
-                "Legacy Combiner 1.13.0",
+                "1.14.0",
+                "Legacy Combiner 1.14.0",
                 otherPlatform,
                 "combiner.exe",
                 sha256,
@@ -211,7 +211,7 @@ public sealed class ExternalProcessorRuntimeDependencyInspectorTests
             [
                 new ExternalProcessorDependencyReference(
                     "legacy-combiner-postbuild",
-                    "legacy-combiner-1.13.0"),
+                    "legacy-combiner-1.14.0"),
             ]);
 
         RuntimeDependencyReadinessSnapshot result = await inspector.RefreshAsync(

@@ -3,7 +3,7 @@
   "bundleId": "nt51950-ab-merge",
   "bundleVersion": "1.1.15-dp-regions.2",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c",
+  "contentHash": "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,35 +32,35 @@
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "513f901db002245671b56e297937af082a75101f72cd9bed7ec0885afafa3574"
+      "contentHash": "dafccddace083f0267d6772b91e328e3e8bb822692402596200cef1931e453fe"
     },
     {
       "entryId": "nt51951-ab-merge-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-ab-merge.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "9d7d2495934148234238a7dbf3cc46dcde8d267a19d314c50eee973e64648635"
+      "contentHash": "21c2f88a9257b76ce9cce85b41e7700cf58bc4ae81e6ab7a0608b0e2f818f9c4"
     },
     {
       "entryId": "nt51950-ab-merge-desay-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge-desay.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "94e8a9b608c474836da8605a44ae9b0c360a070b3d899a72beb95f79d2f13a61"
+      "contentHash": "396ce666172e02c74ceb106e4dbb2a91cf1bed9407eea9001a8a5f03fafeaadd"
     },
     {
       "entryId": "nt51951-ab-merge-desay-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51951-ab-merge-desay.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "7112eceefe0b0c1f8e01eb2ff896070370cc2cc3158f9a4e6e2dc6f44e783361"
+      "contentHash": "a360b537b37b1ccc8311e2345a6574618ca55dc11fd25d947aebdb9fa02df82c"
     },
     {
       "entryId": "nt51950-ab-merge-cascade-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51950-ab-merge-cascade.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "079f00fd71da5dcda2ece6596a6981172d6e8da1aea40d38631b369319660f93"
+      "contentHash": "6e0636920476fe7fd9d2797d0178702968e301e875f526ef1a879d759fe3fb36"
     }
   ]
 }

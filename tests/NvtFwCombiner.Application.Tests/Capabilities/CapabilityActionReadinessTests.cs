@@ -48,7 +48,7 @@ public sealed class CapabilityActionReadinessTests
             evidence: CapabilityEvidenceStatus.Missing,
             publication: CapabilityPublicationStatus.Candidate);
         RuntimeDependencyReadinessSnapshot runtime = Runtime(
-            RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.13.0"));
+            RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.14.0"));
 
         CapabilityActionReadinessSnapshot result = CapabilityActionReadinessResolver.Resolve(
             admission,
@@ -75,7 +75,7 @@ public sealed class CapabilityActionReadinessTests
             ],
             Runtime(RuntimeDependencyEntry.Blocked(
                 "legacy-combiner",
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 "external-tool.executable.missing",
                 "External processor is unavailable.")),
             currentRuntimeDependencyGeneration: 1);
@@ -102,7 +102,7 @@ public sealed class CapabilityActionReadinessTests
             [Child("base", ResolvedChildReadiness.Ready)],
             Runtime(RuntimeDependencyEntry.Blocked(
                 "legacy-combiner",
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 "external-tool.executable-sha.mismatch",
                 "External processor identity is invalid.")),
             currentRuntimeDependencyGeneration: 1);
@@ -120,7 +120,7 @@ public sealed class CapabilityActionReadinessTests
     public void PreviewDistinguishesBlockedInputFromPendingInput()
     {
         RuntimeDependencyReadinessSnapshot runtime = Runtime(
-            RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.13.0"));
+            RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.14.0"));
 
         CapabilityActionReadinessSnapshot blocked = CapabilityActionReadinessResolver.Resolve(
             Admission(),
@@ -157,7 +157,7 @@ public sealed class CapabilityActionReadinessTests
             admission.AuthoringRevision,
             generation: 2,
             DateTimeOffset.UnixEpoch,
-            [RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.13.0")]);
+            [RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.14.0")]);
 
         CapabilityActionReadinessSnapshot result = CapabilityActionReadinessResolver.Resolve(
             admission,
@@ -185,7 +185,7 @@ public sealed class CapabilityActionReadinessTests
             new AuthoringRevision(1),
             generation: 3,
             DateTimeOffset.UnixEpoch,
-            [RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.13.0")]);
+            [RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.14.0")]);
 
         CapabilityActionReadinessSnapshot result = CapabilityActionReadinessResolver.Resolve(
             admission,
@@ -213,7 +213,7 @@ public sealed class CapabilityActionReadinessTests
             admission.AuthoringRevision,
             generation: 7,
             DateTimeOffset.UnixEpoch,
-            [RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.13.0")]);
+            [RuntimeDependencyEntry.Ready("legacy-combiner", "legacy-combiner-1.14.0")]);
 
         CapabilityActionReadinessSnapshot result = CapabilityActionReadinessResolver.Resolve(
             admission,

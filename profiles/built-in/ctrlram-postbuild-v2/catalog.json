@@ -60,7 +60,7 @@
       "processorId": "nfc.nt51917.ctrlram-postbuild-v1",
       "icId": "NT51917",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51917_fw.bin",
       "singleCommands": [
         {
@@ -1354,7 +1354,7 @@
       "processorId": "nfc.nt51919.ctrlram-postbuild-v1",
       "icId": "NT51919",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51919_fw.bin",
       "singleCommands": [
         {
@@ -1519,7 +1519,7 @@
       "processorId": "nfc.nt51923.ctrlram-postbuild-v1",
       "icId": "NT51923",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51923_fw.bin",
       "singleCommands": [
         {
@@ -1725,7 +1725,7 @@
       "processorId": "nfc.nt51926.ctrlram-postbuild-v1",
       "icId": "NT51926",
       "effectiveCommonFwVersion": "2.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51926_fw.bin",
       "singleCommands": [
         {
@@ -1921,7 +1921,7 @@
       "processorId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
       "icId": "NT51926",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51926_fw.bin",
       "singleCommands": [
         {
@@ -2117,7 +2117,7 @@
       "processorId": "nfc.nt51927.ctrlram-postbuild-v1",
       "icId": "NT51927",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51927_fw.bin",
       "singleCommands": [
         {
@@ -3411,7 +3411,7 @@
       "processorId": "nfc.nt51928.ctrlram-postbuild-v1",
       "icId": "NT51928",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51928_fw.bin",
       "singleCommands": [
         {
@@ -4705,7 +4705,7 @@
       "processorId": "nfc.nt51929.ctrlram-postbuild-v1",
       "icId": "NT51929",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51929_fw.bin",
       "singleCommands": [
         {
@@ -4870,7 +4870,7 @@
       "processorId": "nfc.nt51932.ctrlram-postbuild-v1",
       "icId": "NT51932",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51932_fw.bin",
       "singleCommands": [
         {
@@ -5035,7 +5035,7 @@
       "processorId": "nfc.nt51950.ctrlram-postbuild-v1",
       "icId": "NT51950",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51950_fw.bin",
       "singleCommands": [
         {
@@ -5198,7 +5198,7 @@
       "processorId": "nfc.nt51951.ctrlram-postbuild-v1",
       "icId": "NT51951",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51951_fw.bin",
       "singleCommands": [
         {
@@ -5361,7 +5361,7 @@
       "processorId": "nfc.nt51925.ctrlram-postbuild-v1",
       "icId": "NT51925",
       "effectiveCommonFwVersion": "2.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51925_fw.bin",
       "singleCommands": [
         {
@@ -5557,7 +5557,7 @@
       "processorId": "nfc.nt51925.ctrlram-postbuild-fw1.4.1",
       "icId": "NT51925",
       "effectiveCommonFwVersion": "1.0.0",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "firmwareFileName": "nt51925_fw.bin",
       "singleCommands": [
         {

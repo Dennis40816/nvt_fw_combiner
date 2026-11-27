@@ -479,7 +479,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
         CompiledComposition layout = ab.Compile("nt51929-ab-merge", "0.4.0", "NT51929", ExperienceIds.AbMerge,
             0x80000, null, [], selectedInputSlotIds: ["dp-ab-input"]).CompiledComposition!;
         TrustedProfileBundleCatalog local = V2StandardMergeGoldenTestSupport.LoadDeployedCatalog(
-            "nt51929-ctrlram-replace-candidate", "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a");
+            "nt51929-ctrlram-replace-candidate", "27783ca3eb047c831675a0139a3bc624df20238e168debe46c1ab2a7c93fd4fa");
         BankReferenceReplaceDefinition definition = ab.CreateBankReplaceDefinition(local, "NT51929",
             "nt51929-ab-merge", "0.4.0", "nt51929-ab-merge-512k",
             "nt51929-ctrlram-replace-fw200-single", "0.3.0", "nt51929-ctrlram-fw200-single-full-flash");
@@ -603,7 +603,7 @@ public sealed class AbCtrlRamRuntimeWiringTests
     private static LegacyCombinerPostbuildProcessor RealProcessor(TempWorkspace workspace)
     {
         string root = Path.Combine(RepositoryPaths.FindRepositoryRoot(), "external-tools");
-        using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "legacy-combiner", "1.13.0", "manifest.json")));
+        using JsonDocument json = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "legacy-combiner", "1.14.0", "manifest.json")));
         JsonElement m = json.RootElement;
         string S(string name)
         {

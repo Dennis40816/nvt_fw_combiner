@@ -10,15 +10,15 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Proves supported CtrlRAM runtime plans compile only their declared topology and byte authority.</summary>
 public sealed partial class CtrlRamV2PlanClosureProfileTests
 {
-    private const string Nt51917BundleHash = "8873a5e5fe5c7190afb8c00b24557cf22200e0c3afbb95924e73cad7e4a3f200";
-    private const string Nt51923BundleHash = "86658f7a279fa34a49e49eea329c0e6b8679c575128482ca879a438c6408a5bc";
-    private const string Nt51926BundleHash = "241d2059770c4a88c2ec20e582652832e3ea3d0e51a07711a6827707e53b8cfa";
-    private const string Nt51929BundleHash = "44aa7eedca9bece677656a1b34b340aec162e961e41d0f3124693fc29b705e0a";
-    private const string Nt51928BundleHash = "ead5392a842068602a7ab8b6661fe872cb1e1dd435d89448f799caaa345805fb";
-    private const string Nt51932BundleHash = "4fae4735565c84a311f7586db75c274a77e58c96078779ad15a079cb2c55fe99";
-    private const string Nt51950BundleHash = "dd838e5d639ba6302b51e76421712a2e1311da52142a4e7e683384020ccd928e";
-    private const string Nt51951BundleHash = "6f13c26b5bf5a95d13e0b7004fc95ab5fa90da61c2cceee6b60ba41cdc9df1fa";
-    private const string Nt51927BundleHash = "f4fb397c04a86535385f2299d58dc9295ee903ba3c17e289a37bf4ab315ed74c";
+    private const string Nt51917BundleHash = "e285396f1014b1197bde1b528608af47f9e53a5d4cbe54cab66450b034c18942";
+    private const string Nt51923BundleHash = "5db3dc502d4101b0a760405681aa1959156e83dd7d9ee142acd9c26b5fb214be";
+    private const string Nt51926BundleHash = "b23abd0b6d5e6a06c9632e76ee9c772a8c1e56426d71c88799dbca929933feb1";
+    private const string Nt51929BundleHash = "27783ca3eb047c831675a0139a3bc624df20238e168debe46c1ab2a7c93fd4fa";
+    private const string Nt51928BundleHash = "15dc32b15a69efb8b20b546cc0b61996988a77fa274f9860a567e6f847390889";
+    private const string Nt51932BundleHash = "14180a0a769f50615c287e3765ca08e4235e0da2f7e7932a5acbde184719cb47";
+    private const string Nt51950BundleHash = "ceffe78acb1abb454654495b50817f86cb8e6fc257b79b3343951574ae4dabab";
+    private const string Nt51951BundleHash = "4c23685a4d2889f3dca49b461f3ca363c750879d1f13b68c375ca57cb9168ba5";
+    private const string Nt51927BundleHash = "7043afa212975a84665f575fe7d6e8f24a26375257c31f3523527717d77a553f";
 
     /// <summary>Normal-header profiles grant every owner-classified CRC word and no surrounding gap bytes.</summary>
     [Theory]

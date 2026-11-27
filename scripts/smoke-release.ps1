@@ -21,9 +21,9 @@ $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
-    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json',
-    'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    'external-tools/legacy-combiner/1.14.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.14.0/manifest.json',
+    'external-tools/legacy-combiner/1.14.0/vcruntime140.dll'
 ) | Sort-Object
 
 $ApprovedRuntimeCatalogPackagePaths = @(
@@ -31,11 +31,11 @@ $ApprovedRuntimeCatalogPackagePaths = @(
     'profiles/built-in/ctrlram-postbuild-v2/flash-map.json'
 ) | Sort-Object
 $PackageTrustIndexPackagePath = 'profiles/built-in/package-trust-index.json'
-$ApprovedPackageTrustIndexSha256 = '5d5f30161d7c3b63b4cef8fddeab8d2dd5d1af9d4a45c8e4ce5527897659a0a3'
+$ApprovedPackageTrustIndexSha256 = '5a2a6f998e6ad6dbf48471c32fcdddc54caf79919b9de623a8b41269d32e6a78'
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '130e44e4c5ce8b23fce5150438c6df1292aca0e0067e776c96cc7d84796d23fb'
+    sha256 = 'b68a808550c8d294ba2a969c007770d524c49930038bc7cf2fcb24472175fac2'
 }
 $ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot '../testdata/golden/release-canonical-v1.json'
 $ApprovedCanonicalGoldenAllowlistSha256 = '8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718'
@@ -275,14 +275,14 @@ function Assert-CombinerRuntime {
     param([Parameter(Mandatory = $true)][string]$PackageRoot)
 
     # Independent pins: a self-consistent, substituted release manifest is insufficient.
-    $RuntimePath = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    $RuntimePath = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.14.0/vcruntime140.dll'
     if (-not (Test-Path -LiteralPath $RuntimePath -PathType Leaf) -or
         (Get-LowerSha256 $RuntimePath) -ne 'd5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066') {
         throw 'Combiner runtime is missing or does not match the approved SHA-256.'
     }
-    $CombinerPath = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.13.0/Combiner.exe'
+    $CombinerPath = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.14.0/Combiner.exe'
     if (-not (Test-Path -LiteralPath $CombinerPath -PathType Leaf) -or
-        (Get-LowerSha256 $CombinerPath) -ne 'ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf') {
+        (Get-LowerSha256 $CombinerPath) -ne 'c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5') {
         throw 'Bundled Combiner does not match the approved SHA-256.'
     }
 }
@@ -310,7 +310,7 @@ function Invoke-CombinerSmoke {
     try {
         Copy-Item -LiteralPath $GoldenPath -Destination $TargetPath
         $StartInfo = [Diagnostics.ProcessStartInfo]::new()
-        $StartInfo.FileName = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.13.0/Combiner.exe'
+        $StartInfo.FileName = Join-Path $PackageRoot 'external-tools/legacy-combiner/1.14.0/Combiner.exe'
         $StartInfo.WorkingDirectory = $RunDirectory
         $StartInfo.UseShellExecute = $false
         $StartInfo.CreateNoWindow = $true
@@ -954,7 +954,7 @@ try {
     if (-not $RequiresCombinerRuntime) {
         # Published historical packages retain their original closed tool inventory.
         $ApprovedExternalToolPackagePaths = @($ApprovedExternalToolPackagePaths |
-            Where-Object { $_ -ne 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll' })
+            Where-Object { $_ -ne 'external-tools/legacy-combiner/1.14.0/vcruntime140.dll' })
     }
     $ManifestProtocolVersion = if ($manifest.PSObject.Properties.Name -contains 'versionManagementProtocolVersion') {
         [int]$manifest.versionManagementProtocolVersion

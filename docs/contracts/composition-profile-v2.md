@@ -258,7 +258,7 @@ only inside the processor staging directory. The selected Combiner command plan 
 declared artifact, cannot refer to an undeclared artifact, and the adapter rejects any artifact mutation.
 The 2.2 schema keeps that closed artifact-binding contract and adds the exact external-tool-manifest
 binding identifier grammar only for `legacy-combiner-v1.toolBindingId`, permitting a version suffix such
-as `legacy-combiner-1.13.0`. Every profile, view, stage, artifact, and invocation-profile identifier remains
+as `legacy-combiner-1.14.0`. Every profile, view, stage, artifact, and invocation-profile identifier remains
 a canonical lowercase hyphenated id. Schema 2.0 and 2.1 retain the canonical identifier grammar for this
 field when normalized directly. The 2.3 schema preserves the 2.2 Combiner binding grammar and adds
 `runtime-request` capacity only to an `output-image`; `work-buffer` capacity remains `resolved-map` or

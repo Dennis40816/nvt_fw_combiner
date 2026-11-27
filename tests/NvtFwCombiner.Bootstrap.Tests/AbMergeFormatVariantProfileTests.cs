@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// <summary>Independent synthetic byte evidence; not real Combiner or certified Golden evidence.</summary>
 public sealed class AbMergeFormatVariantProfileTests
 {
-    private const string BundleHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
+    private const string BundleHash = "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1";
     private const int Capacity = 0x100000;
     private static readonly int[] HeaderOffsets = [0xA100, 0xA110, 0xA130];
 
@@ -67,7 +67,7 @@ public sealed class AbMergeFormatVariantProfileTests
                     : "nfc-nt51951-ab-merge-combiner-v1", invocation.ExternalProcessorInvocation!.ProcessorId);
                 ExternalCombinerInvocationProfile command = Assert.Single(ExternalCombinerInvocationCatalog.All,
                     candidate => candidate.ProcessorId == invocation.ExternalProcessorInvocation.ProcessorId);
-                Assert.Equal("legacy-combiner-1.13.0", command.ToolBindingId);
+                Assert.Equal("legacy-combiner-1.14.0", command.ToolBindingId);
                 Assert.Equal("input-output-file", command.InputMode);
                 Assert.Equal(
                     ["NT51950BASED_MERGE_AB_MODE", "CRC8", "{staging.artifact.a-bank}",

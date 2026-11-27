@@ -15,7 +15,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
     private const string CaseId = "nt51951-fw200-single-auto-prj-695-20260718";
     private const string OwnerExpectedSha256 = "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69";
     private const string CurrentOutputSha256 = "64ffa21a36a3a9560ebe109b9b0c94edcbb37c69a0dcb0aa183da7542694d1ea";
-    private const string RegisteredCombinerSha256 = "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf";
+    private const string RegisteredCombinerSha256 = "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5";
     private const int TpPrefixCapacity = 0x37000;
     private const int NfStart = 0x22C00;
     private const int NfMaximumLength = 0x2A10;
@@ -319,7 +319,7 @@ public sealed class Nt51951CtrlRamFw200EvidenceTests
     private static void AssertProcessorIdentity(JsonElement session)
     {
         Assert.Equal("nfc.nt51951.ctrlram-postbuild-v1", session.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("legacy-combiner-1.14.0", session.GetProperty("ToolBindingId").GetString());
         Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
     }
 

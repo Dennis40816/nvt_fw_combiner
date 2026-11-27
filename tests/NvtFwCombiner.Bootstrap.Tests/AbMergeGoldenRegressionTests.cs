@@ -17,7 +17,7 @@ public sealed partial class AbMergeGoldenRegressionTests
     private const string Nt51929BundleDirectory = "nt51919-nt51929-nt51932-ab-merge";
     private const string Nt51929BundleContentHash = "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39";
     private const string Nt51950BundleDirectory = "nt51950-ab-merge";
-    private const string Nt51950BundleContentHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
+    private const string Nt51950BundleContentHash = "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1";
 
     /// <summary>Verifies the supported NT51929 profile reproduces the supplied AB output byte-for-byte.</summary>
     [Fact]
@@ -219,7 +219,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         try
         {
             ExternalCombinerToolManifest manifest = LoadManifest(
-                Path.Combine(repositoryRoot, "external-tools", "legacy-combiner", "1.13.0", "manifest.json"));
+                Path.Combine(repositoryRoot, "external-tools", "legacy-combiner", "1.14.0", "manifest.json"));
             Assert.Equal(
                 manifest.Sha256,
                 Hash(File.ReadAllBytes(Path.Combine(
@@ -340,7 +340,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         try
         {
             ExternalCombinerToolManifest manifest = LoadManifest(
-                Path.Combine(repositoryRoot, "external-tools", "legacy-combiner", "1.13.0", "manifest.json"));
+                Path.Combine(repositoryRoot, "external-tools", "legacy-combiner", "1.14.0", "manifest.json"));
             var processor = new ExternalCombinerProcessor(
                 new ExternalCombinerToolRegistry([manifest]),
                 Path.Combine(repositoryRoot, "external-tools"),

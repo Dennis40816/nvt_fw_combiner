@@ -98,7 +98,7 @@ Example:
       "role": "builtInProfile"
     },
     {
-      "path": "external-tools/legacy-combiner/1.13.0/Combiner.exe",
+      "path": "external-tools/legacy-combiner/1.14.0/Combiner.exe",
       "size": 1,
       "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
       "role": "externalTool"

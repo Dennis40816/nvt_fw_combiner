@@ -69,7 +69,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.projection-conflict-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [command],
             [command],
@@ -94,7 +94,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.staged-replacement-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [command],
             [command],
@@ -120,7 +120,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.exact-staged-file-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [command],
             [command],
@@ -153,7 +153,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.artifact-source-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [command],
             [command],
@@ -193,7 +193,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.artifact-source-then-crc-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [first, second],
             [first, second],
@@ -231,7 +231,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.copy-then-restore-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "test_fw.bin",
             [copyCommand, restoreCommand],
             [copyCommand, restoreCommand],
@@ -241,7 +241,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
     private static LegacyCombinerPostbuildProfile CreateCrcOnlyProfile(
         string processorId,
         string firmwareFileName,
-        string toolBindingId = "legacy-combiner-1.13.0")
+        string toolBindingId = "legacy-combiner-1.14.0")
     {
         var command = new LegacyCombinerPostbuildCommand(
             "crc-only",
@@ -277,7 +277,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         return new LegacyCombinerPostbuildProfile(
             "nfc.test.shortened-output-v1",
             "NTTEST",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "shortened_fw.bin",
             [command],
             [command],
@@ -307,7 +307,7 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
     private sealed class TempWorkspace : IDisposable
     {
         private const string ToolId = "legacy-combiner";
-        private const string ToolVersion = "1.13.0";
+        private const string ToolVersion = "1.14.0";
         private const string ExecutableName = "Combiner.exe";
         private readonly SharedTempWorkspace _workspace;
 
@@ -367,10 +367,10 @@ public sealed partial class LegacyCombinerPostbuildProcessorTests
         {
             return new ExternalCombinerToolManifest(
                 "1.0",
-                "legacy-combiner-1.13.0",
+                "legacy-combiner-1.14.0",
                 ToolId,
                 ToolVersion,
-                "Legacy Combiner 1.13.0",
+                "Legacy Combiner 1.14.0",
                 "win-x64",
                 ExecutableName,
                 executableSha256,

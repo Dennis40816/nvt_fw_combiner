@@ -34,7 +34,7 @@ public sealed partial class LegacyCombinerPostbuildRealToolSmokeTests
         string repositoryRoot = RepositoryPaths.FindRepositoryRoot();
         string toolRoot = Path.Combine(repositoryRoot, "external-tools");
         ExternalCombinerToolManifest manifest = LoadManifest(
-            Path.Combine(toolRoot, "legacy-combiner", "1.13.0", "manifest.json"));
+            Path.Combine(toolRoot, "legacy-combiner", "1.14.0", "manifest.json"));
         string executableSource = Path.Combine(toolRoot, manifest.ToolId, manifest.ToolVersion, manifest.ExecutableName);
         Assert.Equal(manifest.Sha256, Sha256(executableSource));
 

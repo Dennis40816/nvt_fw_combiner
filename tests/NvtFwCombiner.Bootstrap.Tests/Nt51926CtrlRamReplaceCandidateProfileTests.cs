@@ -54,7 +54,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 "output-image", new ByteRange(0x315D0, 0x1660), null, null),
             (CompositionOperationKind.RunExternalProcessor, null, null,
                 "output-image", new ByteRange(0, 0x3C000),
-                "nfc.nt51926.ctrlram-postbuild-fw1.4.1", "legacy-combiner-1.13.0"),
+                "nfc.nt51926.ctrlram-postbuild-fw1.4.1", "legacy-combiner-1.14.0"),
         ];
         Assert.Equal(
             expectedOperations,
@@ -91,7 +91,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
         Assert.Equal(Capacity, composition.Plan.OutputInitialization.Capacity);
         Assert.Equal(new ByteRange(0, Capacity), processorOperation.TargetRange);
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-fw1.4.1", invocation.ProcessorId);
-        Assert.Equal("legacy-combiner-1.13.0", invocation.ToolBindingId);
+        Assert.Equal("legacy-combiner-1.14.0", invocation.ToolBindingId);
         Assert.Equal([new ByteRange(0, Capacity)], invocation.AllowedReadRanges);
         Assert.Equal(
             [
@@ -202,7 +202,7 @@ public sealed class Nt51926CtrlRamReplaceCandidateProfileTests
                 "output-image", new ByteRange(0x315D0, 0x1660), null, null),
             (CompositionOperationKind.RunExternalProcessor, null, null,
                 "output-image", new ByteRange(0, 0x3C000),
-                "nfc.nt51926.ctrlram-postbuild-fw1.4.1", "legacy-combiner-1.13.0"),
+                "nfc.nt51926.ctrlram-postbuild-fw1.4.1", "legacy-combiner-1.14.0"),
         ];
         Assert.Equal(
             expectedOperations,

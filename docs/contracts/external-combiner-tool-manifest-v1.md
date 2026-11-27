@@ -12,10 +12,10 @@ The manifest is intentionally separate from composition profiles:
 ```json
 {
   "schemaVersion": "1.0",
-  "toolBindingId": "legacy-combiner-1.13.0",
+  "toolBindingId": "legacy-combiner-1.14.0",
   "toolId": "legacy-combiner",
-  "toolVersion": "1.13.0",
-  "displayName": "Legacy CRC/Header Combiner 1.13.0",
+  "toolVersion": "1.14.0",
+  "displayName": "Legacy CRC/Header Combiner 1.14.0",
   "platform": "win-x64",
   "executableName": "combiner.exe",
   "sha256": "<64 lowercase hex chars>",
@@ -64,4 +64,4 @@ The host expands tokens after creating the staging directory. Named artifacts ar
 
 ## Repository policy
 
-Real `combiner.exe` binaries should not be committed to source control unless explicitly approved. The repository may include manifest examples and internal packaging instructions. Release packaging may add approved executables under an internal `external-tools/` layout. Combiner `1.13.0` is the first owner-approved committed runtime package and is allowlisted by SHA-256.
+Real `combiner.exe` binaries should not be committed to source control unless explicitly approved. The repository may include manifest examples and internal packaging instructions. Release packaging may add approved executables under an internal `external-tools/` layout. Combiner `1.13.0` was the first owner-approved committed runtime package. The current registered and shipped version is `1.14.0`, pinned by SHA-256; `1.13.0/` is retained in the repository only.

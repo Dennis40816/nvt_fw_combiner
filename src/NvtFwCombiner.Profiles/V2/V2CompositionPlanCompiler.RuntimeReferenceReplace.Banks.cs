@@ -377,7 +377,7 @@ internal static partial class V2CompositionPlanCompiler
         CompositionOperation finalizer = abLayout.Plan.OrderedOperations.Single(static operation =>
             operation.Kind == CompositionOperationKind.RunExternalProcessor);
         ExternalProcessorInvocation invocation = finalizer.ExternalProcessorInvocation!;
-        RequireBankShape(invocation.ToolBindingId == "legacy-combiner-1.13.0" &&
+        RequireBankShape(invocation.ToolBindingId == "legacy-combiner-1.14.0" &&
             invocation.ProcessorId == (delta == 0x40000 ? "nfc-nt51950-ab-merge-combiner-v1" :
                 "nfc-nt51951-ab-merge-combiner-v1") &&
             finalizer.TargetRange == new ByteRange(0, map.CapacityBytes) &&

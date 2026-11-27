@@ -96,7 +96,7 @@ public sealed class AbDummyDpCompilationTests
             ? "nt51950-ab-merge"
             : "nt51919-nt51929-nt51932-ab-merge";
         string hash = legacyProcessorFamily
-            ? "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c"
+            ? "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1"
             : "f082c1b93f895aedd8b1614c860c7da4d1e93c5a2a91366b9b4348cc71b1ca39";
         using var workspace = TempWorkspace.Create("nfc-ab-dummy-compilation");
         TrustedProfileBundleCatalog catalog = AbMergeCandidateTestSupport.LoadSourceCandidateCatalog(

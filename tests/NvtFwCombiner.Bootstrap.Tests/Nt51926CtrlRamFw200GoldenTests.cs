@@ -312,7 +312,7 @@ public sealed class Nt51926CtrlRamFw200GoldenTests
     private static void AssertProcessorIdentity(JsonElement session)
     {
         Assert.Equal("nfc.nt51926.ctrlram-postbuild-v1", session.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("legacy-combiner-1.14.0", session.GetProperty("ToolBindingId").GetString());
         Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
     }
 

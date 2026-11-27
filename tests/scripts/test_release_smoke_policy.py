@@ -15,7 +15,7 @@ from scripts.testdata_paths import repository_path, resolve_testdata_root
 
 ROOT = Path(__file__).resolve().parents[2]
 PWSH = shutil.which("pwsh")
-COMBINER_DIRECTORY = Path("external-tools/legacy-combiner/1.13.0")
+COMBINER_DIRECTORY = Path("external-tools/legacy-combiner/1.14.0")
 RUNTIME_PATH = COMBINER_DIRECTORY / "vcruntime140.dll"
 GOLDEN_PATH = Path(
     "testdata/golden/canonical/NT51927/standard-merge/gen-flash/"

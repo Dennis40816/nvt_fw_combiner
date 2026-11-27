@@ -3,7 +3,7 @@
   "bundleId": "nt51917-ctrlram-replace-alias-candidate",
   "bundleVersion": "1.1.13-tp-svn.1",
   "hashAlgorithm": "sha256-rfc8785-entry-array-v1",
-  "contentHash": "8873a5e5fe5c7190afb8c00b24557cf22200e0c3afbb95924e73cad7e4a3f200",
+  "contentHash": "e285396f1014b1197bde1b528608af47f9e53a5d4cbe54cab66450b034c18942",
   "trustAnchorBindingId": "built-in-profile-bundle-v2",
   "entries": [
     {
@@ -32,21 +32,21 @@
       "kind": "composition-profile",
       "path": "profiles/nt51917-ctrlram-replace-fw132-twochip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "b9b57cda58330f8b2ca50afc682d60e76eacbd019dabe04d17806494a5aacf8b"
+      "contentHash": "d49607076d67c468f6ce12092a1868473f9a528e639e237fd151b27125c0e1b0"
     },
     {
       "entryId": "nt51917-ctrlram-replace-fw140-threechip-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51917-ctrlram-replace-fw140-threechip.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "887143860145cbd5aa7894573f14c2be7f826865afbae1ffd2c9e8960101f102"
+      "contentHash": "56536859400f31fbd5a4b0d5d2c9c8fedfecfe784e8161594a099beb37eeef99"
     },
     {
       "entryId": "nt51917-ctrlram-replace-fw141-single-profile",
       "kind": "composition-profile",
       "path": "profiles/nt51917-ctrlram-replace-fw141-single.json",
       "schemaId": "https://example.invalid/nfc/schemas/composition-profile-v2.schema.json",
-      "contentHash": "636e64e3d764283b92d4b3a0e871c8bf83cbcf1d7fde85a20d8ff1224d7fc525"
+      "contentHash": "9aa14fa2405585e492fdde48c062a1ff5a3551d29d80c1062f479946a835cb49"
     }
   ]
 }

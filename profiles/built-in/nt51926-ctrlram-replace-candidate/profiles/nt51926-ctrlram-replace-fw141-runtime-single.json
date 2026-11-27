@@ -128,7 +128,7 @@
     {
       "processorStageId": "nt51926-fw141-single-runtime-combiner",
       "kind": "legacy-combiner-v1",
-      "toolBindingId": "legacy-combiner-1.13.0",
+      "toolBindingId": "legacy-combiner-1.14.0",
       "invocationProfileId": "nfc.nt51926.ctrlram-postbuild-fw1.4.1",
       "targetSpaceId": "output-image",
       "targetViewId": "processor-image",

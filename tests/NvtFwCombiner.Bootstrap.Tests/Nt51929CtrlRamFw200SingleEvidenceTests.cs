@@ -15,7 +15,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
 {
     private const string OwnerExpectedSha256 = "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910";
     private const string CurrentOutputSha256 = "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f";
-    private const string RegisteredCombinerSha256 = "ed6b58289cc780f73d36b831f5424cef44ad93187ba7518d36df6a77ad0c76bf";
+    private const string RegisteredCombinerSha256 = "c180a3c8716910fa7a0e43c5b87d4a9c6f44ebf8d4cd54e1d0a1e0345a4ecbd5";
     private const string CaseId = "nt51929-fw200-single-auto-prj-594-20260717";
     private const int Capacity = 0x40000;
     private const int NfStart = 0x1FC00;
@@ -451,7 +451,7 @@ public sealed partial class Nt51929CtrlRamFw200SingleEvidenceTests
     private static void AssertProcessorIdentity(JsonElement session, string expectedProcessorId)
     {
         Assert.Equal(expectedProcessorId, session.GetProperty("ProcessorId").GetString());
-        Assert.Equal("legacy-combiner-1.13.0", session.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("legacy-combiner-1.14.0", session.GetProperty("ToolBindingId").GetString());
         Assert.Equal("Succeeded", session.GetProperty("Status").GetString());
     }
 

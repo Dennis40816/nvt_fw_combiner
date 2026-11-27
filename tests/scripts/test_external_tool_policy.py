@@ -16,6 +16,7 @@ sys.path.insert(0, str(SCRIPTS))
 from external_tool_policy import (  # noqa: E402
     APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS,
     APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+    RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS,
     validate_external_tool_catalog,
     validate_repository_external_tool_manifests,
 )
@@ -125,6 +126,54 @@ class ExternalToolCatalogTests(unittest.TestCase):
     def test_accepts_pinned_repository_package_and_runtime_inventory(self) -> None:
         self.assertEqual([], self.validate())
 
+    def test_retains_previous_combiner_without_registering_or_packaging_it(self) -> None:
+        self.assertTrue(
+            RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS
+            <= APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS
+        )
+        self.assertFalse(
+            RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS
+            & APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS
+        )
+        legacy_tools = [
+            tool for tool in self.catalog()["tools"]
+            if tool["logicalId"] == "legacy-combiner"
+        ]
+        self.assertEqual(1, len(legacy_tools))
+        self.assertEqual("1.14.0", legacy_tools[0]["version"])
+        self.assertEqual([], self.validate())
+
+    def test_rejects_retained_combiner_release_promotion(self) -> None:
+        catalog = self.catalog()
+        catalog["releasePackagePaths"].extend(
+            str(path) for path in sorted(RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS)
+        )
+        self.write_catalog(catalog)
+        errors: list[str] = []
+
+        validate_external_tool_catalog(
+            self.root,
+            APPROVED_EXTERNAL_TOOL_REPOSITORY_PATHS,
+            APPROVED_EXTERNAL_TOOL_PACKAGE_PATHS
+            | RETAINED_LEGACY_COMBINER_REPOSITORY_PATHS,
+            errors,
+        )
+
+        self.assertTrue(any(
+            "retained Legacy Combiner 1.13.0 is repository-only" in error
+            for error in errors
+        ))
+
+    def test_rejects_retained_combiner_payload_drift(self) -> None:
+        relative = "external-tools/legacy-combiner/1.13.0/Combiner.exe"
+        (self.root / relative).write_bytes(b"substituted retained payload")
+
+        errors = self.validate()
+
+        self.assertTrue(any(
+            f"catalog SHA-256 mismatch for {relative}" in error for error in errors
+        ))
+
     def test_rejects_catalog_pinned_repository_file_drift(self) -> None:
         (self.root / "external-tools/README.md").write_text(
             "changed external-tool policy", encoding="utf-8"
@@ -194,7 +243,7 @@ class ExternalToolCatalogTests(unittest.TestCase):
 
     def test_rejects_coordinated_legacy_combiner_hash_drift(self) -> None:
         manifest_relative = (
-            "external-tools/legacy-combiner/1.13.0/manifest.json"
+            "external-tools/legacy-combiner/1.14.0/manifest.json"
         )
         manifest_path = self.root / manifest_relative
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

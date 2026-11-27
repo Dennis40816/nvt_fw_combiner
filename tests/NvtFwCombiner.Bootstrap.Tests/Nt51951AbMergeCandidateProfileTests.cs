@@ -11,7 +11,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 public sealed class Nt51951AbMergeCandidateProfileTests
 {
     private const string BundleDirectory = "nt51950-ab-merge";
-    private const string BundleContentHash = "68b3a4d6daa55ba9ac76dc4b1815f744f0f1ff82afa734b24b7a28afae5e677c";
+    private const string BundleContentHash = "ca9e992249652028db9666e1f02197d5b92a5f9a017854ab41c14a2774e108a1";
     private const int Capacity = 0x100000;
     private const int BankLength = 0x80000;
     private const int TpInputLength = 0x37000;

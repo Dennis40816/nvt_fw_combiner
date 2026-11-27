@@ -382,7 +382,7 @@ catalog.CompileRuntimeReferenceReplace(
                 Assert.Equal(CompositionOperationKind.RunExternalProcessor, processor.Kind);
                 Assert.Equal(int.MaxValue, processor.Sequence);
                 Assert.Equal("nfc.synthetic.general-replace", processor.ExternalProcessorInvocation!.ProcessorId);
-                Assert.Equal("legacy-combiner-1.13.0", processor.ExternalProcessorInvocation.ToolBindingId);
+                Assert.Equal("legacy-combiner-1.14.0", processor.ExternalProcessorInvocation.ToolBindingId);
                 Assert.Empty(processor.ExternalProcessorInvocation.StagedSourceBindings);
                 Assert.Empty(processor.ExternalProcessorInvocation.StagedArtifactBindings);
                 Assert.Equal([new ByteRange(8, 4), new ByteRange(12, 4)], processor.ExternalProcessorInvocation.AllowedWriteRanges);
@@ -624,7 +624,7 @@ catalog.CompileRuntimeReferenceReplace(
             {
                 ["processorStageId"] = "tp-refresh",
                 ["kind"] = "legacy-combiner-v1",
-                ["toolBindingId"] = "legacy-combiner-1.13.0",
+                ["toolBindingId"] = "legacy-combiner-1.14.0",
                 ["invocationProfileId"] = $"nfc.synthetic.{shapeExperienceId}",
                 ["targetSpaceId"] = "output-image",
                 ["targetViewId"] = "processor-image",

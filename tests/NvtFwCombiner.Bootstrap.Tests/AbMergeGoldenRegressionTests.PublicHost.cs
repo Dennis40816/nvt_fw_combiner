@@ -244,7 +244,7 @@ public sealed partial class AbMergeGoldenRegressionTests
         JsonElement processor = Assert.Single(
             report.GetProperty("Operations").EnumerateArray(),
             operation => operation.GetProperty("ProcessorId").GetString() == expectedProcessorId);
-        Assert.Equal("legacy-combiner-1.13.0", processor.GetProperty("ToolBindingId").GetString());
+        Assert.Equal("legacy-combiner-1.14.0", processor.GetProperty("ToolBindingId").GetString());
         Assert.Equal(
             [
                 new ByteRange(expectedBCodeStart + 0x100, sizeof(uint)),

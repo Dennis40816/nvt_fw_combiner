@@ -108,7 +108,7 @@ REQUIRED_FILES = {
     "external-tools/README.md",
     "external-tools/catalog.json",
     "external-tools/legacy-combiner/README.md",
-    "external-tools/legacy-combiner/1.13.0/manifest.json",
+    "external-tools/legacy-combiner/1.14.0/manifest.json",
     "testdata/golden/canonical/manifest.json",
     "testdata/golden/release-standard-merge-v1.json",
     "testdata/diagnostics/golden-evidence/README.md",

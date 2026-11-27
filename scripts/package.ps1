@@ -228,17 +228,17 @@ $CrcWorkerPackagePath = 'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe'
 $ApprovedRepositoryExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/legacy-combiner/README.md',
-    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json',
-    'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    'external-tools/legacy-combiner/1.14.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.14.0/manifest.json',
+    'external-tools/legacy-combiner/1.14.0/vcruntime140.dll'
 ) | Sort-Object
 $ApprovedExternalToolPackagePaths = @(
     'external-tools/README.md',
     'external-tools/crc-worker/0.1.0/Nfc.CrcWorker.exe',
     'external-tools/legacy-combiner/README.md',
-    'external-tools/legacy-combiner/1.13.0/Combiner.exe',
-    'external-tools/legacy-combiner/1.13.0/manifest.json',
-    'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    'external-tools/legacy-combiner/1.14.0/Combiner.exe',
+    'external-tools/legacy-combiner/1.14.0/manifest.json',
+    'external-tools/legacy-combiner/1.14.0/vcruntime140.dll'
 ) | Sort-Object
 
 $ApprovedRuntimeCatalogPackagePaths = @(
@@ -254,7 +254,7 @@ $MaximumPackageBytes = 134217728
 $ApprovedCanonicalCapabilityPolicyPackageContract = [pscustomobject]@{
     path = 'docs/contracts/canonical-capability-policy-v1.json'
     role = 'capabilityPolicy'
-    sha256 = '130e44e4c5ce8b23fce5150438c6df1292aca0e0067e776c96cc7d84796d23fb'
+    sha256 = 'b68a808550c8d294ba2a969c007770d524c49930038bc7cf2fcb24472175fac2'
 }
 
 $ApprovedCanonicalCapabilityPolicyPackagePath =
@@ -290,7 +290,7 @@ function Copy-PackageFileFromRoot {
 function Assert-ApprovedCombinerRuntime {
     param([Parameter(Mandatory = $true)][string]$Root)
 
-    $RuntimePath = Join-Path $Root 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+    $RuntimePath = Join-Path $Root 'external-tools/legacy-combiner/1.14.0/vcruntime140.dll'
     if (-not (Test-Path -LiteralPath $RuntimePath -PathType Leaf) -or
         (Get-LowerSha256 $RuntimePath) -ne 'd5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066') {
         throw 'Combiner runtime is missing or does not match the approved SHA-256.'
@@ -698,7 +698,7 @@ function Invoke-ExternalToolPolicyDryRun {
         $DryRunEntries = @(Get-ExternalToolManifestEntries `
             -PackageRoot $DryRunPackageRoot `
             -ExternalToolsRoot $DryRunExternalToolsRoot)
-        $RuntimeRelativePath = 'external-tools/legacy-combiner/1.13.0/vcruntime140.dll'
+        $RuntimeRelativePath = 'external-tools/legacy-combiner/1.14.0/vcruntime140.dll'
         $SourceRuntime = Join-Path $DryRunSourceRoot $RuntimeRelativePath
         $PackagedRuntime = Join-Path $DryRunPackageRoot $RuntimeRelativePath
         $RuntimeBytes = [IO.File]::ReadAllBytes($SourceRuntime)

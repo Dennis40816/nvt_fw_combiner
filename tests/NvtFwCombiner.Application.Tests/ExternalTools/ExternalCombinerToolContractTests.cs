@@ -98,7 +98,7 @@ public sealed class ExternalCombinerToolContractTests
     {
         ArgumentException exception = Assert.Throws<ArgumentException>(() => new ExternalCombinerInvocationProfile(
             "processor-v1",
-            "legacy-combiner-1.13.0",
+            "legacy-combiner-1.14.0",
             "input-output-file",
             ["--input", token]));
 
