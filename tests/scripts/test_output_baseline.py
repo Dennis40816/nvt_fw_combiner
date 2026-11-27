@@ -99,7 +99,7 @@ class OutputBaselineTests(unittest.TestCase):
             self.generate()
 
     def test_error_redacts_host_paths_and_keeps_only_first_line(self):
-        self.assertEqual(baseline.first_error("error: cannot read 'C:\\Users\\alice\\file.bin'\nstack"),
+        self.assertEqual(baseline.first_error("error: cannot read 'C:\\Users\\example\\file.bin'\nstack"),
                          "error: cannot read '<path>'")
         self.assertEqual(baseline.first_error(PermissionError(13, "Permission denied", "/private/user/file")),
                          "Permission denied")
