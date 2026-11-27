@@ -97,7 +97,7 @@ internal static class Program
         string localStateDirectory)
     {
         var host = CompositionHostServices.Create(localStateDirectory);
-        ManagedAppVersion appVersion = ManagedAppVersion.Parse(DesktopApplication.InformationalVersion);
+        ManagedAppVersion appVersion = ManagedAppVersion.FromAssembly(typeof(DesktopApplication).Assembly);
         IVersionManagementExperience versionManagement =
             CompositionHostServices.CreateVersionManagementExperience(
                 appVersion.ToString(),

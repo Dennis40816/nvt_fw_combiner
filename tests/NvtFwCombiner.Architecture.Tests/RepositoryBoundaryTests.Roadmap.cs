@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class RepositoryBoundaryTests
@@ -21,7 +23,9 @@ public sealed partial class RepositoryBoundaryTests
         Assert.NotEmpty(versions);
         Assert.Equal(versions.Length, versions.Distinct().Count());
         Assert.Equal(versions.Order(), versions);
-        Assert.Contains(Version.Parse(ReadText("VERSION").Trim()), versions);
+        AssemblyMetadataAttribute versionCore = Assert.Single(typeof(RepositoryBoundaryTests).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>(), attribute => attribute.Key == "VersionCore");
+        Assert.Contains(Version.Parse(Assert.IsType<string>(versionCore.Value)), versions);
         Assert.Contains("## Explicit owner-unallocated queue", roadmap, StringComparison.Ordinal);
     }
 

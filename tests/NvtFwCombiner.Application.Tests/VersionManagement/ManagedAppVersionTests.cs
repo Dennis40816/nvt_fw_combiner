@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Reflection.Emit;
 using NvtFwCombiner.Application.VersionManagement;
 
 namespace NvtFwCombiner.Application.Tests.VersionManagement;
@@ -31,6 +33,7 @@ public sealed class ManagedAppVersionTests
     [InlineData("1.0.0.0")]
     [InlineData("v1.0.0")]
     [InlineData("1.0.0-beta.1")]
+    [InlineData("1.3.0-g.0")]
     [InlineData("1.0.0+build.1")]
     [InlineData("1.0.0 ")]
     [InlineData("-1.0.0")]
@@ -45,6 +48,65 @@ public sealed class ManagedAppVersionTests
     public void ParseRejectsMalformedVersion()
     {
         _ = Assert.Throws<FormatException>(() => _ = ManagedAppVersion.Parse("v1.0.0"));
+    }
+
+    /// <summary>Development versions remain invalid at the stable runtime admission boundary.</summary>
+    [Fact]
+    public void ParseRejectsDevelopmentVersion()
+    {
+        _ = Assert.Throws<FormatException>(() => _ = ManagedAppVersion.Parse("1.3.0-g.0"));
+    }
+
+    /// <summary>Managed identity comes from build metadata while informational versions remain intact.</summary>
+    [Theory]
+    [InlineData("1.3.0-g.0", "1.3.0")]
+    [InlineData("1.3.0", "1.3.0")]
+    public void AssemblyBuildMetadataSuppliesStableIdentity(string displayVersion, string versionCore)
+    {
+        AssemblyBuilder assembly = CreateAssembly(displayVersion, versionCore);
+
+        ManagedAppVersion version = ManagedAppVersion.FromAssembly(assembly);
+
+        Assert.Equal("1.3.0", version.ToString());
+        Assert.Equal(displayVersion, assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
+    }
+
+    /// <summary>Missing or duplicate metadata never falls back to the display or Windows version.</summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void AmbiguousAssemblyBuildMetadataFailsClosed(int metadataCount)
+    {
+        AssemblyBuilder assembly = CreateAssembly("1.3.0", [.. Enumerable.Repeat("1.3.0", metadataCount)]);
+
+        _ = Assert.Throws<InvalidOperationException>(() => ManagedAppVersion.FromAssembly(assembly));
+    }
+
+    /// <summary>The metadata reader delegates to the strict stable parser.</summary>
+    [Theory]
+    [InlineData("1.3.0-g.0")]
+    [InlineData("1.3.0.0")]
+    [InlineData("01.3.0")]
+    public void InvalidAssemblyBuildMetadataFailsClosed(string versionCore)
+    {
+        AssemblyBuilder assembly = CreateAssembly("1.3.0", versionCore);
+
+        _ = Assert.Throws<FormatException>(() => ManagedAppVersion.FromAssembly(assembly));
+    }
+
+    private static AssemblyBuilder CreateAssembly(string displayVersion, params string[] versionCores)
+    {
+        AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(
+            new AssemblyName($"VersionIdentityTest{Guid.NewGuid():N}"), AssemblyBuilderAccess.RunAndCollect);
+        assembly.SetCustomAttribute(new CustomAttributeBuilder(
+            typeof(AssemblyInformationalVersionAttribute).GetConstructor([typeof(string)])!, [displayVersion]));
+        foreach (string versionCore in versionCores)
+        {
+            assembly.SetCustomAttribute(new CustomAttributeBuilder(
+                typeof(AssemblyMetadataAttribute).GetConstructor([typeof(string), typeof(string)])!,
+                ["VersionCore", versionCore]));
+        }
+        return assembly;
     }
 
     /// <summary>Version precedence compares major, then minor, then patch numerically.</summary>

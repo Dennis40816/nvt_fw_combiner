@@ -931,13 +931,18 @@ class ReleasePackagePolicyTests(unittest.TestCase):
     def test_actual_pwsh_request_step_preserves_utc_for_automatic_and_manual(self) -> None:
         request_step = release_workflow_run_block(
             "candidate", "Derive release request from merge commit")
+        request_step = request_step.replace(
+            "python ./scripts/release_promotion_policy.py",
+            f'python "{SCRIPTS / "release_promotion_policy.py"}"',
+        )
         published_at = "2026-09-29T12:34:56Z"
-        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+        version = "1.1.14"
         for automatic, head_ref, eligible in (("true", version, True),
                                               ("false", version, True),
                                               ("true", "ordinary", False)):
             with self.subTest(automatic=automatic, head_ref=head_ref), tempfile.TemporaryDirectory() as temp:
                 root = Path(temp)
+                (root / "VERSION").write_text(version + "\n", encoding="utf-8")
                 fixture = root / "gh_fixture.py"
                 pull = {"number": 42, "state": "closed", "merged_at": published_at,
                         "merge_commit_sha": RELEASE_MAIN_SHA, "base": {"ref": "main"},
@@ -963,7 +968,7 @@ class ReleasePackagePolicyTests(unittest.TestCase):
                                "NFC_AUTOMATIC": automatic}
                 result = subprocess.run(
                     ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(script)],
-                    cwd=ROOT, env=environment, capture_output=True, text=True,
+                    cwd=root, env=environment, capture_output=True, text=True,
                     encoding="utf-8", errors="replace")
                 self.assertEqual(0, result.returncode, result.stdout + result.stderr)
                 lines = output.read_text(encoding="utf-8-sig").splitlines()
@@ -1984,8 +1989,7 @@ finally {
         self,
     ) -> None:
         repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-        major, minor, patch = (int(value) for value in repository_version.split("."))
-        mismatched_version = f"{major}.{minor}.{patch + 1}"
+        mismatched_version = "0.0.1" if repository_version != "0.0.1" else "0.0.2"
         repository_head = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=ROOT,
@@ -2034,21 +2038,40 @@ finally {
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
     )
     def test_packager_rejects_commit_that_differs_from_repository_head(self) -> None:
-        repository_version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-
-        result = self.run_powershell(
-            PACKAGE_SCRIPT,
-            "-Version",
-            repository_version,
-            "-Commit",
-            "1" * 40,
-        )
+        with tempfile.TemporaryDirectory(prefix="package-commit-identity-") as temp:
+            root = Path(temp)
+            initialize_minimal_package_repository(root)
+            result = self.run_powershell(
+                root / "scripts" / "package.ps1",
+                "-Version",
+                "1.0.0",
+                "-Commit",
+                "1" * 40,
+            )
 
         self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn(
             "Package commit does not match repository HEAD",
             normalize_console_output(result.stdout + result.stderr),
         )
+
+    @unittest.skipUnless(
+        POWERSHELL, "PowerShell is required for Windows release-policy tests"
+    )
+    def test_stable_packager_rejects_development_repository_version(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="package-development-identity-") as temp:
+            root = Path(temp)
+            (root / "scripts").mkdir()
+            shutil.copy2(PACKAGE_SCRIPT, root / "scripts" / "package.ps1")
+            (root / "VERSION").write_text("1.3.0-g.0\n", encoding="utf-8")
+
+            result = self.run_powershell(
+                root / "scripts" / "package.ps1", "-Version", "1.3.0-g.0", "-Commit", "0" * 40,
+            )
+
+        self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("Stable release packaging requires vX.Y.Z",
+                      normalize_console_output(result.stdout + result.stderr))
 
     @unittest.skipUnless(
         POWERSHELL, "PowerShell is required for Windows release-policy tests"
