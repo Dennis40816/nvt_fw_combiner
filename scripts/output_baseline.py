@@ -10,6 +10,8 @@ the header commit identifies the checkout, not an attestation of an old binary):
 Work directories and CLI TEMP/TMP/TMPDIR use NFC_TEST_AREA_ROOT/temp. Only the
 requested baseline is written outside that area; --output - writes to stdout.
 The default is reference evidence, not an independent Golden or support claim.
+Synthetic input paths in captures are stable recipe identities; their files
+are materialized only under the per-run test-area work directory and removed.
 
 Semantic owners / admission (G0-2, base 7cac3ff, local patch, R2):
 * reuse: CanonicalCapabilityCatalogSource partitions every policy route into
@@ -26,6 +28,25 @@ Semantic owners / admission (G0-2, base 7cac3ff, local patch, R2):
   each profile's listing, including errors, once per run.
 * extend-owner: this script owns deterministic capture and output comparison;
   no prior general G0 capture exists. No profiles, naming or Golden bytes change.
+
+Semantic owners / admission (G0-3 phase A, base a047980, R2; recipes.json R1):
+* extend-owner: CanonicalInputs.prepare owns baseline input selection for
+  collect/main. Canonical routeEvidence with caseId wins; recipes.json supplies
+  only baseline inputs for the 27 routes that need no owner decision, never support,
+  parity or Golden evidence. Exact policy fingerprints gate recipe use.
+* reuse: open_golden_example.cases/artifact and the canonical manifest own
+  repository case identity, artifact sizes and SHA-256. Existing parity input
+  bindings supply the declared CtrlRAM slots; CLI number_choices owns tokens.
+* reuse: GeneralMergeCliCommandTests, ReplaceCliCommandTests.General and
+  Nt51950Nt51951V2StandardMergeGoldenTests supply public synthetic input shapes.
+  The recipe declares patterns/overlays as data, not firmware transformations.
+* reject-duplicate: MergeCliCommandHandler.ManualMappings and
+  ReplaceCliCommandHandler.General already dispatch manual General mappings
+  through Application. Translate recipe options only; do not execute mappings,
+  initialization, CRC/header or naming here. No production/profile/testdata
+  authority changes. Single writer owns this script, its test and recipes.json.
+* gates: focused Python tests and scoped review of the uncommitted patch;
+  host owns CLI smoke/full capture and integration verification. No commit.
 """
 
 from __future__ import annotations
@@ -55,8 +76,9 @@ except ModuleNotFoundError as error:
 REPO = Path(__file__).resolve().parents[1]
 POLICY = "docs/contracts/canonical-capability-policy-v1.json"
 DEFAULT_BASELINE = REPO / "docs/references/g0-output-baseline/baseline.json"
+RECIPES = REPO / "docs/references/g0-output-baseline/recipes.json"
 DEFAULT_CLI = REPO / "src/NvtFwCombiner.Cli/bin/Debug/net10.0/NvtFwCombiner.Cli.dll"
-TOOL_VERSION = "1"
+TOOL_VERSION = "2"
 STATUSES = ("ok", "input-unavailable", "failed")
 
 
@@ -73,6 +95,45 @@ def unique_routes(routes: list[dict]) -> None:
         raise ValueError("Duplicate route IDs")
 
 
+def load_recipes() -> dict[str, dict]:
+    document = json.loads(RECIPES.read_bytes())
+    if document["schemaVersion"] != 1:
+        raise ValueError("Unsupported baseline recipe schema version")
+    rows = document["recipes"]
+    unique_routes(rows)
+    if rows != sorted(rows, key=lambda row: row["routeId"]):
+        raise ValueError("Baseline recipes must be sorted by routeId")
+    return {row["routeId"]: row for row in rows}
+
+
+def synthetic_bytes(spec: dict) -> bytes:
+    """Generate input data only; patterns and literal overlays are recipe facts."""
+    size = spec["size"]
+    if type(size) is not int or not 0 < size <= 16 * 1024 * 1024:
+        raise ValueError("Synthetic input size must be in [1, 16777216]")
+    if ("fill" in spec) == ("pattern" in spec):
+        raise ValueError("Synthetic input requires exactly one fill or pattern")
+
+    def byte(value):
+        if type(value) is not int or not 0 <= value <= 255:
+            raise ValueError("Synthetic pattern/fill must use byte values")
+        return value
+
+    if "fill" in spec:
+        data = bytearray([byte(spec["fill"])]) * size
+    else:
+        pattern = spec["pattern"]
+        seed, step = byte(pattern["seed"]), byte(pattern["step"])
+        cycle = bytes((seed + index * step) % 256 for index in range(256))
+        data = bytearray((cycle * ((size + 255) // 256))[:size])
+    for overlay in spec.get("overlays", []):
+        offset, payload = overlay["offset"], bytes.fromhex(overlay["hex"])
+        if type(offset) is not int or offset < 0 or offset + len(payload) > size:
+            raise ValueError("Synthetic overlay exceeds input bounds")
+        data[offset:offset + len(payload)] = payload
+    return bytes(data)
+
+
 class CanonicalInputs:
     """Project declared evidence into CLI input options, without firmware logic."""
 
@@ -81,7 +142,9 @@ class CanonicalInputs:
         manifest = json.loads((examples.GOLDEN / "manifest.json").read_bytes())
         unique_routes(manifest["routeEvidence"])
         self.evidence = {row["routeId"]: row for row in manifest["routeEvidence"]}
+        self.manifest_case_ids = {row["caseId"] for row in manifest["cases"]}
         self.cases = examples.cases()
+        self.recipes = load_recipes()
         authority = json.loads((REPO / "docs/contracts/v0916-parity-certification-v1.json").read_bytes())
         bindings = authority["canonicalInputAuthority"]
         # Reuse input recipes only. The historical plan's hashes/support claims
@@ -90,9 +153,11 @@ class CanonicalInputs:
         self.ctrlram = {row["caseId"]: row for row in bindings["ctrlRamExecutionBindings"]}
         self.routes = {row["routeId"]: row for row in load_routes()}
 
-    def case(self, case_id: str) -> dict:
+    def case(self, case_id: str, *, require_manifest: bool = False) -> dict:
         visited = set()
         while case_id not in visited:
+            if require_manifest and case_id not in self.manifest_case_ids:
+                raise ValueError("Baseline recipe case is not in canonical manifest")
             visited.add(case_id)
             case = self.cases[case_id]
             if "alias" not in case:
@@ -132,16 +197,17 @@ class CanonicalInputs:
         }[workflow]
         evidence = self.evidence.get(route["routeId"])
         if evidence is None or "caseId" not in evidence:
-            return {}, required
+            recipe = self.recipes.get(route["routeId"])
+            return self.prepare_recipe(route, recipe, inputs) if recipe else ({}, required)
         if evidence["capabilityFingerprint"] != route["capabilityFingerprint"]:
             raise ValueError("Route evidence fingerprint differs from Support Matrix policy")
         try:
             case = self.case(evidence["caseId"])
         except KeyError:
-            return {}, required
+            return {"input_source": "route-evidence"}, required
         artifacts = {row["artifactId"]: row for row in case["artifacts"]}
         args = [workflow, "build", "--profile", route["icId"]]
-        request = {"arguments": args}
+        request = {"arguments": args, "input_source": "route-evidence"}
         base_args = None
         if workflow == "standard-merge":
             bindings = [("dp-input", "--dp", None), ("tp-input", "--tp", None)]
@@ -184,6 +250,12 @@ class CanonicalInputs:
             bindings += [(artifact_id, "--ctrlram", slot) for artifact_id, slot in replacements]
         else:
             return {}, required
+        return request, self.bind_artifacts(case, bindings, inputs, args, base_args)
+
+    @staticmethod
+    def bind_artifacts(case: dict, bindings: list[tuple], inputs: list[dict],
+                       args: list[str], base_args: list[str] | None = None) -> list[str]:
+        artifacts = {row["artifactId"]: row for row in case["artifacts"]}
         missing = []
         for artifact_id, option, slot in bindings:
             name = slot or artifact_id
@@ -200,7 +272,62 @@ class CanonicalInputs:
                            "sha256": artifacts[artifact_id]["sha256"].lower()})
             target_args = base_args if base_args is not None and option in {"--dp", "--tp"} else args
             target_args += [option, f"{slot}={path}" if slot else str(path)]
-        return request, missing
+        return missing
+
+    def prepare_recipe(self, route: dict, recipe: dict, inputs: list[dict]) -> tuple[dict, list[str]]:
+        if recipe["capabilityFingerprint"] != route["capabilityFingerprint"]:
+            raise ValueError("Baseline recipe fingerprint differs from Support Matrix policy")
+        workflow = route["workflowId"]
+        args = [workflow, "build", "--profile", route["icId"]]
+        request = {"arguments": args, "input_source": f"recipe-{recipe['kind']}"}
+        if recipe["kind"] == "repo-case":
+            case = self.case(recipe["caseId"], require_manifest=True)
+            if workflow == "ctrlram-replace":
+                args += ["--ic-num", self.ic_number_token(route, case)]
+            elif workflow == "ab-merge":
+                topology = {"1-ic": "single", "2-plus-ic": "cascade"}.get(route["icCountVariant"])
+                if topology:
+                    args += ["--ab-topology", topology]
+            allowed = {"standard-merge": {"--dp", "--tp", "--ldc"},
+                       "ab-merge": {"--dp-ab", "--tp-a", "--tp-b"},
+                       "ctrlram-replace": {"--base", "--ctrlram"}}.get(workflow, set())
+            bindings = []
+            for row in recipe["bindings"]:
+                if row["option"] not in allowed or (row["option"] == "--ctrlram") != ("slotId" in row):
+                    raise ValueError("Invalid repository recipe CLI binding")
+                bindings.append((row["artifactId"], row["option"], row.get("slotId")))
+            return request, self.bind_artifacts(case, bindings, inputs, args)
+        if recipe["kind"] != "synthetic":
+            raise ValueError("Unknown baseline recipe kind")
+        specs = recipe["inputs"]
+        names = [spec["name"] for spec in specs]
+        if len(names) != len(set(names)) or any(
+                re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*\.bin", name) is None for name in names):
+            raise ValueError("Synthetic inputs require unique plain BIN names")
+        request["synthetic"] = specs
+        for spec in specs:
+            payload = synthetic_bytes(spec)
+            inputs.append({"name": spec["name"], "path": f"synthetic/{route['routeId']}/{spec['name']}",
+                           "sha256": hashlib.sha256(payload).hexdigest(), "size": len(payload)})
+        if workflow == "general-merge":
+            args += ["--size", hex(recipe["size"]), "--fill", f"0x{recipe['fill']:02x}"]
+        elif workflow == "general-replace":
+            args += ["--ic-num", recipe["icNumber"]]
+        elif workflow != "standard-merge":
+            raise ValueError("Unsupported synthetic recipe workflow")
+        for row in recipe["bindings"]:
+            if row["input"] not in names:
+                raise ValueError("Synthetic binding names an undeclared input")
+            value = f"<synthetic:{row['input']}>"
+            option = row["option"]
+            if option == "--mapping" and workflow in {"general-merge", "general-replace"}:
+                prefix = f"{hex(row['sourceStart'])}+" if workflow == "general-merge" else ""
+                value = f"{prefix}{hex(row['targetStart'])}+{hex(row['length'])}={value}"
+            elif option not in ({"--dp", "--tp"} if workflow == "standard-merge" else
+                                {"--base"} if workflow == "general-replace" else set()):
+                raise ValueError("Invalid synthetic recipe CLI binding")
+            args += [option, value]
+        return request, []
 
 
 def first_error(error: Exception | str) -> str:
@@ -257,7 +384,14 @@ class CliExecutor:
         with tempfile.TemporaryDirectory(prefix="g0-baseline-", dir=self.temp) as temporary:
             work = Path(temporary)
             captured = {}
-            arguments = request["arguments"]
+            arguments = list(request["arguments"])
+            generated = {}
+            for spec in request.get("synthetic", []):
+                path = work / spec["name"]
+                path.write_bytes(synthetic_bytes(spec))
+                generated[f"synthetic/{route['routeId']}/{spec['name']}"] = path
+                token = f"<synthetic:{spec['name']}>"
+                arguments = [arg.replace(token, str(path)) for arg in arguments]
             if "base_build" in request:
                 base = request["base_build"]
                 outputs = self.build(base["route"], base["arguments"], work / "base")
@@ -266,7 +400,8 @@ class CliExecutor:
                              for arg in arguments]
             captured["outputs"] = self.build(route, arguments, work / "final")
             for row in inputs:
-                with (REPO / row["path"]).open("rb") as stream:
+                path = generated.get(row["path"], REPO / row["path"])
+                with path.open("rb") as stream:
                     if hashlib.file_digest(stream, "sha256").hexdigest() != row["sha256"]:
                         raise ValueError("CLI input changed during execution")
             return captured
@@ -307,9 +442,11 @@ def collect(routes: list[dict], prepare, execute, commit: str, product_version: 
     unique_routes(routes)
     records = []
     for route in sorted(routes, key=lambda row: row["routeId"]):
-        record = {"route_id": route["routeId"], "status": "ok", "inputs": [], "outputs": []}
+        record = {"route_id": route["routeId"], "status": "ok", "inputs": [], "outputs": [],
+                  "input_source": None}
         try:
             request, missing = prepare(route, record["inputs"])
+            record["input_source"] = request.get("input_source") if isinstance(request, dict) else None
             if missing:
                 record["status"] = "input-unavailable"
                 record["missing_inputs"] = sorted(missing)
