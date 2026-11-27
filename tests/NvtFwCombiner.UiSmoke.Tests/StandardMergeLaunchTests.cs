@@ -11,10 +11,10 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Desktop Standard Merge startup selects canonical files through the ordinary inspection owner.</summary>
 public sealed class StandardMergeLaunchTests
 {
-    private const string Case = "testdata/golden/canonical/NT51926/standard-merge/gen-flash/" +
+    private const string Case = "golden/canonical/NT51926/standard-merge/gen-flash/" +
         "topology-unscoped/nt51926-gen-flash/inputs/";
-    private static string Dp => RepositoryPaths.FromRepositoryRoot(Case + "nt51926-dp-input.bin");
-    private static string Tp => RepositoryPaths.FromRepositoryRoot(Case + "nt51926-tp-input.bin");
+    private static string Dp => RepositoryPaths.FromTestData(Case + "nt51926-dp-input.bin");
+    private static string Tp => RepositoryPaths.FromTestData(Case + "nt51926-tp-input.bin");
     private static string[] Arguments => ["--workflow", "standard-merge", "--ic", "NT51926",
         "--ic-num", "single", "--dp", Dp, "--tp", Tp];
 

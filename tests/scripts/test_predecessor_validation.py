@@ -20,8 +20,10 @@ from scripts import predecessor_validation as validation
 from scripts.render_release_notes import REQUIRED_FEATURE_FIELDS
 from tests.scripts.v0916_parity_test_support import MODULE, ROOT
 
+from scripts.testdata_paths import resolve_testdata_root
+
 CONTRACTS = ROOT / "docs" / "contracts"
-CANONICAL = ROOT / "testdata" / "golden" / "canonical"
+CANONICAL = resolve_testdata_root() / "golden" / "canonical"
 SUCCESSOR_ROUTE = "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps"
 VERSION = "1.1.13"
 APPROVAL = {"boardDecision": "1.1.13 board decision 96", "role": "firmware-owner", "date": "2026-09-27"}

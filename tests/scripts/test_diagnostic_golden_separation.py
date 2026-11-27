@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from scripts.diagnostic_golden_validation import (
     validate_diagnostic_golden_separation,
@@ -24,6 +26,9 @@ class DiagnosticGoldenSeparationTests(unittest.TestCase):
         self.legacy = self.root / "testdata/golden/ctrlram-replace"
         self.artifact_root = self.legacy / "fixtures/20260717"
         self.handoff = self.root / "testdata/golden/owner-handoff"
+        environment = patch.dict(os.environ, {"NFC_TESTDATA_ROOT": str(self.root / "testdata")})
+        environment.start()
+        self.addCleanup(environment.stop)
 
         self.payload = self.write_bytes(self.artifact_root / "payload.bin", b"diagnostic")
         self.note = self.write_bytes(self.artifact_root / "note.txt", b"note")

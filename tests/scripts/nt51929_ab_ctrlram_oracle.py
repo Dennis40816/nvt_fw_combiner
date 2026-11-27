@@ -18,9 +18,11 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from scripts.testdata_paths import resolve_testdata_root
+
 
 REPO = Path(__file__).resolve().parents[2]
-CANONICAL = REPO / "testdata" / "golden" / "canonical"
+CANONICAL = resolve_testdata_root() / "golden" / "canonical"
 AB_CASE = "nt51929-ab-t05-d06"
 CTRL_CASE = "nt51929-fw200-single-auto-prj-594-20260717"
 SOURCE = REPO / ".tmp/combiner-1.13-source/extracted/firmware-merge-tool/Combiner/Combiner.c"

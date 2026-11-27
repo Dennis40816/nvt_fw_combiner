@@ -6,6 +6,47 @@ namespace NvtFwCombiner.TestSupport;
 public static class RepositoryPaths
 {
     private const string RepositoryRootEnvironmentVariable = "NFC_TEST_REPOSITORY_ROOT";
+    private const string TestDataRootEnvironmentVariable = "NFC_TESTDATA_ROOT";
+
+    /// <summary>Finds configured test data or the current repository copy.</summary>
+    public static string FindTestDataRoot()
+    {
+        return FindTestDataRoot(Environment.GetEnvironmentVariable(TestDataRootEnvironmentVariable));
+    }
+
+    internal static string FindTestDataRoot(string? configuredRoot)
+    {
+        if (configuredRoot is null)
+        {
+            return FromRepositoryRoot("testdata");
+        }
+
+        if (string.IsNullOrWhiteSpace(configuredRoot) || !Path.IsPathFullyQualified(configuredRoot))
+        {
+            throw new InvalidOperationException(
+                $"{TestDataRootEnvironmentVariable} must name a fully qualified directory.");
+        }
+
+        string fullRoot = Path.GetFullPath(configuredRoot);
+        return Directory.Exists(fullRoot)
+            ? fullRoot
+            : throw new InvalidOperationException(
+                $"{TestDataRootEnvironmentVariable} directory does not exist: {fullRoot}");
+    }
+
+    /// <summary>Builds a path from the test-data root using manifest-style separators.</summary>
+    public static string FromTestData(params string[] segments)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+
+        string path = FindTestDataRoot();
+        foreach (string segment in segments)
+        {
+            path = Path.Combine(path, NormalizeRelativePath(segment));
+        }
+
+        return path;
+    }
 
     /// <summary>Finds the verifier-selected root or falls back from a direct-local test binary.</summary>
     public static string FindRepositoryRoot()

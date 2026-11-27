@@ -5,6 +5,14 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 
+try:
+    from scripts.testdata_paths import resolve_testdata_root
+except ModuleNotFoundError as error:
+    if error.name != "scripts":
+        raise
+    from testdata_paths import resolve_testdata_root
+
+
 EXPECTED_CASES: dict[str, dict[str, Any]] = {
     "nt51929-ab-t05-d06": {
         "ic": "NT51929",
@@ -315,7 +323,7 @@ def validate_ab_merge_golden_fixtures(
     errors: list[str],
 ) -> None:
     """Validate the closed AB fixture set and its per-family runtime support state."""
-    manifest_path = repository_root / "testdata/golden/canonical/manifest.json"
+    manifest_path = resolve_testdata_root(repository_root) / "golden/canonical/manifest.json"
     manifest = load_json(manifest_path, errors)
     if not isinstance(manifest, dict):
         return

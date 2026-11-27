@@ -19,8 +19,8 @@ public sealed class CtrlRamLaunchTests
 {
     private static string FixturePath(string relative)
     {
-        return RepositoryPaths.FromRepositoryRoot(
-            "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/" +
+        return RepositoryPaths.FromTestData(
+            "golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/" +
             "nt51950-fw200-single-auto-prj-676-20260717/" + relative);
     }
 

@@ -152,10 +152,10 @@ public sealed class Nt51925VersionSelectionTests
 
     private static CompiledComposition CompileBaseDefinitions()
     {
-        byte[] familyBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata/profiles/nt51925-version-selection-base/family.json"));
-        byte[] profileBytes = File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot(
-            "testdata/profiles/nt51925-version-selection-base/profile.json"));
+        byte[] familyBytes = File.ReadAllBytes(RepositoryPaths.FromTestData(
+            "profiles/nt51925-version-selection-base/family.json"));
+        byte[] profileBytes = File.ReadAllBytes(RepositoryPaths.FromTestData(
+            "profiles/nt51925-version-selection-base/profile.json"));
         const string familyHash = "8ea45c0eb951defaa4d4b4ee211a9d97cc814eeba7d39021cb622201d9d74440";
         const string profileHash = "6c1696a9d8f516692d9130565dab733f772bed10ce12764e1384d24e4dbb7230";
         Assert.Equal(familyHash, Convert.ToHexStringLower(SHA256.HashData(familyBytes)));

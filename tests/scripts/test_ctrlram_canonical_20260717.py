@@ -8,10 +8,12 @@ from pathlib import Path
 
 from scripts.canonical_golden_validation import validate_canonical_golden
 
+from scripts.testdata_paths import resolve_testdata_root
+
 
 ROOT = Path(__file__).resolve().parents[2]
-CANONICAL_ROOT = ROOT / "testdata/golden/canonical"
-LEGACY_MANIFEST = ROOT / "testdata/golden/ctrlram-replace/manifest.20260717.json"
+CANONICAL_ROOT = resolve_testdata_root() / "golden/canonical"
+LEGACY_MANIFEST = resolve_testdata_root() / "golden/ctrlram-replace/manifest.20260717.json"
 DIRECT_CASES = {
     "nt51923-fw141-single-auto-prj-662-20260717": (
         "NT51923",
