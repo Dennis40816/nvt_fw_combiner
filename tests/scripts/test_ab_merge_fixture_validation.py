@@ -9,9 +9,11 @@ from types import ModuleType
 from typing import Any
 import unittest
 
+from scripts.testdata_paths import resolve_testdata_root
+
 ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR_PATH = ROOT / "scripts" / "ab_merge_fixture_validation.py"
-CANONICAL_ROOT = ROOT / "testdata" / "golden" / "canonical"
+CANONICAL_ROOT = resolve_testdata_root() / "golden" / "canonical"
 MANIFEST_PATH = CANONICAL_ROOT / "manifest.json"
 
 

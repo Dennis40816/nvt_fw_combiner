@@ -55,7 +55,7 @@ public sealed record CanonicalGoldenDifferenceResult(
 public static class CanonicalGoldenTestData
 {
     /// <summary>Gets the canonical inventory root.</summary>
-    public static string Root => RepositoryPaths.FromRepositoryRoot("testdata", "golden", "canonical");
+    public static string Root => RepositoryPaths.FromTestData("golden", "canonical");
 
     /// <summary>
     /// Loads direct cases for one workflow into the established test-only case shape.

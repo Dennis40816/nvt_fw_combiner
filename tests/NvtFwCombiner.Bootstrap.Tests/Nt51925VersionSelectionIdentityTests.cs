@@ -13,7 +13,8 @@ public sealed class Nt51925VersionSelectionIdentityTests
     [Fact]
     public void OtherIcIdentitiesRemainExactlyAtTheTaskBase()
     {
-        using JsonDocument baseline = Read("testdata/profiles/nt51925-version-selection-base-pins.json");
+        using JsonDocument baseline = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromTestData(
+            "profiles/nt51925-version-selection-base-pins.json")));
         using JsonDocument bundles = Read("profiles/built-in/package-trust-index.json");
         using JsonDocument policy = Read("docs/contracts/canonical-capability-policy-v1.json");
         Dictionary<string, string> actualBundles = bundles.RootElement.GetProperty("bundles").EnumerateArray()
@@ -32,7 +33,8 @@ public sealed class Nt51925VersionSelectionIdentityTests
     [Fact]
     public void ExistingFamilySchemaBytesRemainUnchanged()
     {
-        using JsonDocument baseline = Read("testdata/profiles/nt51925-version-selection-base-pins.json");
+        using JsonDocument baseline = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromTestData(
+            "profiles/nt51925-version-selection-base-pins.json")));
         Assert.All(baseline.RootElement.GetProperty("familySchemas").EnumerateObject(), entry =>
             Assert.Equal(entry.Value.GetString(), Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(
                 RepositoryPaths.FromRepositoryRoot("docs", "contracts", entry.Name))))));

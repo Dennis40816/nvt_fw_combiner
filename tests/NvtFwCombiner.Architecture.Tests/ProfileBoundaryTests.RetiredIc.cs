@@ -1,3 +1,5 @@
+using NvtFwCombiner.TestSupport;
+
 namespace NvtFwCombiner.Architecture.Tests;
 
 public sealed partial class ProfileBoundaryTests
@@ -84,15 +86,13 @@ public sealed partial class ProfileBoundaryTests
 
         foreach (string evidenceRoot in retiredEvidenceRoots)
         {
-            string absoluteRoot = Path.Combine(
-                Root.FullName,
-                evidenceRoot.Replace('/', Path.DirectorySeparatorChar));
+            string absoluteRoot = RepositoryPaths.FromTestData(evidenceRoot["testdata/".Length..]);
             foreach (string path in Directory.EnumerateFiles(
                          absoluteRoot,
                          "*",
                          SearchOption.AllDirectories))
             {
-                string relativePath = Path.GetRelativePath(Root.FullName, path)
+                string relativePath = evidenceRoot + "/" + Path.GetRelativePath(absoluteRoot, path)
                     .Replace(Path.DirectorySeparatorChar, '/');
                 Assert.DoesNotContain(
                     removableEvidenceIds,

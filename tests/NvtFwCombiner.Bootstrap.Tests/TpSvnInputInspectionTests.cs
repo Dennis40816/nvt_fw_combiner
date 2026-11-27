@@ -16,7 +16,7 @@ namespace NvtFwCombiner.Bootstrap.Tests;
 /// </summary>
 public sealed class TpSvnInputInspectionTests
 {
-    private const string GoldenRoot = "testdata/golden/canonical";
+    private const string GoldenRoot = "golden/canonical";
 
     /// <summary>T2: every Standard Merge Golden TP input publishes the stamp at TP start + 0x24.</summary>
     [Theory]
@@ -299,7 +299,7 @@ public sealed class TpSvnInputInspectionTests
 
     private static byte[] ReadGolden(string relativePath)
     {
-        return File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot($"{GoldenRoot}/{relativePath}"));
+        return File.ReadAllBytes(RepositoryPaths.FromTestData($"{GoldenRoot}/{relativePath}"));
     }
 
     /// <summary>

@@ -16,6 +16,14 @@ from types import MappingProxyType
 from typing import Callable, Mapping, Sequence
 
 
+try:
+    from scripts.testdata_paths import resolve_testdata_root
+except ModuleNotFoundError as error:
+    if error.name != "scripts":
+        raise
+    from testdata_paths import resolve_testdata_root
+
+
 class SyncError(RuntimeError):
     """A local synchronization plan cannot safely be applied."""
 
@@ -180,8 +188,10 @@ def _validate_relative(relative: str) -> None:
 def _checked_path(root: Path, relative: str) -> Path | None:
     """Inspect parents first, including parents of an absent creatable output."""
     _validate_relative(relative)
-    path = root
-    for part in PurePosixPath(relative).parts:
+    identity = PurePosixPath(relative)
+    path = resolve_testdata_root(root) if identity.parts[0] == "testdata" else root
+    parts = identity.parts[1:] if identity.parts[0] == "testdata" else identity.parts
+    for part in parts:
         path = path / part
         try:
             status = path.lstat()

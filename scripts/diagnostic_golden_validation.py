@@ -7,6 +7,14 @@ import hashlib
 from pathlib import Path, PurePosixPath
 
 try:
+    from scripts.testdata_paths import repository_path, resolve_testdata_root
+except ModuleNotFoundError as error:
+    if error.name != "scripts":
+        raise
+    from testdata_paths import repository_path, resolve_testdata_root
+
+
+try:
     from canonical_golden_validation import (
         DIAGNOSTICS_ROOT,
         DIAGNOSTIC_CTRLRAM_ARTIFACT_ROOT,
@@ -36,7 +44,7 @@ def validate_diagnostic_golden_separation(
     tracked_files: Iterable[Path] = (),
 ) -> None:
     """Validate the closed repository-only diagnostic quarantine inventory."""
-    diagnostics_root = repository_root / Path(DIAGNOSTICS_ROOT)
+    diagnostics_root = repository_path(DIAGNOSTICS_ROOT, repository_root)
     manifest = _load_object(
         diagnostics_root / "manifest.json",
         diagnostics_root,
@@ -136,10 +144,10 @@ def validate_diagnostic_golden_separation(
             "diagnostic CtrlRAM inventoryManifest must remain frozen at "
             f"{DIAGNOSTIC_CTRLRAM_INVENTORY}"
         )
-    artifact_root = repository_root / Path(artifact_root_path)
+    artifact_root = repository_path(artifact_root_path, repository_root)
     inventory = _load_object(
-        repository_root / Path(inventory_path),
-        repository_root,
+        repository_path(inventory_path, repository_root),
+        resolve_testdata_root(repository_root),
         "diagnostic CtrlRAM inventory",
         errors,
     )
@@ -189,25 +197,25 @@ def validate_diagnostic_golden_separation(
         relative_path = _relative_path(item.get("path"), f"{label}.path", errors)
         if relative_path is None:
             continue
-        repository_path = inventory_root / relative_path
-        if repository_path in declared_files:
+        repository_identity = inventory_root / relative_path
+        if repository_identity in declared_files:
             errors.append(
-                f"diagnostic CtrlRAM path is declared more than once: {repository_path}"
+                f"diagnostic CtrlRAM path is declared more than once: {repository_identity}"
             )
-        declared_files.add(repository_path)
+        declared_files.add(repository_identity)
         if (
-            len(repository_path.parts) <= len(artifact_root_path.parts)
-            or repository_path.parts[: len(artifact_root_path.parts)]
+            len(repository_identity.parts) <= len(artifact_root_path.parts)
+            or repository_identity.parts[: len(artifact_root_path.parts)]
             != artifact_root_path.parts
         ):
             errors.append(
-                f"{label} is outside the frozen artifact root: {repository_path}"
+                f"{label} is outside the frozen artifact root: {repository_identity}"
             )
             continue
         payload = _read_confined_file(
-            repository_root / Path(repository_path),
+            repository_path(repository_identity, repository_root),
             artifact_root,
-            f"diagnostic artifact {repository_path}",
+            f"diagnostic artifact {repository_identity}",
             errors,
         )
         if payload is None:
@@ -215,13 +223,13 @@ def validate_diagnostic_golden_separation(
         expected_size = item.get("size")
         expected_sha = item.get("sha256")
         if type(expected_size) is not int or expected_size != len(payload):
-            errors.append(f"diagnostic artifact size mismatch for {repository_path}")
+            errors.append(f"diagnostic artifact size mismatch for {repository_identity}")
         if (
             not isinstance(expected_sha, str)
             or SHA256_PATTERN.fullmatch(expected_sha) is None
             or expected_sha != hashlib.sha256(payload).hexdigest()
         ):
-            errors.append(f"diagnostic artifact SHA-256 mismatch for {repository_path}")
+            errors.append(f"diagnostic artifact SHA-256 mismatch for {repository_identity}")
     artifact_entries = list(artifact_root.rglob("*"))
     for path in artifact_entries:
         if path.is_symlink():
@@ -229,7 +237,7 @@ def validate_diagnostic_golden_separation(
                 f"diagnostic CtrlRAM artifact root cannot contain symlinks: {path}"
             )
     actual_files = {
-        PurePosixPath(path.relative_to(repository_root).as_posix())
+        PurePosixPath("testdata") / path.relative_to(resolve_testdata_root(repository_root)).as_posix()
         for path in artifact_entries
         if path.is_file() and not path.is_symlink()
     }
@@ -252,16 +260,16 @@ def validate_diagnostic_golden_separation(
             "diagnostic ownerHandoff root must remain frozen at "
             f"{DIAGNOSTIC_OWNER_HANDOFF_ROOT}"
         )
-    owner_root = repository_root / Path(owner_root_path)
+    owner_root = repository_path(owner_root_path, repository_root)
     try:
         resolved_owner_root = owner_root.resolve(strict=True)
-        resolved_repository_root = repository_root.resolve(strict=True)
+        resolved_data_root = resolve_testdata_root(repository_root).resolve(strict=True)
     except OSError as error:
         errors.append(f"cannot resolve diagnostic ownerHandoff root: {error}")
         return
     if (
         owner_root.is_symlink()
-        or resolved_repository_root not in resolved_owner_root.parents
+        or resolved_data_root not in resolved_owner_root.parents
     ):
         errors.append(
             "diagnostic ownerHandoff root must be a physical repository directory"

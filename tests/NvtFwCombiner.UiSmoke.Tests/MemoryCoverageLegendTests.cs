@@ -35,7 +35,7 @@ public sealed class MemoryCoverageLegendTests
         {
             await AwaitHistoryReadyAsync(window);
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-            string folder = RepositoryPaths.FromRepositoryRoot("testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs");
+            string folder = RepositoryPaths.FromTestData("golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs");
             string dp = Path.Combine(folder, "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin");
             string tp = Path.Combine(folder, "nt51950_fw_T80.bin");
             UiLaunchOptions options = UiLaunchOptions.Parse(["--workflow", "ab-merge", "--ic", "NT51950", "--ic-num", "single", "--dp", dp, "--tp-a", tp, "--tp-b", tp]);

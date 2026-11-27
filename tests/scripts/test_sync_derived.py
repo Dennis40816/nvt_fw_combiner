@@ -13,6 +13,8 @@ from unittest.mock import patch
 
 from scripts import sync_derived as sync
 
+from scripts.testdata_paths import repository_path
+
 
 class ClaudeProjectionTests(unittest.TestCase):
     def setUp(self):
@@ -512,15 +514,15 @@ class ReviewedSourcePinsTests(unittest.TestCase):
         )
         root = Path(__file__).resolve().parents[2]
         self.before = {
-            relative: (root / relative).read_bytes()
+            relative: repository_path(relative, root).read_bytes()
             for relative in self.provider.inputs
         }
         self.allowlist = "testdata/golden/release-canonical-v1.json"
-        self.before[self.allowlist] = (root / self.allowlist).read_bytes()
+        self.before[self.allowlist] = repository_path(self.allowlist, root).read_bytes()
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
-        environment = patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": ""})
+        environment = patch.dict(os.environ, {"CI": "", "GITHUB_ACTIONS": "", "NFC_TESTDATA_ROOT": str(self.root / "testdata")})
         environment.start()
         self.addCleanup(environment.stop)
 

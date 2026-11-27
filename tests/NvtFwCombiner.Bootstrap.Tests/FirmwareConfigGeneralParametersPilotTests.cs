@@ -138,8 +138,8 @@ public sealed class FirmwareConfigGeneralParametersPilotTests
     [Fact]
     public void Nt51926CanonicalTpSnapshotIncludesCommonEventBuffer()
     {
-        string folder = Path.Combine(RepositoryPaths.FindRepositoryRoot(),
-            "testdata/golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs");
+        string folder = RepositoryPaths.FromTestData(
+            "golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs");
         byte[] tp = File.ReadAllBytes(Path.Combine(folder, "nt51926-tp-input.bin"));
         byte[] dp = File.ReadAllBytes(Path.Combine(folder, "nt51926-dp-input.bin"));
         IReadOnlyList<FirmwareInspectionSnapshotResult> results = BuiltInFirmwareInspection.InspectFirmwareBatch(

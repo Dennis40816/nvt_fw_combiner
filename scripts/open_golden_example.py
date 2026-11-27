@@ -11,8 +11,16 @@ import sys
 from pathlib import Path
 
 
+try:
+    from scripts.testdata_paths import resolve_testdata_root
+except ModuleNotFoundError as error:
+    if error.name != "scripts":
+        raise
+    from testdata_paths import resolve_testdata_root
+
+
 REPO = Path(__file__).resolve().parents[1]
-GOLDEN = REPO / "testdata" / "golden" / "canonical"
+GOLDEN = resolve_testdata_root() / "golden" / "canonical"
 DEFAULT_DESKTOP = (
     REPO / "src" / "NvtFwCombiner.Desktop" / "bin" / "Debug" / "net10.0"
     / "NvtFwCombiner.Desktop.exe"

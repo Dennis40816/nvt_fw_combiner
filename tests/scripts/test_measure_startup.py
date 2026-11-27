@@ -10,10 +10,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from scripts.testdata_paths import resolve_testdata_root
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MEASUREMENT_SCRIPT = ROOT / "scripts" / "measure-startup.ps1"
-FIXTURES = ROOT / "testdata" / "startup-measurement"
+FIXTURES = resolve_testdata_root() / "startup-measurement"
 POWERSHELL = shutil.which("pwsh") or shutil.which("powershell")
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 

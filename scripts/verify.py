@@ -33,6 +33,14 @@ from pathlib import Path, PurePosixPath
 from time import monotonic
 from unittest.loader import VALID_MODULE_NAME
 
+try:
+    from scripts.testdata_paths import resolve_testdata_root
+except ModuleNotFoundError as error:
+    if error.name != "scripts":
+        raise
+    from testdata_paths import resolve_testdata_root
+
+
 if __package__:
     from .canonical_golden_validation import validate_canonical_golden
     from .coverage_policy import (
@@ -4634,7 +4642,7 @@ def release_golden_plan() -> tuple[
     projects = tuple(project for project in flatten_ci_dotnet_projects() if project.name in required)
     if len(projects) != len(required) or {project.name for project in projects} != required:
         raise RuntimeError("release Golden project inventory is incomplete or duplicated")
-    canonical = ROOT / "testdata/golden/canonical"
+    canonical = resolve_testdata_root(ROOT) / "golden/canonical"
     manifest = json.loads((canonical / "manifest.json").read_text(encoding="utf-8"))
     cases: dict[str, tuple[tuple[str, str], ...]] = {}
     for entry in manifest["cases"]:

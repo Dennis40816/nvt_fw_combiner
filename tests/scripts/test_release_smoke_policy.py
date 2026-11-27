@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+from scripts.testdata_paths import repository_path, resolve_testdata_root
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PWSH = shutil.which("pwsh")
@@ -309,7 +311,7 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
             shutil.copy2(ROOT / COMBINER_DIRECTORY / name, tool_directory)
         golden = package / GOLDEN_PACKAGE_PATH
         golden.parent.mkdir(parents=True)
-        shutil.copy2(ROOT / GOLDEN_PATH, golden)
+        shutil.copy2(repository_path(GOLDEN_PATH.as_posix(), ROOT), golden)
         package_arg = str(package).replace("'", "''")
         scratch_arg = str(scratch / "scratch").replace("'", "''")
         result = run_release_functions(
@@ -319,7 +321,7 @@ def test_packaged_combiner_executes_certified_crc_command_without_mutation() -> 
         )
         assert result.returncode == 0, result.stdout + result.stderr
         assert "Bundled Combiner CRC smoke passed" in result.stdout
-        assert golden.read_bytes() == (ROOT / GOLDEN_PATH).read_bytes()
+        assert golden.read_bytes() == (repository_path(GOLDEN_PATH.as_posix(), ROOT)).read_bytes()
 
 
 CURRENT_ALLOWLIST_SHA256 = "8cf5e2c610f7012ea53db83da7f8a41aa3191b81774ae3689165ad1ceb28e718"
@@ -372,7 +374,7 @@ def test_smoke_pins_match_the_packager_and_the_published_legacy_allowlist() -> N
     assert f"$ApprovedCanonicalGoldenAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'" in smoke
     assert f"$LegacyCanonicalGoldenAllowlistSha256 = '{LEGACY_ALLOWLIST_SHA256}'" in smoke
     assert f"$ApprovedCanonicalGoldenReleaseAllowlistSha256 = '{CURRENT_ALLOWLIST_SHA256}'" in package
-    current = (ROOT / "testdata/golden/release-canonical-v1.json").read_bytes()
+    current = (resolve_testdata_root() / "golden/release-canonical-v1.json").read_bytes()
     assert hashlib.sha256(current).hexdigest() == CURRENT_ALLOWLIST_SHA256
 
 
