@@ -224,6 +224,48 @@ public sealed partial class DesktopCaptureProcessTests(ITestOutputHelper testOut
         Func<Process, CancellationToken, Task>? afterStart = null,
         string? localApplicationData = null)
     {
+        try
+        {
+            return await RunProcessAsync(host, workspace, arguments, afterStart, localApplicationData);
+        }
+        finally
+        {
+            // The workspace deletes the copied host when the test ends. On Windows another handle can
+            // still hold the executable for a short time after the process exit (CI run 46039997105).
+            await WaitForExecutableReleaseAsync(Path.Combine(host, "NvtFwCombiner.Desktop.exe"));
+        }
+    }
+
+    /// <summary>Waits until no other handle shares the executable, so the workspace can delete it.</summary>
+    private async Task WaitForExecutableReleaseAsync(string executable)
+    {
+        long deadline = Environment.TickCount64 + 10_000;
+        while (true)
+        {
+            try
+            {
+                using FileStream exclusive = new(executable, FileMode.Open, FileAccess.Read, FileShare.None);
+                return;
+            }
+            catch (Exception exception) when ((exception is IOException or UnauthorizedAccessException) &&
+                                              Environment.TickCount64 < deadline)
+            {
+                await Task.Delay(25, CancellationToken.None);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Workspace disposal reports the failure. This line names the cause in the test output.
+                testOutput.WriteLine("The copied Desktop executable is still in use after the process exit: {0}", exception.Message);
+                return;
+            }
+        }
+    }
+
+    private async Task<ProcessResult> RunProcessAsync(
+        string host, TempWorkspace workspace, string[] arguments,
+        Func<Process, CancellationToken, Task>? afterStart,
+        string? localApplicationData)
+    {
         var start = new ProcessStartInfo(Path.Combine(host, "NvtFwCombiner.Desktop.exe"))
         {
             WorkingDirectory = host,
