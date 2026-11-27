@@ -6041,7 +6041,10 @@ class VerifyOrchestrationTests(unittest.TestCase):
         directory_pattern = re.compile(r'"evidence"\s*,\s*"([^"]+)"')
         # ProfileCatalogProbeTests sets the child's trace path inside its own
         # TempWorkspace to detect forbidden writes; it is not a caller override.
-        process_local = {"NFC_TEST_AREA_ROOT", "NFC_TEST_REPOSITORY_ROOT", "NFC_STARTUP_TRACE_PATH"}
+        # NFC_TESTDATA_ROOT names a read-only fixture root, like NFC_TEST_REPOSITORY_ROOT.
+        process_local = {
+            "NFC_TEST_AREA_ROOT", "NFC_TEST_REPOSITORY_ROOT", "NFC_TESTDATA_ROOT", "NFC_STARTUP_TRACE_PATH",
+        }
         allowed = process_local | set(MODULE.LOCAL_PARTITION_OVERRIDE_ENVIRONMENT_VARIABLES)
         writers: dict[str, set[str]] = {}
         variables: dict[str, set[str]] = {}
