@@ -1,0 +1,859 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Baseline input recipes only; not Golden, parity or support evidence. Patterns use (seed + index * step) modulo 256; literal overlays are applied in order. General mappings are ordered CLI declarations; the CLI owns execution. Synthetic BINs exist only in the external test area at run time.",
+  "recipes": [
+    {
+      "routeId": "route-7-nt51917-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "9a385bbbfc3a322ed0311ed9b856ff096672d5076608e4b54de6b1310b7903d5",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51917-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+      "capabilityFingerprint": "3cc5d7fce990c68169e333222b25691c08dec251939eac04b2c5a5803f37469c",
+      "kind": "repo-case",
+      "caseId": "nt51917-fw132-cascade2-nt51927-alias",
+      "bindings": [
+        {
+          "artifactId": "reference-base",
+          "option": "--base"
+        },
+        {
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51917-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+      "capabilityFingerprint": "cf559ad9a510bb5694268f6c244242fbd0c6fc947b943dde0b528719176babdd",
+      "kind": "repo-case",
+      "caseId": "nt51917-fw140-cascade3-nt51927-alias",
+      "bindings": [
+        {
+          "artifactId": "reference-base",
+          "option": "--base"
+        },
+        {
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-l"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-l"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51919-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "ef134f38b7997ae4d37dfeba12a86805d6b5585bc943ec0df09ec78c2ce47598",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51919-8-ab-merge-13-selector-free-21-nt51919-ab-merge-512k",
+      "capabilityFingerprint": "b26580794bd22159c0b708364ccd6bf61c49a758a8e9ba17d2a8bf281c7eea16",
+      "kind": "repo-case",
+      "caseId": "nt51919-ab-t05-d06-alias",
+      "bindings": [
+        {
+          "artifactId": "dp-ab-input",
+          "option": "--dp-ab"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "option": "--tp-a"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "option": "--tp-b"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "fb60006e714c15d63c3f567cc1ae4a57e195b06f5de9361713d5b39641b4c35e",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "abc94df24d01c20910de2686f18c4556585887b9b600963fe6fd64781b6e5a5f",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
+      "capabilityFingerprint": "70ff4f85e2ca355ba36da103fee3f3e8d632a6a9149c17599e1ca77ba1215136",
+      "kind": "synthetic",
+      "icNumber": "single",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "size": 262144,
+          "pattern": {
+            "seed": 49,
+            "step": 37
+          }
+        },
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 165,
+            "step": 181
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "reference.bin",
+          "option": "--base"
+        },
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "targetStart": 253984,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51927-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "a6a92e3662d5d67b17e88589de1edc5bdb99b87f0765ae8c3d4d15278497fa2f",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51927-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+      "capabilityFingerprint": "2108dafa5197b73b19231c1d5adf06449f51f08af1f2827e34f492404682005f",
+      "kind": "repo-case",
+      "caseId": "nt51927-2chip-self-20260705",
+      "bindings": [
+        {
+          "artifactId": "reference-base",
+          "option": "--base"
+        },
+        {
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51927-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+      "capabilityFingerprint": "214bfb282cbaf1a7e8df9bca92558d6ecf9519e217b271b26920f84fc8e4f502",
+      "kind": "repo-case",
+      "caseId": "nt51927-3chip-self-20260705",
+      "bindings": [
+        {
+          "artifactId": "reference-base",
+          "option": "--base"
+        },
+        {
+          "artifactId": "replace-ctrlram-nf",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-master",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-master"
+        },
+        {
+          "artifactId": "replace-ctrlram-vn",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-r"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-r",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-r"
+        },
+        {
+          "artifactId": "replace-ctrlram-normal-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal-slave-l"
+        },
+        {
+          "artifactId": "replace-ctrlram-mp-slave-l",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-mp-slave-l"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51928-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "b04ac5dd5677ee6f51dccd6b017d02fcfb7d8e57145aea16e981e4d6910d1444",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",
+      "capabilityFingerprint": "b0f1467758cf51fa55ad05aa2e6efccc5940bbb12ef7e414619dc2024dc697f7",
+      "kind": "repo-case",
+      "caseId": "nt51928-gen-flash",
+      "bindings": [
+        {
+          "artifactId": "dp-input",
+          "option": "--dp"
+        },
+        {
+          "artifactId": "tp-input",
+          "option": "--tp"
+        },
+        {
+          "artifactId": "ldc-input",
+          "option": "--ldc"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51929-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "167e9d97b7857f659df16394e4419dad497ff6a356b973018f7805f856dac2c2",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
+      "capabilityFingerprint": "6c20b6e3f821d2cf3513048568a57bf9c1f411d3455ed85c585067fc261d5d94",
+      "kind": "repo-case",
+      "caseId": "nt51929-ab-t05-d06",
+      "bindings": [
+        {
+          "artifactId": "dp-ab-input",
+          "option": "--dp-ab"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "option": "--tp-a"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "option": "--tp-b"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51932-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "7ede6e35cf9f2fab5095f15f06c19df87fa9fbf0bf4af1d1995cb1d8abc35718",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51932-8-ab-merge-13-selector-free-21-nt51932-ab-merge-512k",
+      "capabilityFingerprint": "ce3f7597cbb3128e0044d795a36a5affb9c46e72c9780d5256b38cf9b9095d01",
+      "kind": "repo-case",
+      "caseId": "nt51932-ab-t05-d06-alias",
+      "bindings": [
+        {
+          "artifactId": "dp-ab-input",
+          "option": "--dp-ab"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "option": "--tp-a"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "option": "--tp-b"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51950-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "057ccd978c1efbd1c65d2f57e6edf27ceecfe594ff6247ee53c60b726634356b",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
+      "capabilityFingerprint": "36c64b82a34664d15a42c2ec2dce110688747967be0b3d8b30f1f07e536cb637",
+      "kind": "synthetic",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "size": 524288,
+          "pattern": {
+            "seed": 49,
+            "step": 37
+          }
+        },
+        {
+          "name": "tp.bin",
+          "size": 225280,
+          "pattern": {
+            "seed": 199,
+            "step": 37
+          },
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "817E"
+            },
+            {
+              "offset": 221207,
+              "hex": "01"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "dp.bin",
+          "option": "--dp"
+        },
+        {
+          "input": "tp.bin",
+          "option": "--tp"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
+      "capabilityFingerprint": "937cc143bd750f26c79f32e76892aa6a9e49eb781b6e08cff01ddcb6a7df6d69",
+      "kind": "synthetic",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "size": 1048576,
+          "pattern": {
+            "seed": 49,
+            "step": 37
+          }
+        },
+        {
+          "name": "tp.bin",
+          "size": 225280,
+          "pattern": {
+            "seed": 199,
+            "step": 37
+          },
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "817E"
+            },
+            {
+              "offset": 221207,
+              "hex": "01"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "dp.bin",
+          "option": "--dp"
+        },
+        {
+          "input": "tp.bin",
+          "option": "--tp"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+      "capabilityFingerprint": "c29c0febb462a7f6dbdbc0341657fe4f6ad438454d09b7b682a58ea685de5da1",
+      "kind": "repo-case",
+      "caseId": "nt51950-fw200-single-auto-prj-676-20260717",
+      "bindings": [
+        {
+          "artifactId": "tp-input",
+          "option": "--base"
+        },
+        {
+          "artifactId": "postbuild-nf-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "artifactId": "postbuild-normal-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "artifactId": "postbuild-vn-ctrlram",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
+      "capabilityFingerprint": "850fa2256876f45312cd22a08d31a9de99a452e24e54d3ab8f1e285a9565c5a8",
+      "kind": "repo-case",
+      "caseId": "nt51950-ab-osd-d03t02-20260924",
+      "bindings": [
+        {
+          "artifactId": "dp-ab-input",
+          "option": "--dp-ab"
+        },
+        {
+          "artifactId": "tp-a-input",
+          "option": "--tp-a"
+        },
+        {
+          "artifactId": "tp-b-input",
+          "option": "--tp-b"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51951-13-general-merge-14-not-applicable-7-generic",
+      "capabilityFingerprint": "42a355adb1693fb3c88a1f3f2912472aac3d8102f6fcc8dbc574bdf2525223b9",
+      "kind": "synthetic",
+      "size": 4,
+      "fill": 0,
+      "inputs": [
+        {
+          "name": "source.bin",
+          "size": 2,
+          "pattern": {
+            "seed": 16,
+            "step": 1
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "input": "source.bin",
+          "option": "--mapping",
+          "sourceStart": 0,
+          "targetStart": 1,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
+      "capabilityFingerprint": "fd2ec767e8c339c61791733278a69a19d81bdeb0fee0e2a57eb234ab52d91b9a",
+      "kind": "synthetic",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "size": 262144,
+          "pattern": {
+            "seed": 49,
+            "step": 37
+          }
+        },
+        {
+          "name": "tp.bin",
+          "size": 225280,
+          "pattern": {
+            "seed": 199,
+            "step": 37
+          },
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "817E"
+            },
+            {
+              "offset": 221207,
+              "hex": "01"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "dp.bin",
+          "option": "--dp"
+        },
+        {
+          "input": "tp.bin",
+          "option": "--tp"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
+      "capabilityFingerprint": "14598b6d02869596eeefc466e17e521791ff7466c3c6d453df6a7518846a34cb",
+      "kind": "synthetic",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "size": 1048576,
+          "pattern": {
+            "seed": 49,
+            "step": 37
+          }
+        },
+        {
+          "name": "tp.bin",
+          "size": 225280,
+          "pattern": {
+            "seed": 199,
+            "step": 37
+          },
+          "overlays": [
+            {
+              "offset": 221184,
+              "hex": "817E"
+            },
+            {
+              "offset": 221207,
+              "hex": "01"
+            },
+            {
+              "offset": 225276,
+              "hex": "004E5654"
+            }
+          ]
+        }
+      ],
+      "bindings": [
+        {
+          "input": "dp.bin",
+          "option": "--dp"
+        },
+        {
+          "input": "tp.bin",
+          "option": "--tp"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+      "capabilityFingerprint": "fdf46008a2f36edaa2f174c72cc81e052c27e8e855f4fe8f2a9e4ef983c4d57a",
+      "kind": "repo-case",
+      "caseId": "nt51951-fw200-single-auto-prj-695-20260718",
+      "bindings": [
+        {
+          "artifactId": "tp-input",
+          "option": "--base"
+        },
+        {
+          "artifactId": "nf-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-nf"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        }
+      ]
+    },
+    {
+      "routeId": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+      "capabilityFingerprint": "18c1530938431e343412b85616c96a812200a1ab84aaf57962bfef4927ad3010",
+      "kind": "repo-case",
+      "caseId": "nt51951-fw200-cascade2-auto-prj-599-20260731",
+      "bindings": [
+        {
+          "artifactId": "tp-firmware-input",
+          "option": "--base"
+        },
+        {
+          "artifactId": "normal-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-normal"
+        },
+        {
+          "artifactId": "vn-ctrlram-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-vn"
+        },
+        {
+          "artifactId": "diffdlm-input",
+          "option": "--ctrlram",
+          "slotId": "replace-ctrlram-diff"
+        }
+      ]
+    }
+  ]
+}
