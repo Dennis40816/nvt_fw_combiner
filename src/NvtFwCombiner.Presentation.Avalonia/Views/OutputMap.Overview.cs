@@ -161,7 +161,10 @@ public sealed partial class OutputMap
         parts.Crc.Children.Clear();
         if (Model is null) { return; }
         int row = 0;
-        foreach (OutputMapCrc crc in Model.CrcAnnotations.Where(c => c.CoveredRange is { } r && Intersects(r, Overview)))
+        // The filter has its own line: coverage evidence cannot pair two branching methods on one source line.
+        IEnumerable<OutputMapCrc> covered = Model.CrcAnnotations.Where(
+            c => c.CoveredRange is { } r && Intersects(r, Overview));
+        foreach (OutputMapCrc crc in covered)
         {
             ByteRange range = crc.CoveredRange!.Value;
             var bracket = new Border { BorderThickness = new Thickness(1, 0, 1, 1), IsHitTestVisible = false };
