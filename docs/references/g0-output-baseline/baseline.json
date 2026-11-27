@@ -1,0 +1,3359 @@
+{
+  "header": {
+    "schema_version": 1,
+    "commit": "46e2b071f497939e34d50f5f69ae3c0e14337752",
+    "tool_version": "4",
+    "product_version": "1.3.0-g.0",
+    "route_count": 94,
+    "counts": {
+      "ok": 82,
+      "input-unavailable": 12,
+      "failed": 0
+    },
+    "input_kind_counts": {
+      "native": 45,
+      "derived": 22,
+      "synthetic": 22,
+      "private-native": 5
+    }
+  },
+  "routes": [
+    {
+      "route_id": "route-7-nt51917-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51917-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51917-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/nt51927-dp-input.bin",
+          "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/nt51927-tp-input.bin",
+          "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51917-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/NT51927TT_TM_MY28_11.3_Initial Code_D04_20260610.bin",
+          "sha256": "bd8bd124c91cae29f0aeda8c9a49d48362b4497516d1c549eb1460fc661627bc"
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
+          "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
+          "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
+          "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
+          "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/51927_TPFW_T01_20251205.bin",
+          "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51917-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51917-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
+          "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
+          "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
+          "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
+          "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/51927_TPFW_T01_20251205.bin",
+          "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c",
+          "size": 217088
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51917-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+          "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae"
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58",
+          "size": 262144
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51917-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51917-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k/reference.bin",
+          "sha256": "946ba4b12bb11a584cb46b7d10866efed1cda005c98c2434347a366a4e3291f8",
+          "size": 217088
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        },
+        {
+          "name": "source:nt51917-fw132-cascade2-nt51927-alias/reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+          "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "ad89e95a65d1879a27068c7f63fbb9435b5efe7c3baac16815cf89607d916638",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51917-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin",
+          "sha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c"
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-l.bin",
+          "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-l.bin",
+          "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16",
+          "size": 262144
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51917-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51917-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k/reference.bin",
+          "sha256": "9aa4eee29cc1e38544e3c6b125b0ecc06567e5930e2cbd75a045ed6a62ebcd83",
+          "size": 217088
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-l.bin",
+          "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-l.bin",
+          "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+        },
+        {
+          "name": "source:nt51917-fw140-cascade3-nt51927-alias/reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin",
+          "sha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "e68dbc27bfd4bafec4fd398f92416048bc1ee6933e81fb285a98e0625a967352",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51919-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51919-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51919-14-standard-merge-13-selector-free-27-nt51919-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-dp-input.bin",
+          "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-tp-input.bin",
+          "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51919-15-ctrlram-replace-4-1-ic-21-nt51919-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51919-15-ctrlram-replace-4-1-ic-21-nt51919-ab-merge-512k/reference.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-nf-ctrlram.bin",
+          "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-normal-ctrlram.bin",
+          "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-vn-ctrlram.bin",
+          "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+        },
+        {
+          "name": "source:nt51929-ab-t05-d06/expected-output",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/expected/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "08c969d0b1e32540fb268ec0556abb6d6adadf41dfafc722def69819e98a1f03",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51919-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-nf-ctrlram.bin",
+          "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-normal-ctrlram.bin",
+          "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-vn-ctrlram.bin",
+          "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51919-14-standard-merge-13-selector-free-27-nt51919-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-21-nt51919-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51919-15-ctrlram-replace-6-2-8-ic-21-nt51919-ab-merge-512k/reference.bin",
+          "sha256": "af7392e46fc55ad8efaaecd0c915703fa7ecc80ca517b243dbb23e8419ed7e3f",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-diffdlm-input.bin",
+          "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
+          "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "source:nt51932-fw200-cascade3-auto-prj-525-20260718/expected-output",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/expected/NT51932_FlashCode_D02T88_20260718.bin",
+          "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "93d17f72f78f5b2aaabd98d54c361e655a6cd2973ab0639eb5062e60b3cdc53c",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51919-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic",
+      "missing_inputs": [
+        "No usable same-IC NT51919 repository base: canonical NT51919 cases are fact-scoped aliases to NT51929 payloads, not NT51919 base artifacts. Round 2 requires the source IC to equal the route IC; a family alias cannot substitute."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51919-8-ab-merge-13-selector-free-21-nt51919-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-ab-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "name": "tp-a-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        {
+          "name": "tp-b-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51923-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51923-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/nt51923-dp-input.bin",
+          "sha256": "eb15b2ad0172e325d767a27e32f56cc19df7b9d95e96e4b19cc2cd547656612d"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51923/standard-merge/gen-flash/topology-unscoped/nt51923-gen-flash/inputs/nt51923-tp-input.bin",
+          "sha256": "4efbb496096d5851b8ae5fee396a77f6aa85eb0240bc19e0fc3171c25c6b6514"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "b611bd837991be1ccb8e1dfffa7a9a1e825e71221c27377cf1aca8b37cf5666f",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51923-15-ctrlram-replace-4-1-ic-39-nt51923-ctrlram-fw141-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923TT_Initial Code_TM_12.9VVKS05_1920x1080_V80_DE_MODE_20260529.bin",
+          "sha256": "97a79100cc0e574ce69d7c7e8c9f15edeaa00d16c90a7583bc462b496fac984b"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
+          "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
+          "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
+          "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
+          "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923_TPFW_T81_20260430.bin",
+          "sha256": "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "4759a8e87ad7ff8a8e41ae91af6f0d05a847659ffbf06f3864d1ca093453da38",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "a65ae33c9c11091f69d8935422ffc57db32262eb922590364d4bdd9c3af9916f",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51923-15-ctrlram-replace-4-1-ic-41-nt51923-ctrlram-fw141-single-tp-work-240k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
+          "sha256": "1e5c60bfbe663938052a6c5c3b3db1fb8f67a80c7d5e32cd130c6306df737db5"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
+          "sha256": "5ca4457fda2e9ff7ff7c7f6beb8b2309eff50c6d6c08bde78de60c85e45f31fc"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
+          "sha256": "1d50b896ec989b49bda3dd0ac8a65e3afefee1f13745e61179683202580bf22a"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
+          "sha256": "53e794e27a3bc359c5a6a6da05bda004c7733501a577f3a9cd08044022ac2aef"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/single/nt51923-fw141-single-auto-prj-662-20260717/inputs/NT51923_TPFW_T81_20260430.bin",
+          "sha256": "d91dd6470fe6084b0d0bbf855e4c443f2911995b028b370ec8dccbef2efc3e78"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "6d14818a4b11ed9cebfcad810a3261f75e896e3378986736089541fe0fcc3e28",
+          "size": 245760
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-41-nt51923-ctrlram-fw141-cascade3-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/nt51923-dp-input.bin",
+          "sha256": "0a79f8f7b13b72c02861f34c7f6b73978f06c719a004bfef500d0c30228c345f"
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-diffdlm.bin",
+          "sha256": "09ebdf84a16f7f0ece24ccaf9c4c74e73002ffd1a57a7801bfec5c4c78c7f700"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
+          "sha256": "363c9439b555ab8f2ff9f92a8d1002ea3eaf71a8e2f7da3bd624070f8164bc2e"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
+          "sha256": "56b1a73b0e9b68ab074819d68cf4571678b82a8d8bff69c1652390d3e35be304"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
+          "sha256": "08c9dc02ac4d9c3feae9711311d84e9ca1a72928816a56a9acc4f78a98e13613"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
+          "sha256": "18a26e8e2a0bd06f0d37945f2c3b38d5927bf86513da600463b91b625faed88c"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/nt51923_fw_81.bin",
+          "sha256": "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "017a157ba2419ff29cfb00c14a88da75a64cfeac9b4dabeecf54d523b1ad115c",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51923-14-standard-merge-13-selector-free-27-nt51923-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "06dda13a592c151a767d47fff60da993f33d7bda37666794dd9ea5cf92094d18",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51923-15-ctrlram-replace-9-2-plus-ic-43-nt51923-ctrlram-fw141-cascade3-tp-work-240k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-diffdlm.bin",
+          "sha256": "09ebdf84a16f7f0ece24ccaf9c4c74e73002ffd1a57a7801bfec5c4c78c7f700"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-mp-ctrlram.bin",
+          "sha256": "363c9439b555ab8f2ff9f92a8d1002ea3eaf71a8e2f7da3bd624070f8164bc2e"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-nf-ctrlram.bin",
+          "sha256": "56b1a73b0e9b68ab074819d68cf4571678b82a8d8bff69c1652390d3e35be304"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-normal-ctrlram.bin",
+          "sha256": "08c9dc02ac4d9c3feae9711311d84e9ca1a72928816a56a9acc4f78a98e13613"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/postbuild/nt51923-postbuild-vn-ctrlram.bin",
+          "sha256": "18a26e8e2a0bd06f0d37945f2c3b38d5927bf86513da600463b91b625faed88c"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51923/ctrlram-replace/fw1.4.1/cascade-3/nt51923-fw141-cascade3-auto-prj-734-20260717/inputs/nt51923_fw_81.bin",
+          "sha256": "1eb5f8647cf58dacfeea21010abb17c23c62d4adb6b790501236bf4ad1badbc7"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "7b7cb25f6c267d2a330b924c2ffc82db0d3afff06e2da35e8614f66225fa418d",
+          "size": 245760
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51925-14-standard-merge-13-selector-free-22-nt51925-common-fw-256k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-private-native",
+      "input_kind": "private-native",
+      "missing_inputs": [
+        "dp-input",
+        "tp-input"
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw141-single-tp-work-192k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic",
+      "missing_inputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-4-1-ic-41-nt51925-ctrlram-fw200-single-tp-work-192k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic",
+      "missing_inputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw141-single-full-flash-256k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic",
+      "missing_inputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-4-1-ic-44-nt51925-ctrlram-fw200-single-full-flash-256k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic",
+      "missing_inputs": [
+        "No real NT51925 base exists in the repository. The synthetic base was rejected by Combiner 1.13.0 (exit -1). This route waits for the D1 private NT51925 data."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw141-cascade-tp-work-192k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-private-native",
+      "input_kind": "private-native",
+      "missing_inputs": [
+        "ctrlram",
+        "replace-base"
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-42-nt51925-ctrlram-fw200-cascade-tp-work-192k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-private-native",
+      "input_kind": "private-native",
+      "missing_inputs": [
+        "ctrlram",
+        "replace-base"
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw141-cascade-full-flash-256k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-private-native",
+      "input_kind": "private-native",
+      "missing_inputs": [
+        "ctrlram",
+        "replace-base"
+      ]
+    },
+    {
+      "route_id": "route-7-nt51925-15-ctrlram-replace-9-2-plus-ic-45-nt51925-ctrlram-fw200-cascade-full-flash-256k",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-private-native",
+      "input_kind": "private-native",
+      "missing_inputs": [
+        "ctrlram",
+        "replace-base"
+      ]
+    },
+    {
+      "route_id": "route-7-nt51926-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51926-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/nt51926-dp-input.bin",
+          "sha256": "2853828a2bafaf9b7611ca18008c2a3866b5d566f97ce116ecb15864e652259b"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/standard-merge/gen-flash/topology-unscoped/nt51926-gen-flash/inputs/nt51926-tp-input.bin",
+          "sha256": "9e5321fb7673736c6c52e61549e33347e3852488bd253088db7239d4d0f371fc"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "910c302495ef037bad232b6c8e50fca58db643540bf0e5871a34a33ea907c305",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
+          "sha256": "f2f9b472e93d5dbbfe74b02d37979330bfd0c9899dd6c31b6e8e0f2c531df913"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
+          "sha256": "e9f9105978dafaa90b81f4d969291496035d3b0d91d54a77238f17051febd6db"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
+          "sha256": "4594037e292d31f4fa37aa732174fc7033435a34373cb3e9ff7dbd45e975ad6e"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
+          "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/nt51926_fw_80.bin",
+          "sha256": "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "22888325a4c15a149251427c258efff9854421ce3b94481eba2b356a0b2db893",
+          "size": 245760
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-4-1-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
+          "sha256": "19b4b394a541dfbd37177cb42c7cb538bdc5910bb93152b4f9e56bbec1c66593"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
+          "sha256": "001795ec55fa6cbb07785c10b62c80db4d2a17bd7227ea224dc787d3c7f4a478"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
+          "sha256": "8caef6c99d9a5eab3a43bd1f377acd8916f9a655a56c4034a1ed3191d6531249"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
+          "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/NT51926_CommonFW_2.0.0_Single_TPFW.bin",
+          "sha256": "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "f1c4a61299741af4837ac656300ebe24da97742e9f0bac5d11617a6cfc277209",
+          "size": 245760
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/NT51926TT_Initial code_TM_TL080JFKS04-00_V80_20260522_keep RTNA.bin",
+          "sha256": "57b4630d60c06652a9bbe80dc13ed7a17e4be474ee307ae33ebaef16258604b2"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
+          "sha256": "f2f9b472e93d5dbbfe74b02d37979330bfd0c9899dd6c31b6e8e0f2c531df913"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
+          "sha256": "e9f9105978dafaa90b81f4d969291496035d3b0d91d54a77238f17051febd6db"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
+          "sha256": "4594037e292d31f4fa37aa732174fc7033435a34373cb3e9ff7dbd45e975ad6e"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
+          "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/single/nt51926-fw141-single-auto-prj-747-20260717/inputs/nt51926_fw_80.bin",
+          "sha256": "987274195623ed48d673a733fd4140fbfaadee5fa13168c42a50055e7ab8b1c3"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "30de4735472950e3e7b22e941cc0ae080f393b2b6e601e82b7b1b767b7c56e7a",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "3a222cbc838192204e8a94b1677b3564fcabfa1983820eebc89e2ef10ec294cd",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-4-1-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+          "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
+          "sha256": "19b4b394a541dfbd37177cb42c7cb538bdc5910bb93152b4f9e56bbec1c66593"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
+          "sha256": "001795ec55fa6cbb07785c10b62c80db4d2a17bd7227ea224dc787d3c7f4a478"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
+          "sha256": "8caef6c99d9a5eab3a43bd1f377acd8916f9a655a56c4034a1ed3191d6531249"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
+          "sha256": "1a6b4476dd67af21dc276206a7f172f3c1d1ad9ae5340818fffca78568dc62f6"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/single/nt51926-fw200-single-auto-prj-597-20260718/inputs/NT51926_CommonFW_2.0.0_Single_TPFW.bin",
+          "sha256": "258c1a51305edf966b8a8fb8fd64f50338385af1178076ea1c0b873db7d6999c"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "5f8913e48784bf0cdb15e64f3f6376dfe741f261ca6465242ec2956bbfe6c450",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "bf4221635b58a33bff6875aacfb29636aa140354cb5ec5256bf2b0c09e9cc81c",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw141-tp-work-240k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-diffdlm.bin",
+          "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
+          "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
+          "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
+          "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
+          "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_TPFW_T06.bin",
+          "sha256": "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "ad6b5cd0b8a3babe7e0363d4a77f257b3170b3a5ca3ba58b96b43fa746064500",
+          "size": 245760
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-34-nt51926-ctrlram-fw200-tp-work-240k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-diffdlm-input.bin",
+          "sha256": "869633426bb4dfe26f34c3542630e379eb54482e47c330d6286722a932354817"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
+          "sha256": "d512606dd69db32e11b616588e4874ecfa615b0660b33cc65a38f8fc29363c19"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
+          "sha256": "46c8a7eadadab86a4b2f04049619c8e60ca0ded410b89a0037dbf93be4564be1"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
+          "sha256": "3fb5fd130be8205b44f75a1c49356d00e51a47f884c477a7e17b1c3110d81da5"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
+          "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/NT51926_CASCADE_3_TPFW.bin",
+          "sha256": "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "2e79b7634219c9e67b8f4311d2dc0252d49e7dbe81ec6a56d610298a19cda50d",
+          "size": 245760
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw141-full-flash-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+          "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-diffdlm.bin",
+          "sha256": "72851fa78ce61d199b3765c5e1b392400e00b8f8ffaebe732b600238846039e3"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-mp-ctrlram.bin",
+          "sha256": "3a7d407ef8426de2080056e35080cc73cd5b4a27e52f55d3ae89e1d1709153f7"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-nf-ctrlram.bin",
+          "sha256": "65d1f8742422b26a6162639882d29883b3372b3583e7bd4cb1c68d0fa1df7241"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-normal-ctrlram.bin",
+          "sha256": "7e9039509a5c0efe4eaa32ba77b2947e4ab883ebadb94497c0aec797fc25b5b6"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/postbuild/nt51926-postbuild-vn-ctrlram.bin",
+          "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw1.4.1/cascade-2/nt51926-fw141-cascade2-auto-prj-597-20260717/inputs/NT51926TT_TPFW_T06.bin",
+          "sha256": "9c0b7338c2178d5a250960485bea3f9390ab85173f366bae4e2c4a8e29f279ab"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "a2169f9fc908207dae0820ebff2b88879fa68795a311337a87c0a4e8a30c8222",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "acdfb0a03c41d6b6e40d1e8f0f6ed72f7b82d5330aa3c13cc6269c930f7d016c",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51926-15-ctrlram-replace-9-2-plus-ic-37-nt51926-ctrlram-fw200-full-flash-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/NT51926TT_Initial Code_CSOT_1920x1080_14.0_D02_20251105.bin",
+          "sha256": "448ef01056fb82bf4b146967b8faf0160eba62a9f9e7ee01af73cb94e1043a33"
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-diffdlm-input.bin",
+          "sha256": "869633426bb4dfe26f34c3542630e379eb54482e47c330d6286722a932354817"
+        },
+        {
+          "name": "replace-ctrlram-mp",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-mp-ctrlram-input.bin",
+          "sha256": "d512606dd69db32e11b616588e4874ecfa615b0660b33cc65a38f8fc29363c19"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-nf-ctrlram-input.bin",
+          "sha256": "46c8a7eadadab86a4b2f04049619c8e60ca0ded410b89a0037dbf93be4564be1"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-normal-ctrlram-input.bin",
+          "sha256": "3fb5fd130be8205b44f75a1c49356d00e51a47f884c477a7e17b1c3110d81da5"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/postbuild/nt51926-vn-ctrlram-input.bin",
+          "sha256": "b855cbc3ce8f9b57e83ee16ce4c902a8089689dfc951e9138dc4294acbf6c5c7"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51926/ctrlram-replace/fw2.0.0/cascade-3/nt51926-fw200-cascade3-auto-prj-597-20260718/inputs/NT51926_CASCADE_3_TPFW.bin",
+          "sha256": "5e12cf6484d1d681826192b0c2b8aabead4098285f6a2facdfde732f4d1bc7e2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "b4336e3d935466feb98695eb9f5fe8b10c91c632fc835ffcfa1ed7ffefe0495a",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51926-14-standard-merge-13-selector-free-27-nt51926-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "2521192e6a846c8beeb49395e98977d243053efd292b094b31272fff70825825",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "synthetic/route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k/reference.bin",
+          "sha256": "277c587922b9d5a4a2f0c9c4f5f08029bccbc2678c9c180172aa570e1dfe3c1f",
+          "size": 262144
+        },
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51926-15-general-replace-4-1-ic-39-nt51926-general-replace-full-flash-256k/source.bin",
+          "sha256": "857b915078ad488cff951bded73cfb4021129efb943c37604781c79f0726bb41",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "84cf6a5cd61ef38327d29991e18cf39ae1ec15519f9618c951f036bcac5fa567",
+          "size": 262144
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51927-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51927-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51927-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/nt51927-dp-input.bin",
+          "sha256": "866bff2ed5759ec45c2343630e77b74c1b906b77d4ed2beba62d955cf13e1d18"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51927/standard-merge/gen-flash/topology-unscoped/nt51927-gen-flash/inputs/nt51927-tp-input.bin",
+          "sha256": "ad80a708579cfce8954c9a46e8d82846aff12f2659f0e81ff55a8d5c9f77f265"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "8e0d362b74ba65dfd8eb2d33a8ae6c1359b99ce2994d64d878bfdb393855cf80",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51927-15-ctrlram-replace-4-1-ic-39-nt51927-ctrlram-fw141-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/NT51927TT_TM_MY28_11.3_Initial Code_D04_20260610.bin",
+          "sha256": "bd8bd124c91cae29f0aeda8c9a49d48362b4497516d1c549eb1460fc661627bc"
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
+          "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
+          "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
+          "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
+          "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/51927_TPFW_T01_20251205.bin",
+          "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "fdb8fef05bdb375e175091eb75d555c2b1c5ddb216a2815f02e25c6533020ab9",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51927-14-standard-merge-13-selector-free-27-nt51927-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "fc4d2f9701c626b1c7cddd2b448970611d332295c64f86415af2855f1569c55a",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51927-15-ctrlram-replace-4-1-ic-41-nt51927-ctrlram-fw141-single-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-mp-ctrlram.bin",
+          "sha256": "ae8bea2d4fe1c0c3a182febbe8e258eb0908c3f99dcbbaee9ce2af167614aba2"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-nf-ctrlram.bin",
+          "sha256": "a26e62e920df297423d478a2a0c2d2ce07053e091e4bada1f6eeb542d0e1d797"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-normal-ctrlram.bin",
+          "sha256": "de73cded3235c24f517c815427cea8ec44678fa132fdf30e418381cd4b25e7d5"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/postbuild/nt51927-postbuild-vn-ctrlram.bin",
+          "sha256": "4847b6950b49b8dc9ed022924ea64ae43ac3c9dc7f8dbaad108755200522d709"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.1/single/nt51927-fw141-single-auto-prj-529-20260717/inputs/51927_TPFW_T01_20251205.bin",
+          "sha256": "4569893ba45af44ae28e7401374aa549201b9b2edeb2743e9f878d650ac248ee"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "6a1bbb51faaad6fe543f960104e0cd21436df2cbdbbbdb466fedacfaba84db2c",
+          "size": 217088
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51927-15-ctrlram-replace-4-2-ic-40-nt51927-ctrlram-fw132-twochip-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+          "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae"
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "6f0bbde7662dc6701cfe0a242d4cc363cd24c7056a52611fbba965c7d7fb5f58",
+          "size": 262144
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51927-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51927-15-ctrlram-replace-4-2-ic-42-nt51927-ctrlram-fw132-twochip-tp-work-212k/reference.bin",
+          "sha256": "946ba4b12bb11a584cb46b7d10866efed1cda005c98c2434347a366a4e3291f8",
+          "size": 217088
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        },
+        {
+          "name": "source:nt51927-2chip-self-20260705/reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/nt51927-2ic-csot1560-d09t0d-jira0251-20260617.bin",
+          "sha256": "11700ec5580f2e07195c7aec3788f929609eef5355d773287d3f88aa1f984dae",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "ad89e95a65d1879a27068c7f63fbb9435b5efe7c3baac16815cf89607d916638",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51927-15-ctrlram-replace-4-3-ic-42-nt51927-ctrlram-fw140-threechip-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin",
+          "sha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c"
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-l.bin",
+          "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-l.bin",
+          "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "dc1ee8928977845fad334b75c60b3e7fa3989f0a7e177206f83104217bf3fe16",
+          "size": 262144
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51927-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51927-15-ctrlram-replace-4-3-ic-44-nt51927-ctrlram-fw140-threechip-tp-work-212k/reference.bin",
+          "sha256": "9aa4eee29cc1e38544e3c6b125b0ecc06567e5930e2cbd75a045ed6a62ebcd83",
+          "size": 217088
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "fd5319c5281812fbb7ac6dacb624c572bdd0d52eb71de8402b989da048d0815b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-l.bin",
+          "sha256": "d4504418c5be595117e9093e8210ce254f553328b466f9f612e91d9ca8b5eca7"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "8bb57729e40b279b437a368d501e00edaebf8bc68823e5ae01ac0fbc3d90de48"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "1da3b789fd593a9c9d226aa1deab11a6108b52cacb5eb8166487bf0cbfd01bd7"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "8df98e023232e33e303fbb8a3b8569d8bf0e135c46012488016077e28360c4b9"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-l",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-l.bin",
+          "sha256": "42ee3488353a642c801d18516cc455333fc3edee4d41b50a5ec24d45898a7565"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "9a9a0b34edd1de2a9ee9d04b169abdfe8ebbe0a7da18dac0bccdc2d82a64a9f8"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "aacd153b8d41c0e85e148654ff0feeefb42b51945c41b4a17f30fc393a25e533"
+        },
+        {
+          "name": "source:nt51927-3chip-self-20260705/reference-base",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.4.0/cascade-3/nt51927-3chip-self-20260705/inputs/nt51927-3ic-tm-tl177xfks03-gm-d08t9b-20260703.bin",
+          "sha256": "bc44561cc1cb338b9a49bbe701e5d7cbfe78ea40deda0926197fb22002b3061c",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "e68dbc27bfd4bafec4fd398f92416048bc1ee6933e81fb285a98e0625a967352",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51928-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51928-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51928-14-standard-merge-13-selector-free-31-nt51928-dual-capacity-256k-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-dp-input.bin",
+          "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"
+        },
+        {
+          "name": "ldc-input",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-ldc-input.bin",
+          "sha256": "a77fe6a40e4feebf100b7ef72addb4308f28579e4d8b291e3b555eb4b98886c3"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/inputs/nt51928-tp-input.bin",
+          "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash/reference.bin",
+          "sha256": "8f3ae1a3b5c0672f97ea714fe4b681697e9950be11bddbf6081214205a4f1a16",
+          "size": 524288
+        },
+        {
+          "name": "source:nt51928-gen-flash/expected-output",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        },
+        {
+          "name": "vn.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-1-ic-39-nt51928-ctrlram-fw141-single-full-flash/vn.bin",
+          "sha256": "d5a6c98680c2977da5ad76d52606517c7686d9d688e930bf72b5df0d4d04c362",
+          "size": 288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "9923a5a3d358cdc189f97f40e32b4307f959d1af16149ac99cb9bc4c08f20a98",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51928-15-ctrlram-replace-4-1-ic-41-nt51928-ctrlram-fw141-single-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-1-ic-41-nt51928-ctrlram-fw141-single-tp-work-212k/reference.bin",
+          "sha256": "74ea977c611df497d27dcc5bd940cc96d7115d5fd7379995b27aa8ffa57225ec",
+          "size": 217088
+        },
+        {
+          "name": "source:nt51928-gen-flash/expected-output",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        },
+        {
+          "name": "vn.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-1-ic-41-nt51928-ctrlram-fw141-single-tp-work-212k/vn.bin",
+          "sha256": "d5a6c98680c2977da5ad76d52606517c7686d9d688e930bf72b5df0d4d04c362",
+          "size": 288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "923dfc96d22622bb22b0037b98b83eca7935e02c1d812695b33326b56393736b",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51928-15-ctrlram-replace-4-2-ic-40-nt51928-ctrlram-fw132-twochip-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-2-ic-40-nt51928-ctrlram-fw132-twochip-full-flash/reference.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        },
+        {
+          "name": "source:nt51928-gen-flash/expected-output",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "fbe011c7903a2dfcdbc634b47b2b5148c6531ee84b01d34a289dcf8ec3f3f24c",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51928-15-ctrlram-replace-4-2-ic-42-nt51928-ctrlram-fw132-twochip-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-2-ic-42-nt51928-ctrlram-fw132-twochip-tp-work-212k/reference.bin",
+          "sha256": "01e385aa60dcdbeeea343e8755af76cd0b282555494c8796e9ff687cd254ad6a",
+          "size": 217088
+        },
+        {
+          "name": "replace-ctrlram-mp-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-master.bin",
+          "sha256": "e8b064e64a86b6d868ab677e0cec90ab2be66093a125962344597145cdaeec5b"
+        },
+        {
+          "name": "replace-ctrlram-mp-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-mp-slave-r.bin",
+          "sha256": "d0bebf670c491e8d01cacc29bf5c7e77141c6bee873218a514b2bee2687a719c"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-nf.bin",
+          "sha256": "d9893ca964aeb0a92e3d9b1513a554cc01e0c2fb9698a774429f78837d5a3e1e"
+        },
+        {
+          "name": "replace-ctrlram-normal-master",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-master.bin",
+          "sha256": "793cc0ccef57c9bc3060e002d6a48ea96c642b16f24359d4594ff97cabc660b0"
+        },
+        {
+          "name": "replace-ctrlram-normal-slave-r",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-normal-slave-r.bin",
+          "sha256": "b597781d0577a3a230f94c60cfcf983b9142586f76096cc794b30ac8371753bb"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51927/ctrlram-replace/fw1.3.2/cascade-2/nt51927-2chip-self-20260705/inputs/replacements/nt51927-replace-ctrlram-vn.bin",
+          "sha256": "93a6d24b9609b57110c7f1bf4decc6d03c631ebcdc79f39c4e53f6736fbd89b8"
+        },
+        {
+          "name": "source:nt51928-gen-flash/expected-output",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "131eaf5b779b552efdf40a547f8dab1e2ead7b55468183c52146797915117a3f",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash/reference.bin",
+          "sha256": "4f1fdf4081a4d4aba8fb54cb6a1cd0d4764a55c46e90161ddd81b975feab781f",
+          "size": 524288
+        },
+        {
+          "name": "source:nt51928-gen-flash/expected-output",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        },
+        {
+          "name": "vn.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-3-ic-42-nt51928-ctrlram-fw140-threechip-full-flash/vn.bin",
+          "sha256": "d5a6c98680c2977da5ad76d52606517c7686d9d688e930bf72b5df0d4d04c362",
+          "size": 288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "16c2d290813f6c03d04267a13ec7d7d8411ed902825a6a7551696cae291527a6",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51928-15-ctrlram-replace-4-3-ic-44-nt51928-ctrlram-fw140-threechip-tp-work-212k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-3-ic-44-nt51928-ctrlram-fw140-threechip-tp-work-212k/reference.bin",
+          "sha256": "3bbca1fa59a3251d4c65407da5df03ebf42fe354c9970a17c69355aa4288ff39",
+          "size": 217088
+        },
+        {
+          "name": "source:nt51928-gen-flash/expected-output",
+          "path": "testdata/golden/canonical/NT51928/standard-merge/gen-flash/topology-unscoped/nt51928-gen-flash/expected/nt51928-expected-output.bin",
+          "sha256": "5064b3134031adbd7ae292c9038d728da116d5a013a2463ae809694a07f87e0e",
+          "size": 524288
+        },
+        {
+          "name": "vn.bin",
+          "path": "derived/route-7-nt51928-15-ctrlram-replace-4-3-ic-44-nt51928-ctrlram-fw140-threechip-tp-work-212k/vn.bin",
+          "sha256": "d5a6c98680c2977da5ad76d52606517c7686d9d688e930bf72b5df0d4d04c362",
+          "size": 288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "7cc5a5746e797c6ebbdb675c7e9a08f8994d58d4e10f5956c25cab85d76d3e5c",
+          "size": 217088
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51929-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51929-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-dp-input.bin",
+          "sha256": "e9626d1230bb117a91e7cd365b060991b48bf555bda065a84f8a62edd8c95095"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51929/standard-merge/gen-flash/topology-unscoped/nt51929-gen-flash/inputs/nt51929-tp-input.bin",
+          "sha256": "a5631c8c05dd1e29b216b3cc00a84ef416db41e04c9d1e7c3d211a44bf7bc458"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "fdba72984d662c4d652c56d909cf27756193f3766875b42d55207bccfca6867e",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51929-15-ctrlram-replace-4-1-ic-21-nt51929-ab-merge-512k/reference.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-nf-ctrlram.bin",
+          "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-normal-ctrlram.bin",
+          "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-vn-ctrlram.bin",
+          "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+        },
+        {
+          "name": "source:nt51929-ab-t05-d06/expected-output",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/expected/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "08c969d0b1e32540fb268ec0556abb6d6adadf41dfafc722def69819e98a1f03",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51929-15-ctrlram-replace-4-1-ic-39-nt51929-ctrlram-fw200-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-nf-ctrlram.bin",
+          "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-normal-ctrlram.bin",
+          "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-vn-ctrlram.bin",
+          "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "d23f53a13db3c6fc0009ed547e8cfa5f1b54033145825828416c7458b14f198f",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51929-14-standard-merge-13-selector-free-27-nt51929-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "d3c958d2aac1e29bd1f88b8ac62dc74c36810ab11e707770199d4b34f5ce3910",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-21-nt51929-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51929-15-ctrlram-replace-6-2-8-ic-21-nt51929-ab-merge-512k/reference.bin",
+          "sha256": "af7392e46fc55ad8efaaecd0c915703fa7ecc80ca517b243dbb23e8419ed7e3f",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-diffdlm-input.bin",
+          "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
+          "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "source:nt51932-fw200-cascade3-auto-prj-525-20260718/expected-output",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/expected/NT51932_FlashCode_D02T88_20260718.bin",
+          "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "93d17f72f78f5b2aaabd98d54c361e655a6cd2973ab0639eb5062e60b3cdc53c",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51929-15-ctrlram-replace-6-2-8-ic-39-nt51929-ctrlram-fw1x-cascade-full-flash",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-derived",
+      "input_kind": "derived",
+      "missing_inputs": [
+        "The base derived from nt51929-gen-flash/expected-output was not accepted by the CRC processor: it changed bytes outside its declared write ranges at [0x2effd, 0x2f000). A real same-IC NT51929 FW1.x cascade base is required."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51929-8-ab-merge-13-selector-free-21-nt51929-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-ab-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "name": "tp-a-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        {
+          "name": "tp-b-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51932-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51932-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51932-14-standard-merge-13-selector-free-27-nt51932-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/inputs/nt51932-dp-input.bin",
+          "sha256": "c66e361bb04df9dd95aa0e10b38ee70bfbb6fa6fe2a6c8d1a0ab1124dd03542b"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51932/standard-merge/gen-flash/topology-unscoped/nt51932-gen-flash/inputs/nt51932-tp-input.bin",
+          "sha256": "3de3406d827b205601e085e163a0fff4c8180353e55535c33fb9f2b0357d9b9b"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "6a0c90b1c314536119dda9aacd1f3dfcccfc8b90aae6e43cdf713100bb308b14",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51932-15-ctrlram-replace-4-1-ic-21-nt51932-ab-merge-512k/reference.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-nf-ctrlram.bin",
+          "sha256": "d16f150e172df1b92d5db32472b245f39f4481351304dc197da6f1d3194ab9d2"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-normal-ctrlram.bin",
+          "sha256": "c0c8058727406b50dce0e209554ed997c09084808babe2f2a537a9a4b75d1d4c"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51929/ctrlram-replace/fw2.0.0/single/nt51929-fw200-single-auto-prj-594-20260717/inputs/postbuild/nt51929-postbuild-vn-ctrlram.bin",
+          "sha256": "c90ced38fc2cc8e62cd0275050f7bfcc05e707eaaffd9704533f9a26a49de64d"
+        },
+        {
+          "name": "source:nt51929-ab-t05-d06/expected-output",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/expected/NT51929ZT_Flashcode_TM_TL150UQAS01-00_Stellantis_V28_D06T05_20260611_AB.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "08c969d0b1e32540fb268ec0556abb6d6adadf41dfafc722def69819e98a1f03",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51932-15-ctrlram-replace-4-1-ic-38-nt51932-ctrlram-fw1x-single-full-flash",
+      "status": "input-unavailable",
+      "inputs": [],
+      "outputs": [],
+      "input_source": "recipe-derived",
+      "input_kind": "derived",
+      "missing_inputs": [
+        "The base derived from nt51932-gen-flash/expected-output was not accepted by the CRC processor: it changed bytes outside its declared write ranges at [0x7128, 0x7130) and [0x33ffd, 0x34000). A real same-IC NT51932 FW1.x single base is required."
+      ]
+    },
+    {
+      "route_id": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51932-15-ctrlram-replace-6-2-8-ic-21-nt51932-ab-merge-512k/reference.bin",
+          "sha256": "af7392e46fc55ad8efaaecd0c915703fa7ecc80ca517b243dbb23e8419ed7e3f",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-diffdlm-input.bin",
+          "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
+          "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "source:nt51932-fw200-cascade3-auto-prj-525-20260718/expected-output",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/expected/NT51932_FlashCode_D02T88_20260718.bin",
+          "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd",
+          "size": 262144
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "93d17f72f78f5b2aaabd98d54c361e655a6cd2973ab0639eb5062e60b3cdc53c",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51932-15-ctrlram-replace-6-2-8-ic-40-nt51932-ctrlram-fw200-cascade-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/NT51932_BOE_36.2_initial code_D02_20251204.bin",
+          "sha256": "d3105f69411aeca10c63eaa23592fa05a14d4876fbc209a489b86a129de1aac1"
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-diffdlm-input.bin",
+          "sha256": "673b089947265ae766ff317ff2fc0ec1476171f644e7cea2247daf6d19c34dd4"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-normal-ctrlram-input.bin",
+          "sha256": "da3613e8a858e408d2122a984554f20028e3621adf1b2a7e33cc753ae2abe89b"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/postbuild/nt51932-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51932/ctrlram-replace/fw2.0.0/cascade-3/nt51932-fw200-cascade3-auto-prj-525-20260718/inputs/NT51932_TPFW_CASCADE_3.bin",
+          "sha256": "db844b0fda5eda3c6df42237bbf8857f7d435ae51497b337b0d50f9ac80cb6c6"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "0e59a2fbaab16979745b3543564b18f49c9d4eb7912bdea2e61383e31e662566",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51932-14-standard-merge-13-selector-free-27-nt51932-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "3eb556e0a9323dd4fbe4c703be1eb33679df2b1ba839e79ddd7bbffa235008fd",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51932-8-ab-merge-13-selector-free-21-nt51932-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-ab-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/NT51929_initial code_TM149_2344x880_D06_20260610.bin",
+          "sha256": "ba99f6d117b5d620c1b41024ff001a665b4e1260b5e670c5992a6f5c07e39237"
+        },
+        {
+          "name": "tp-a-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        },
+        {
+          "name": "tp-b-input",
+          "path": "testdata/golden/canonical/NT51929/ab-merge/t05-d06/topology-unscoped/nt51929-ab-t05-d06/inputs/nt51929_TPFW_T05_20260611.bin",
+          "sha256": "7ae10d3642778fa399696d46291f7d237f9f165de0ab2faaa1369f65c2b9ce12"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "c7e1e263ac8ca70f83a6f66fa268da4aa9be37c2c822a39d58fa9c153d66abe2",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51950-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51950-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/nt51950-dp-input.bin",
+          "sha256": "b9ac199003c86bb620d18cf08d9002678ef2e3e9b911020fbecdaa381fd887f1"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51950/standard-merge/dp-256k/topology-unscoped/51950-dp-256k/inputs/nt51950-tp-input.bin",
+          "sha256": "e76db49116af9502edd73a02df6eb0c86ed8bf2c74487d1917a1ce279bbaeab4"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "11932f352c3268dce75329eb80b57e3a20f31e7d1859d9ecf0700070c026f791",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "path": "synthetic/route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k/dp.bin",
+          "sha256": "afbab09500ec4f5518e82c152569382b769436a03ec1db4696804569cee41ea0",
+          "size": 524288
+        },
+        {
+          "name": "tp.bin",
+          "path": "synthetic/route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k/tp.bin",
+          "sha256": "774d86015903c5cf6b1559503553fe31751fcdc721a80da05bf94890174cdd29",
+          "size": 225280
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "32d6f68d4796d4253d0ca6f3fab398deda0abf8b2853de0117888635f14c6670",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "path": "synthetic/route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k/dp.bin",
+          "sha256": "1b6ba4852290a70cb91b203efc34abed10f60b02e77bce5f1fd42bef20ab5775",
+          "size": 1048576
+        },
+        {
+          "name": "tp.bin",
+          "path": "synthetic/route-7-nt51950-14-standard-merge-13-selector-free-28-nt51950-standard-merge-1024k/tp.bin",
+          "sha256": "774d86015903c5cf6b1559503553fe31751fcdc721a80da05bf94890174cdd29",
+          "size": 225280
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "7426263628547e127463f6e408dc869281cac90131dcb5d26ca4889158c9b24f",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51950-15-ctrlram-replace-4-1-ic-21-nt51950-ab-merge-512k/reference.bin",
+          "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650",
+          "size": 524288
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-nf-ctrlram.bin",
+          "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-normal-ctrlram.bin",
+          "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-vn-ctrlram.bin",
+          "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709"
+        },
+        {
+          "name": "source:nt51950-ab-boe-d82t80/expected-output",
+          "path": "testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/expected/NT51950_FlashCode_BOE1720_BOEVX_2560x1660_A_D82T80_B_D82T80_20260616_BOE.bin",
+          "sha256": "d18db8dc02ab4ff52cb17b4b3b3b90f99047c9d1acd2a5c23627197cf32f8650",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "4662f6766c69a804c1b310c009248cff03bb360502feb606435c6297b06b8660",
+          "size": 524288
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51950-15-ctrlram-replace-4-1-ic-36-nt51950-ctrlram-fw200-single-tp-work",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-nf-ctrlram.bin",
+          "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-normal-ctrlram.bin",
+          "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-vn-ctrlram.bin",
+          "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/nt51950_fw.bin",
+          "sha256": "0bd070b3d05939e01346deb1f1d40ffcc3431692524cd18c90171869485d3f22"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "8001bdeadfda988a4da181f2f66991abd238a4d83de29eb24f23e16ac491c885",
+          "size": 225280
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51950-15-ctrlram-replace-4-1-ic-39-nt51950-ctrlram-fw200-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/NT51950TT_Initial Code_BOE_2560x1600_D86_GOP_3MUX_20260708.bin",
+          "sha256": "36fad781c12e955439054e851d2c6813d3f154d5f206fac9555d1913f987d254"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-nf-ctrlram.bin",
+          "sha256": "3531fd2a89195c1418d27673e4b7420cde0067be971ad72f666a01cf21e6a322"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-normal-ctrlram.bin",
+          "sha256": "f2db8a22f7e2ba5d46699e6b405412e9e804d679448b2aa5e61fa14e9b07b478"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/postbuild/nt51950-postbuild-vn-ctrlram.bin",
+          "sha256": "3f1bd04de707ba7584dd860caa9069e4b66774b9c3b8a001eea1d69db62cb709"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/nt51950-fw200-single-auto-prj-676-20260717/inputs/nt51950_fw.bin",
+          "sha256": "0bd070b3d05939e01346deb1f1d40ffcc3431692524cd18c90171869485d3f22"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "a32e6896b840d44e4933adb8827d66bfe642a1347835a1c5bda848cb33ecd5c4",
+          "size": 262144
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-256k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "ccda75d0aa08540e293f9ab4a8058c43c4e39d2dd0238238848a2f13df68e38e",
+            "size": 262144
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51950-15-ctrlram-replace-4-2-ic-22-nt51950-ab-merge-1024k/reference.bin",
+          "sha256": "83a8cb9552f73be3308cd2782b11c31a6586bfb2123e9cdb765ebfaf0e5e3e55",
+          "size": 1048576
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "source:nt51951-fw200-cascade2-auto-prj-599-20260731/expected-output",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/expected/NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin",
+          "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "864acce83cf41f2c51b713d25da051c6241f3dbf7b4e24693cefc1db66fc71c0",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51950-15-ctrlram-replace-4-2-ic-36-nt51950-ctrlram-fw1x-cascade-tp-work",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "tp-firmware-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/tp-fw/NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
+          "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643",
+          "size": 225280
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51950-15-ctrlram-replace-4-2-ic-39-nt51950-ctrlram-fw1x-cascade-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "initial-code-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/initial-code/NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin",
+          "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40"
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "tp-firmware-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/tp-fw/NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
+          "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd",
+          "size": 524288
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51950-14-standard-merge-13-selector-free-27-nt51950-standard-merge-512k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32",
+            "size": 524288
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51950-8-ab-merge-4-1-ic-21-nt51950-ab-merge-maps",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-ab-input",
+          "path": "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_NiOHiway_D03_OSD ICON_20260923.bin",
+          "sha256": "1c7d52cdeda3f0c831632d9d3c2a6ade7636c872c332256fd44ece4d51db849c"
+        },
+        {
+          "name": "tp-a-input",
+          "path": "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/nt51950_fw_T02.bin",
+          "sha256": "aa9582ba68a7f6f422bc13469d7c7cfeb6a756a8e9196fc34ab5313e3c5ce2f2"
+        },
+        {
+          "name": "tp-b-input",
+          "path": "testdata/golden/canonical/NT51950/ab-merge/osd-d03t02/single/nt51950-ab-osd-d03t02-20260924/inputs/nt51950_fw_T02.bin",
+          "sha256": "aa9582ba68a7f6f422bc13469d7c7cfeb6a756a8e9196fc34ab5313e3c5ce2f2"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "71de58a5f9a2ca2cb0d51789794af64586435b09e4ca61d176b6cd41b4990136",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-ab.bin",
+          "path": "synthetic/route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps/dp-ab.bin",
+          "sha256": "432b4fd65140702e93d5b9a67898f1e1e8cb10a74757fc3af1ec14c423f2f84b",
+          "size": 1048576
+        },
+        {
+          "name": "tp-a.bin",
+          "path": "synthetic/route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps/tp-a.bin",
+          "sha256": "79eccb98d69760eaef38f940d957f2fb6fa270a105215cb8c82237e0d317bdf1",
+          "size": 225280
+        },
+        {
+          "name": "tp-b.bin",
+          "path": "synthetic/route-7-nt51950-8-ab-merge-9-2-plus-ic-23-nt51950-ab-cascade-maps/tp-b.bin",
+          "sha256": "cdf01cf680d3db07c0a82b54e24e85831e5f96f1cfd822c7a9d440d3f04e3394",
+          "size": 225280
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "2e5df2cc94d63ee7bba9120371b888eb5369942ab8bd59b73042c59cbdd47d2b",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51951-13-general-merge-14-not-applicable-7-generic",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "source.bin",
+          "path": "synthetic/route-7-nt51951-13-general-merge-14-not-applicable-7-generic/source.bin",
+          "sha256": "3a393a862889fd2bcc4a2939b02eab350625a27342e6a8257769839cbd458e5b",
+          "size": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3ed3206d77e0733882898cbb2f23d91dea299366e20d812c4f473d34649e0efd",
+          "size": 4
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "path": "synthetic/route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k/dp.bin",
+          "sha256": "277c587922b9d5a4a2f0c9c4f5f08029bccbc2678c9c180172aa570e1dfe3c1f",
+          "size": 262144
+        },
+        {
+          "name": "tp.bin",
+          "path": "synthetic/route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-256k/tp.bin",
+          "sha256": "774d86015903c5cf6b1559503553fe31751fcdc721a80da05bf94890174cdd29",
+          "size": 225280
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "10047d065c9f0ad0d7450787cce779768d686132a21c199feda13d021bba3ce6",
+          "size": 262144
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/inputs/nt51951-dp-input.bin",
+          "sha256": "ba4a61951b2da74cf7799885df7a0cbfefea4262ba6af56b34adc92691af1668"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51951/standard-merge/dp-512k/topology-unscoped/51951-dp-512k/inputs/nt51951-tp-input.bin",
+          "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "3266fae2f4873a7f21afdbcfe1b1d234c58204a2b319ff3ed09353ee84ff0e6e",
+          "size": 524288
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp.bin",
+          "path": "synthetic/route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k/dp.bin",
+          "sha256": "1b6ba4852290a70cb91b203efc34abed10f60b02e77bce5f1fd42bef20ab5775",
+          "size": 1048576
+        },
+        {
+          "name": "tp.bin",
+          "path": "synthetic/route-7-nt51951-14-standard-merge-13-selector-free-28-nt51951-standard-merge-1024k/tp.bin",
+          "sha256": "774d86015903c5cf6b1559503553fe31751fcdc721a80da05bf94890174cdd29",
+          "size": 225280
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "7426263628547e127463f6e408dc869281cac90131dcb5d26ca4889158c9b24f",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    },
+    {
+      "route_id": "route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51951-15-ctrlram-replace-4-1-ic-22-nt51951-ab-merge-1024k/reference.bin",
+          "sha256": "33efa035ee9023614b082947b2a4264d268022f1e03006310eecf2896152f7de",
+          "size": 1048576
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-nf-ctrlram-input.bin",
+          "sha256": "7cb1a116876a13bb24bebc66ce36800f9c9117eacadb352cdbd5640720117d86"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "31669cd9413b7a7bd463eaa5d6b40a72e3c34ff67238f6e72d13e073397621e7"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "553fb914d6e38b0aadfd47e68ecdf167958f301e59661e379f484324e9f28946"
+        },
+        {
+          "name": "source:nt51951-fw200-single-auto-prj-695-20260718/expected-output",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/expected/nt51951-expected-output.bin",
+          "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "82677ba76a4c5c215d1592dd6dfbd49b3d20d5b760a1c34dfa78338a9cc14eb4",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51951-15-ctrlram-replace-4-1-ic-36-nt51951-ctrlram-fw200-single-tp-work",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-nf-ctrlram-input.bin",
+          "sha256": "7cb1a116876a13bb24bebc66ce36800f9c9117eacadb352cdbd5640720117d86"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "31669cd9413b7a7bd463eaa5d6b40a72e3c34ff67238f6e72d13e073397621e7"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "553fb914d6e38b0aadfd47e68ecdf167958f301e59661e379f484324e9f28946"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/NT51951_TPFW_Single.bin",
+          "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "b27e519242e29a2e2f2ad2d50376853375999e38d1d899a7b97122119a74d0b8",
+          "size": 225280
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51951-15-ctrlram-replace-4-1-ic-39-nt51951-ctrlram-fw200-single-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/NT51951TT_Initial Code_CSOT 17.3inch_2880x1620_CCW _D06_20260707.bin",
+          "sha256": "0082b336161fa463573432dfb275fdb90154f1df6d9c01dba75610addcb1b423"
+        },
+        {
+          "name": "replace-ctrlram-nf",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-nf-ctrlram-input.bin",
+          "sha256": "7cb1a116876a13bb24bebc66ce36800f9c9117eacadb352cdbd5640720117d86"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "31669cd9413b7a7bd463eaa5d6b40a72e3c34ff67238f6e72d13e073397621e7"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "553fb914d6e38b0aadfd47e68ecdf167958f301e59661e379f484324e9f28946"
+        },
+        {
+          "name": "tp-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/single/nt51951-fw200-single-auto-prj-695-20260718/inputs/NT51951_TPFW_Single.bin",
+          "sha256": "7a2ddf9b77558a3e3a32485c21aa62e900249cf473b7f1c67bb2f89dc1ad3f4a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "64ffa21a36a3a9560ebe109b9b0c94edcbb37c69a0dcb0aa183da7542694d1ea",
+          "size": 524288
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "c1cd54d93af431727220adc37fec2488765909dc09cb917d1ff69f6087bb6b69",
+            "size": 524288
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "reference.bin",
+          "path": "derived/route-7-nt51951-15-ctrlram-replace-4-2-ic-22-nt51951-ab-merge-1024k/reference.bin",
+          "sha256": "7d55d5ca23bd617dc7b3706c77d2c8a6416b94c827c7ab451033adab608ec03c",
+          "size": 1048576
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "source:nt51951-fw200-cascade2-auto-prj-599-20260731/expected-output",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/expected/NT51951_Flashcode_TM2910_Platform_6080x1680_D05T81_20260511.bin",
+          "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32",
+          "size": 524288
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "83dd39f13987e8a2c3b52fdba43f07045b8e6af3c4bfe167583d649abe7e1f13",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-derived",
+      "input_kind": "derived"
+    },
+    {
+      "route_id": "route-7-nt51951-15-ctrlram-replace-4-2-ic-36-nt51951-ctrlram-fw1x-cascade-tp-work",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "tp-firmware-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/tp-fw/NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
+          "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "a239645dd6e2527af34934e20ef7399ecb9d748aca32ce9ed4b829b94b8fc643",
+          "size": 225280
+        }
+      ],
+      "input_source": "recipe-native",
+      "input_kind": "native"
+    },
+    {
+      "route_id": "route-7-nt51951-15-ctrlram-replace-4-2-ic-39-nt51951-ctrlram-fw1x-cascade-full-flash",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "initial-code-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/initial-code/NT51951TT_Initial Code_TM_TE291XVKS02_Platform _D05_20260508.bin",
+          "sha256": "3fdcc5d7380d3b3dcbddd47d000e4bdafc1462497c3f49267fa1228590d35c40"
+        },
+        {
+          "name": "replace-ctrlram-diff",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-diffdlm-input.bin",
+          "sha256": "d5b2a200645dc83c9cdf2988276915dfcfde656d2cfacb8a759ce0c5dd88eb00"
+        },
+        {
+          "name": "replace-ctrlram-normal",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-normal-ctrlram-input.bin",
+          "sha256": "e7dbfeb2f34c2dbb4f4e9531f3858b15f673b179b4118ad5f564f28976cf7129"
+        },
+        {
+          "name": "replace-ctrlram-vn",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/postbuild/nt51951-vn-ctrlram-input.bin",
+          "sha256": "066815c150f47318ba255cf5d84b7b2116267b5adc6bbcf771a7c50f78bc289b"
+        },
+        {
+          "name": "tp-firmware-input",
+          "path": "testdata/golden/canonical/NT51951/ctrlram-replace/fw2.0.0/cascade-2/nt51951-fw200-cascade2-auto-prj-599-20260731/inputs/tp-fw/NT51951_FW_TM2910_6080x1680_V81_20260408.bin",
+          "sha256": "1397cfed395d937826d6e6378b030c80f7a0d6322102d028b1907e66d5a4a31a"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "1536d344af83aafd29e5884d9d2d904f1efa03c8fdcc4e913832253814644ebd",
+          "size": 524288
+        }
+      ],
+      "input_source": "route-evidence",
+      "input_kind": "native",
+      "base_build": {
+        "route_id": "route-7-nt51951-14-standard-merge-13-selector-free-27-nt51951-standard-merge-512k",
+        "outputs": [
+          {
+            "name": "output.bin",
+            "sha256": "ff9ad012454cab3d9d76d7270dfde7b402d23c2d0376ba6776cd1a242144aa32",
+            "size": 524288
+          }
+        ]
+      }
+    },
+    {
+      "route_id": "route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k",
+      "status": "ok",
+      "inputs": [
+        {
+          "name": "dp-ab.bin",
+          "path": "synthetic/route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k/dp-ab.bin",
+          "sha256": "432b4fd65140702e93d5b9a67898f1e1e8cb10a74757fc3af1ec14c423f2f84b",
+          "size": 1048576
+        },
+        {
+          "name": "tp-a.bin",
+          "path": "synthetic/route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k/tp-a.bin",
+          "sha256": "277ac15376d9fc085f2383f6667f30a861824f8f524a164ceae626f1f52f9be8",
+          "size": 225280
+        },
+        {
+          "name": "tp-b.bin",
+          "path": "synthetic/route-7-nt51951-8-ab-merge-13-selector-free-22-nt51951-ab-merge-1024k/tp-b.bin",
+          "sha256": "6d50c4ecd6bbda7a5e061783a978dc94bec19bad0fc8d80e016a55d71d8d442a",
+          "size": 225280
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output.bin",
+          "sha256": "d4eeb30b93ac4ec40a468c6fcd404d01646dd90ea9b3ccaa4790e1640383e2dc",
+          "size": 1048576
+        }
+      ],
+      "input_source": "recipe-synthetic",
+      "input_kind": "synthetic"
+    }
+  ]
+}
