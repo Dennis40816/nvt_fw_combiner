@@ -16,8 +16,8 @@ public sealed class AbMergeLaunchTests
 {
     private static string Fixture(string name)
     {
-        return RepositoryPaths.FromRepositoryRoot(
-            "testdata/golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/" + name);
+        return RepositoryPaths.FromTestData(
+            "golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs/" + name);
     }
 
     private static string Dp => Fixture("NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin");

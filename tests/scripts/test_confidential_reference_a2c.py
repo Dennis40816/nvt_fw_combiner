@@ -15,19 +15,21 @@ import pytest
 
 from scripts import verify
 
+from scripts.testdata_paths import resolve_testdata_root
+
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_private_provenance_preserves_certified_case_manifest_identity() -> None:
-    allowlist = json.loads((ROOT / "testdata/golden/release-canonical-v1.json").read_bytes())
+    allowlist = json.loads((resolve_testdata_root() / "golden/release-canonical-v1.json").read_bytes())
     private_cases = [
         case for case in allowlist["cases"]
         if any(artifact.get("storage") == "private-reference" for artifact in case["artifacts"])
     ]
     assert len(private_cases) == 1
     case = private_cases[0]
-    payload = (ROOT / "testdata/golden/canonical" / case["manifestPath"]).read_bytes()
+    payload = (resolve_testdata_root() / "golden/canonical" / case["manifestPath"]).read_bytes()
     certified_sha256 = "04b38a6bbf20918b98d259e0b6486b7724036c69a0d30017a314406958ce8c24"
     assert case["manifestSha256"] == hashlib.sha256(payload).hexdigest() == certified_sha256
     assert len(payload) == 12502

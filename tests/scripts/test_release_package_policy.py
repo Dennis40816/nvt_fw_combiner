@@ -42,6 +42,8 @@ sys.path.insert(0, str(SCRIPTS))
 import verify as verify_script  # noqa: E402
 import release_promotion_policy as promotion_policy  # noqa: E402
 
+from scripts.testdata_paths import resolve_testdata_root
+
 PACKAGE_SCRIPT = ROOT / "scripts" / "package.ps1"
 RELEASE_MANIFEST_SCHEMA = ROOT / "docs" / "contracts" / "release-manifest-v1.schema.json"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
@@ -3908,7 +3910,7 @@ finally {
     def test_canonical_release_allowlist_is_the_exact_self_contained_scope(
         self,
     ) -> None:
-        allowlist_path = ROOT / "testdata/golden/release-canonical-v1.json"
+        allowlist_path = resolve_testdata_root() / "golden/release-canonical-v1.json"
         allowlist = json.loads(allowlist_path.read_text(encoding="utf-8"))
         publication_text = json.dumps(allowlist, sort_keys=True).upper()
 
@@ -3924,7 +3926,7 @@ finally {
             allowlist["selectionSummary"],
         )
         selected = {case["caseId"]: case for case in allowlist["cases"]}
-        canonical_readme = ROOT / "testdata/golden/canonical/README.md"
+        canonical_readme = resolve_testdata_root() / "golden/canonical/README.md"
         self.assertEqual(
             hashlib.sha256(canonical_readme.read_bytes()).hexdigest(),
             allowlist["canonicalReadmeSha256"],
@@ -3945,7 +3947,7 @@ finally {
         self.assertEqual(2, len(certified["artifacts"]))
         for case in selected.values():
             case_manifest_path = (
-                ROOT / "testdata/golden/canonical" / case["manifestPath"]
+                resolve_testdata_root() / "golden/canonical" / case["manifestPath"]
             )
             self.assertEqual(
                 hashlib.sha256(case_manifest_path.read_bytes()).hexdigest(),
@@ -4141,7 +4143,7 @@ finally {
         self,
     ) -> None:
         allowlist = json.loads(
-            (ROOT / "testdata/golden/release-canonical-v1.json").read_text(
+            (resolve_testdata_root() / "golden/release-canonical-v1.json").read_text(
                 encoding="utf-8"
             )
         )
@@ -4701,10 +4703,10 @@ finally {
                 for path in profile_paths
             )
 
-            allowlist_source = ROOT / "testdata/golden/release-canonical-v1.json"
+            allowlist_source = resolve_testdata_root() / "golden/release-canonical-v1.json"
             allowlist_payload = allowlist_source.read_bytes()
             allowlist = json.loads(allowlist_payload.decode("utf-8"))
-            canonical_source = ROOT / "testdata/golden/canonical"
+            canonical_source = resolve_testdata_root() / "golden/canonical"
             projected_files = [
                 {
                     "caseId": "",

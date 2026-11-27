@@ -19,6 +19,14 @@ from urllib.parse import unquote
 
 import yaml
 
+try:
+    from scripts.testdata_paths import repository_path
+except ModuleNotFoundError as error:
+    if error.name != "scripts":
+        raise
+    from testdata_paths import repository_path
+
+
 from ab_merge_fixture_validation import validate_ab_merge_golden_fixtures
 from canonical_golden_validation import (
     validate_canonical_golden,
@@ -454,7 +462,7 @@ def load_json(path: Path, errors: list[str]) -> Any | None:
 
 def validate_required_files(errors: list[str]) -> None:
     for relative in sorted(REQUIRED_FILES):
-        if not (ROOT / relative).is_file():
+        if not repository_path(relative, ROOT).is_file():
             errors.append(f"missing required file: {relative}")
 
 
@@ -1819,6 +1827,7 @@ def validate_agent_files(errors: list[str]) -> None:
         "tools/crc-worker/AGENTS.md",
         "refcode/AGENTS.md",
     }:
+        # Scoped agent instructions are repository files, never relocated test data.
         if not (ROOT / relative).is_file():
             errors.append(f"missing scoped AGENTS.md: {relative}")
 

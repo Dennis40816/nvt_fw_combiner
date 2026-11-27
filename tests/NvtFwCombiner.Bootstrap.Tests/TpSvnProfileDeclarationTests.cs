@@ -17,7 +17,7 @@ public sealed class TpSvnProfileDeclarationTests
 {
     private const string DefinitionId = "tp-svn";
     private const string HeaderCopyStructureId = "tp-svn-header-copy";
-    private const string GoldenRoot = "testdata/golden/canonical";
+    private const string GoldenRoot = "golden/canonical";
 
     /// <summary>Decision 45: Header copy start + 0x24 per IC (bank-local in AB images).</summary>
     private static readonly Dictionary<string, long> HeaderCopyStampByIc = new(StringComparer.Ordinal)
@@ -444,7 +444,7 @@ public sealed class TpSvnProfileDeclarationTests
 
     private static byte[] ReadGolden(string relativePath)
     {
-        return File.ReadAllBytes(RepositoryPaths.FromRepositoryRoot($"{GoldenRoot}/{relativePath}"));
+        return File.ReadAllBytes(RepositoryPaths.FromTestData($"{GoldenRoot}/{relativePath}"));
     }
 
     private static byte[] CreateSyntheticNt51950CommonCascadeImage()

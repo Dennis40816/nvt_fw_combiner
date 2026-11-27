@@ -73,6 +73,78 @@ public sealed class RepositoryPathsTests
         }
     }
 
+    /// <summary>Unset test-data configuration preserves the repository copy.</summary>
+    [Fact]
+    public void UnsetTestDataRootUsesRepositoryCopy()
+    {
+        WithConfiguredTestDataRoot(null, () => Assert.Equal(
+            RepositoryPaths.FromRepositoryRoot("testdata"), RepositoryPaths.FindTestDataRoot()));
+    }
+
+    /// <summary>An existing absolute directory supplies fixture paths without a repository marker.</summary>
+    [Fact]
+    public void ConfiguredTestDataRootOverridesRepositoryCopy()
+    {
+        string root = CreateDirectory("testdata");
+        try
+        {
+            WithConfiguredTestDataRoot(root, () =>
+            {
+                Assert.Equal(Path.GetFullPath(root), RepositoryPaths.FindTestDataRoot());
+                Assert.Equal(Path.Combine(root, "golden", "example.json"),
+                    RepositoryPaths.FromTestData("golden/example.json"));
+                Assert.Equal(Path.Combine(root, "golden", "example.json"),
+                    RepositoryPaths.FromTestData("golden", "example.json"));
+                Assert.Equal(Path.Combine(root, "golden", "canonical"), CanonicalGoldenTestData.Root);
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    /// <summary>Invalid test-data configuration never falls back to committed fixtures.</summary>
+    [Fact]
+    public void ConfiguredInvalidTestDataRootsFailClosed()
+    {
+        string root = CreateDirectory("invalid-testdata");
+        try
+        {
+            string file = Path.Combine(root, "example.json");
+            File.WriteAllText(file, "{}");
+            foreach (string configured in new[] { " ", "relative/example", Path.Combine(root, "missing"), file })
+            {
+                WithConfiguredTestDataRoot(configured, () =>
+                {
+                    InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                        RepositoryPaths.FindTestDataRoot);
+                    Assert.Contains("NFC_TESTDATA_ROOT", exception.Message, StringComparison.Ordinal);
+                    _ = Assert.Throws<InvalidOperationException>(() => RepositoryPaths.FromTestData("example.json"));
+                });
+            }
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    private static void WithConfiguredTestDataRoot(string? value, Action assertion)
+    {
+        const string variable = "NFC_TESTDATA_ROOT";
+        string? previous = Environment.GetEnvironmentVariable(variable);
+        try
+        {
+            Environment.SetEnvironmentVariable(variable, value);
+            assertion();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(variable, previous);
+        }
+    }
+
     private static string CreateDirectory(string label)
     {
         string path = Path.Combine(

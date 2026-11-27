@@ -29,10 +29,12 @@ from scripts import predecessor_validation as validation
 from scripts import predecessor_report_reader as reader
 from tests.scripts.v0916_parity_test_support import MODULE, ROOT
 
+from scripts.testdata_paths import resolve_testdata_root
+
 CONTRACTS = ROOT / "docs" / "contracts"
 PLAN_PATH = CONTRACTS / "v0916-parity-certification-v1.json"
 POLICY_PATH = CONTRACTS / "canonical-capability-policy-v1.json"
-MANIFEST_PATH = ROOT / "testdata" / "golden" / "canonical" / "manifest.json"
+MANIFEST_PATH = resolve_testdata_root() / "golden" / "canonical" / "manifest.json"
 CANDIDATE_EXECUTOR_PATH = CONTRACTS / "v100-candidate-source-executor-v1.json"
 UNIVERSE_PUBLICATION = {"supported", "candidate"}
 SEED_RENAMES = {
@@ -79,7 +81,7 @@ class PredecessorComparisonContractTests(unittest.TestCase):
         cls.evidence = {row["routeId"]: row for row in cls.manifest["routeEvidence"]}
         cls.cases = {row["caseId"]: row for row in cls.manifest["cases"]}
         cls.case_manifests = {
-            case_id: load_json(ROOT / "testdata" / "golden" / "canonical" / row["manifestPath"])
+            case_id: load_json(resolve_testdata_root() / "golden" / "canonical" / row["manifestPath"])
             for case_id, row in cls.cases.items()
         }
         cls.universe = {

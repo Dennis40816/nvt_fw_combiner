@@ -24,7 +24,7 @@ public sealed class LocalStateSaveNoticeTests
 {
     private const string NoticeHostName = "LocalStateSaveNoticeHost";
     private const string RetryButtonName = "LocalStateSaveRetryButton";
-    private const string ReferenceCase = "testdata/golden/canonical/NT51923/standard-merge/gen-flash/" +
+    private const string ReferenceCase = "golden/canonical/NT51923/standard-merge/gen-flash/" +
         "topology-unscoped/nt51923-gen-flash/inputs/";
 
     /// <summary>
@@ -962,8 +962,8 @@ public sealed class LocalStateSaveNoticeTests
     private static UiLaunchOptions ReferenceMergeLaunch()
     {
         return UiLaunchOptions.Parse(["--workflow", "standard-merge", "--ic", "NT51923", "--ic-num", "single",
-            "--dp", RepositoryPaths.FromRepositoryRoot(ReferenceCase + "nt51923-dp-input.bin"),
-            "--tp", RepositoryPaths.FromRepositoryRoot(ReferenceCase + "nt51923-tp-input.bin")]);
+            "--dp", RepositoryPaths.FromTestData(ReferenceCase + "nt51923-dp-input.bin"),
+            "--tp", RepositoryPaths.FromTestData(ReferenceCase + "nt51923-tp-input.bin")]);
     }
 
     /// <summary>

@@ -48,6 +48,12 @@ It does not waive final release verification or complete certified Golden output
 execution. A possible future Linux CLI requires a separate support decision and
 appropriate real-platform evidence; no version or date is committed here.
 
+`NFC_TESTDATA_ROOT` points to the `nfc/` directory in the private `nvt-testdata`
+repository, which mirrors this repository's `testdata/` tree. When unset, tests
+and migrated scripts use the repository copy for now. A set value must name a
+fully qualified, existing directory; an empty, relative or missing directory
+fails instead of falling back.
+
 ## Fixed test area
 
 Run `python -B scripts/fetch_core_packages.py` before a manual `dotnet restore`.

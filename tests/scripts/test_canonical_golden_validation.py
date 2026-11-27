@@ -11,6 +11,8 @@ from pathlib import Path
 from types import ModuleType
 from unittest.mock import patch
 
+from scripts.testdata_paths import resolve_testdata_root
+
 VALIDATOR_PATH = (
     Path(__file__).resolve().parents[2] / "scripts" / "canonical_golden_validation.py"
 )
@@ -1010,13 +1012,12 @@ class CanonicalGoldenValidationTests(unittest.TestCase):
 
     def test_nt51929_certified_dpcmi_observations_are_input_only_and_exact(self) -> None:
         case_path = (
-            REPOSITORY_ROOT
-            / "testdata/golden/canonical/NT51929/standard-merge/"
+            resolve_testdata_root() / "golden/canonical/NT51929/standard-merge/"
             "certified-metadata-inputs/topology-unscoped/"
             "nt51929-certified-metadata-inputs-20260904/provenance/case.json"
         )
         case = json.loads(case_path.read_text(encoding="utf-8"))
-        canonical_root = REPOSITORY_ROOT / "testdata/golden/canonical"
+        canonical_root = resolve_testdata_root() / "golden/canonical"
         roles = [artifact["role"] for artifact in case["artifacts"]]
 
         errors: list[str] = []

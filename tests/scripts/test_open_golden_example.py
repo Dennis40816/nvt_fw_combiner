@@ -98,10 +98,13 @@ class OpenGoldenExampleTests(unittest.TestCase):
             script = root / "scripts" / SCRIPT.name
             script.parent.mkdir()
             script.write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8", newline="\n")
+            resolver = ROOT / "scripts" / "testdata_paths.py"
+            (script.parent / resolver.name).write_text(resolver.read_text(encoding="utf-8"), encoding="utf-8")
             manifest = root / "testdata" / "golden" / "canonical" / "synthetic" / "provenance" / "case.json"
             manifest.parent.mkdir(parents=True)
             manifest.write_text(json.dumps(alias), encoding="utf-8", newline="\n")
-            self.assert_alias_refused(self.run_cli(alias["caseId"], "--dry-run", script=script), alias)
+            with mock.patch.dict("os.environ", {"NFC_TESTDATA_ROOT": str(root / "testdata")}):
+                self.assert_alias_refused(self.run_cli(alias["caseId"], "--dry-run", script=script), alias)
 
     def test_listing_keeps_aliases_and_their_declared_disposition(self) -> None:
         result = self.run_cli("--list")

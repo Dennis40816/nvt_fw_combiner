@@ -8,10 +8,12 @@ from pathlib import Path
 
 from scripts.canonical_golden_validation import validate_canonical_golden
 
+from scripts.testdata_paths import resolve_testdata_root
+
 
 ROOT = Path(__file__).resolve().parents[2]
-CANONICAL_ROOT = ROOT / "testdata/golden/canonical"
-LEGACY_ROOT = ROOT / "testdata/golden/ctrlram-replace"
+CANONICAL_ROOT = resolve_testdata_root() / "golden/canonical"
+LEGACY_ROOT = resolve_testdata_root() / "golden/ctrlram-replace"
 DIRECT_CASES = {
     "nt51927-2chip-self-20260705": ("fw1.3.2", "cascade-2", 7, "0x1615"),
     "nt51927-3chip-self-20260705": ("fw1.4.0", "cascade-3", 9, "0x570A"),

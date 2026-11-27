@@ -21,6 +21,8 @@ from tests.scripts.v0916_parity_test_support import (
     runtime_closure_facts,
 )
 
+from scripts.testdata_paths import resolve_testdata_root
+
 
 def receipt_authority(receipt: dict[str, object]):
     return MODULE.ReceiptValidationAuthority(
@@ -305,7 +307,7 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             "nt51926-ctrlram-fw141-tp-work-240k"
         )
         route = next(row for row in plan.routes if row.route_id == route_id)
-        manifest_path = ROOT / "testdata/golden/canonical/manifest.json"
+        manifest_path = resolve_testdata_root() / "golden/canonical/manifest.json"
         authority = MODULE.capture_canonical_authority_from_manifest_for_test(
             manifest_path
         )
@@ -469,8 +471,8 @@ class V0916ParityPipelineTests(V0916ParityTestBase):
             ]
             self.assertTrue(input_path.is_relative_to(root / "admitted-inputs"))
             self.assertTrue(tp_path.is_relative_to(root / "admitted-inputs"))
-            self.assertFalse(input_path.is_relative_to(ROOT / "testdata/golden/canonical"))
-            self.assertFalse(tp_path.is_relative_to(ROOT / "testdata/golden/canonical"))
+            self.assertFalse(input_path.is_relative_to(resolve_testdata_root() / "golden/canonical"))
+            self.assertFalse(tp_path.is_relative_to(resolve_testdata_root() / "golden/canonical"))
             output_root = root / "outputs"
             output_root.mkdir()
             runner = RecordingCliRunner(

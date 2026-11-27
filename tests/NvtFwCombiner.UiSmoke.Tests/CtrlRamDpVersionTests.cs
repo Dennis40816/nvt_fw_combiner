@@ -10,8 +10,8 @@ public sealed class CtrlRamDpVersionTests
     [Fact]
     public async Task BaseDpVersionRemainsD86AfterEachCtrlRamSelection()
     {
-        string fixture = RepositoryPaths.FromRepositoryRoot(
-            "testdata/golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/" +
+        string fixture = RepositoryPaths.FromTestData(
+            "golden/canonical/NT51950/ctrlram-replace/fw2.0.0/single/" +
             "nt51950-fw200-single-auto-prj-676-20260717");
         MainWindowViewModel shell = PresentationTestHost.CreateProductViewModel();
         shell.BeginCtrlRamReplaceFromHomeCommand.Execute(null);
