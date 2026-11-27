@@ -42,6 +42,9 @@ def default_providers(
         import v0916_parity_certification as parity
         import release_source_pins as source_pins
         from render_release_notes import STABLE_VERSION
+    repository_version = re.compile(
+        STABLE_VERSION.pattern.removesuffix("$") + r"(?:-g\.(0|[1-9][0-9]*))?$"
+    )
     source = ".github/workflows/ci.yml"
     target = "docs/ci/workflow-templates/ci.yml"
     providers = (
@@ -67,7 +70,7 @@ def default_providers(
             "release-version-headers",
             ("VERSION", "SPEC.md", "docs/references/verification-report.md"),
             ("SPEC.md", "docs/references/verification-report.md"),
-            lambda before: _plan_release_version_headers(before, STABLE_VERSION),
+            lambda before: _plan_release_version_headers(before, repository_version),
         ),
     )
     if include_claude:
@@ -132,7 +135,9 @@ def _plan_release_version_headers(
 ) -> Mapping[str, bytes]:
     version = before["VERSION"].decode("utf-8").strip()
     if version_pattern.fullmatch(version) is None:
-        raise SyncError("release-version-headers: invalid stable VERSION")
+        raise SyncError(
+            "release-version-headers: invalid VERSION (expected X.Y.Z or X.Y.Z-g.N)"
+        )
     planned = {}
     for path, marker in (
         ("SPEC.md", "> 文件版本："),
@@ -151,7 +156,9 @@ def _plan_release_version_headers(
             or not token.endswith(b"`")
             or version_pattern.fullmatch(token[1:-1].decode("utf-8")) is None
         ):
-            raise SyncError(f"{path}: malformed stable-version header")
+            raise SyncError(
+                f"{path}: malformed version header (expected X.Y.Z or X.Y.Z-g.N)"
+            )
         planned[path] = (
             raw[: match.start(1) + 1] + version.encode() + raw[match.end(1) - 1 :]
         )

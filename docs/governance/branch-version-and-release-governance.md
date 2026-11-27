@@ -50,6 +50,11 @@ The existing release-promotion policy validates this mapping and its hashes.
 Do not add another parser or independently normalize a tag, directory, package,
 manifest, or Catalog version into a different identity.
 
+On development branches, `VERSION` may be `X.Y.Z-g.N` under
+[Development Version Identity](development-tags.md#development-version-identity).
+The stable release identity and its mapping remain exactly `X.Y.Z`; a release
+PR removes the `-g.N` suffix.
+
 ## Establish Branch Authority
 
 Under [ADR 0080 items 10-12](../adr/0080-governance-reset.md#branches-releases-and-ci):
