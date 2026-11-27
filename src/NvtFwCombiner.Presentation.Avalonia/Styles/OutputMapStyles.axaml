@@ -1,0 +1,84 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
+  <Style Selector="views|OutputMap">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+  </Style>
+  <Style Selector="Border.outputMapCard">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="Padding" Value="16,14" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+  </Style>
+  <Style Selector="TextBlock.outputMapTitle">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.outputMapCaption, TextBlock.outputMapAddress">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextMutedBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.outputMapAddress">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
+  </Style>
+  <Style Selector="Border.outputMapTrack, Border.outputMapZoom">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.outputMapTrack">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" /><Setter Property="BorderThickness" Value="1" />
+  </Style>
+  <Style Selector="Border.outputMapZoom">
+    <Setter Property="Padding" Value="12" /><Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+  </Style>
+  <Style Selector="Border.outputMapFill, Border.outputMapHighlight">
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.outputMapFill"><Setter Property="Opacity" Value="0.88" /></Style>
+  <Style Selector="Border.outputMapHighlight"><Setter Property="BorderThickness" Value="2" /></Style>
+  <Style Selector="Border.outputMapVersion"><Setter Property="Background" Value="{DynamicResource NfcMemoryTpBackupFillBrush}" /></Style>
+  <Style Selector="Border.outputMapCrcStorage"><Setter Property="Background" Value="{DynamicResource NfcTextMutedBrush}" /></Style>
+  <Style Selector="Button.outputMapTarget">
+    <Setter Property="MinWidth" Value="0" /><Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+    <Setter Property="Transitions"><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.12" /></Transitions></Setter>
+    <Setter Property="Template"><ControlTemplate>
+      <Grid>
+        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+          Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}"
+          BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+          CornerRadius="{TemplateBinding CornerRadius}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+        <Rectangle Name="PreviewOutline" Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="2"
+                   StrokeDashArray="3,2" IsVisible="False" IsHitTestVisible="False" />
+      </Grid>
+    </ControlTemplate></Setter>
+  </Style>
+  <Style Selector="Button.outputMapRegion"><Setter Property="ClipToBounds" Value="True" /></Style>
+  <Style Selector="Button.outputMapJump">
+    <Setter Property="Height" Value="26" /><Setter Property="Padding" Value="10,0" /><Setter Property="Margin" Value="6,0,0,4" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" /><Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+    <Setter Property="BorderThickness" Value="1" /><Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.outputMapTarget:pointerover, Button.outputMapRegion.preview, Button.outputMapJump.preview">
+    <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.outputMapBlock:pointerover"><Setter Property="Background" Value="Transparent" /></Style>
+  <Style Selector="Button.outputMapBlock"><Setter Property="Opacity" Value="0.88" /></Style>
+  <Style Selector="Button.outputMapBlock.preview, Button.outputMapBlock.pinned"><Setter Property="Opacity" Value="1" /></Style>
+  <Style Selector="Button.outputMapBlock.preview /template/ Rectangle#PreviewOutline"><Setter Property="IsVisible" Value="True" /></Style>
+  <Style Selector="Button.outputMapTarget.pinned, Button.outputMapTarget:focus-visible">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" /><Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button.outputMapTarget.pinned /template/ Rectangle#PreviewOutline"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="Button.outputMapTarget:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+  <Style Selector="Button.outputMapTarget.reducedMotion"><Setter Property="Transitions"><Transitions /></Setter></Style>
+</Styles>

@@ -7,6 +7,7 @@
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowControlStyles.axaml" />
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/SettingsVersionStyles.axaml" />
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MemoryCoverageStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/OutputMapStyles.axaml" />
     <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/FirmwareSlotExperienceStyles.axaml" />
   </Application.Styles>
   <Application.Resources>
