@@ -709,6 +709,17 @@ public sealed class MemoryLayoutSnapshot
     /// <summary>Declared DP version fields or extractor carriers; location does not assert a readable version value.</summary>
     public MemoryLayoutFactSet<MemoryLayoutVersionLocation> DpVersionLocations => _facts.DpVersionLocations;
 
+    /// <summary>
+    /// Exact compiled operations in execution order, including logical output and scratch-space steps.
+    /// OperationId is the stable reference used by CompositionIssue.OperationId within this compilation.
+    /// SourceSpaceId/SourceRange and TargetSpaceId/TargetRange retain their plan address spaces,
+    /// which may differ from the physical map's AddressSpaceId. Source-less primitives retain their
+    /// Domain-defined absent source. DeclaredWriteRanges identifies authorized writes; an external
+    /// processor's TargetRange is its staging extent, not a claim that it writes every staged byte.
+    /// These are planned operations, not evidence of executed or changed bytes.
+    /// </summary>
+    public MemoryLayoutFactSet<CompositionOperation> Steps => _facts.Steps;
+
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,
         MemoryLayoutGeometryKind geometryKind,

@@ -132,6 +132,21 @@ known with values, known empty, and unavailable with a typed reason; absent
 authority never means a known-empty declaration. Existing segments and byte
 execution retain their meanings.
 
+The fourth layout fact exposes `MemoryLayoutSnapshot.Steps` as an immutable
+`MemoryLayoutFactSet<CompositionOperation>` over the exact compiled overlay's
+`CompositionPlan.OrderedOperations`. It retains every operation reference and
+its execution order, including logical-output and scratch-space steps, without
+depending on physical regions or selected display segments. No overlay means
+unavailable with `CompiledPlanNotResolved`; an admitted plan with no operations
+is known empty. Existing `CompositionIssue.OperationId` joins to each step's
+`OperationId` within the snapshot's compilation identity. Source and target
+ranges keep their declared plan address spaces; source-less primitives retain
+their Domain-defined absent source. `DeclaredWriteRanges` remains the authority
+for permitted writes, while an external processor's `TargetRange` is its staging
+extent. These planned facts do not claim execution or observed byte changes.
+Domain/Profile operation and issue semantics, output bytes, and existing
+snapshot members remain unchanged; no migration seam is introduced.
+
 `CompiledRegionAccessContract` owns effective authoring prohibitions and the
 same target-write predicate used by the profile compiler. A prohibited byte
 range is one that no legal authoring target can cover, including default

@@ -15,6 +15,33 @@ namespace NvtFwCombiner.Bootstrap.Tests.MemoryLayout;
 [Collection(nameof(MemoryLayoutProjectorSerialGroup))]
 public sealed class MemoryLayoutBuiltInFactTests
 {
+    /// <summary>Standard Merge steps retain the built-in compiler's ids, ordering and complete source/target ranges.</summary>
+    [Fact]
+    public void BuiltInStandardMergeStepFactsReuseExactCompiledOperations()
+    {
+        ProjectionFixture fixture = BuiltInFixture(BuiltInCompositionTestProfiles.StandardMerge());
+        ActiveSessionSnapshot session = StandardSession(fixture);
+
+        MemoryLayoutSnapshot layout = MemoryLayoutProjector.Project(fixture.Capability, session, fixture.Composition);
+
+        Assert.Equal(MemoryLayoutFactStatus.KnownWithValues, layout.Steps.Status);
+        Assert.Equal(MemoryLayoutFactUnavailableReason.None, layout.Steps.UnavailableReason);
+        Assert.Equal(
+            [
+                ("copy-tp", 100, "tp-input", (ByteRange?)new ByteRange(0, 0x3C000), "output-image", new ByteRange(0, 0x3C000)),
+                ("copy-dp", 200, "dp-input", (ByteRange?)new ByteRange(0x3E000, 0x2000), "output-image", new ByteRange(0x3E000, 0x2000)),
+            ],
+            layout.Steps.Values.Select(static step =>
+                (step.OperationId, step.Sequence, step.SourceSpaceId, step.SourceRange, step.TargetSpaceId, step.TargetRange)));
+        Assert.All(layout.Steps.Values, (step, index) =>
+        {
+            Assert.Same(fixture.Composition.Plan.OrderedOperations[index], step);
+            Assert.Equal(CompositionOperationKind.CopyRange, step.Kind);
+            Assert.Equal([step.TargetRange], step.DeclaredWriteRanges);
+        });
+        Assert.Equal("flash", layout.AddressSpaceId);
+    }
+
     /// <summary>Authoring prohibitions survive permitted processor writes and are not preservation segments.</summary>
     [Fact]
     public void BuiltInAuthoringProhibitionsRemainReadOnlyWhenProcessorWillWriteThem()

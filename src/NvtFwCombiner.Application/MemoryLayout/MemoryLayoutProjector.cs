@@ -168,7 +168,8 @@ public static partial class MemoryLayoutProjector
         MemoryLayoutProjectedFacts facts = MemoryLayoutFactProjection.Create(
             capability, authoring, map, map?.AddressSpaceId ?? plan.OutputSpaceId, capacity,
             (sourceSpaceId, range) => contentSources.FindOutputLocations(sourceSpaceId, range, after,
-                compiledOverlay is null ? 0 : plan.OrderedOperations.Count));
+                compiledOverlay is null ? 0 : plan.OrderedOperations.Count),
+            compiledOverlay);
 
         return map is null
             ? new MemoryLayoutSnapshot(
