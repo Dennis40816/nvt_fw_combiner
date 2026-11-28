@@ -20,6 +20,7 @@ internal sealed class OutputMapTextResources(ShellLanguage language)
     internal string Warning => Pick("Warning", "警告");
     internal string Error => Pick("Error", "錯誤");
     internal string End => Pick("end", "結尾");
+    internal string DpVersion => Pick("DP version", "DP 版本");
     internal string Kind(OutputMapBlockKind kind)
     {
         return kind switch
