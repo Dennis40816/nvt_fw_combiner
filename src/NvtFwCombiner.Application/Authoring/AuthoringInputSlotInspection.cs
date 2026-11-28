@@ -111,6 +111,29 @@ public sealed class AuthoringInputSlotStatus
                 ? CompiledInputArtifactInspectionNextAction.SelectReadableInput
                 : _inspectionAdvisories.FirstOrDefault()?.NextAction ??
                     inspection?.NextAction ?? CompiledInputArtifactInspectionNextAction.None);
+        InspectionFindings = Array.AsReadOnly(CreateInspectionFindings());
+    }
+
+    private CompiledInputArtifactInspectionFinding[] CreateInspectionFindings()
+    {
+        List<CompiledInputArtifactInspectionFinding> findings =
+        [
+            .. (Inspection?.Findings ?? []).Select(finding => finding with
+            {
+                Identity = finding.Identity with { SlotId = SlotId },
+            }),
+        ];
+        if (Inspection is null && InspectionLifecycle == AuthoringSlotLifecycle.Error &&
+            InspectionIssueCode is { } code)
+        {
+            findings.Add(new CompiledInputArtifactInspectionFinding(
+                new CompiledInputArtifactFindingIdentity(SlotId, AddressSpaceId, code, null, SlotId),
+                CompositionIssueSeverity.Error, InspectionNextAction, null));
+        }
+        findings.AddRange(InspectionAdvisories.Select(advisory => new CompiledInputArtifactInspectionFinding(
+            new CompiledInputArtifactFindingIdentity(SlotId, AddressSpaceId, advisory.IssueCode, null, SlotId),
+            CompositionIssueSeverity.Warning, advisory.NextAction, null)));
+        return [.. findings];
     }
 
     /// <summary>Rebinds one typed result to an equivalent exact capability and revision.</summary>
@@ -224,6 +247,9 @@ public sealed class AuthoringInputSlotStatus
 
     /// <summary>Stable non-blocking advisories attached to otherwise accepted input bytes.</summary>
     public IReadOnlyList<CompiledInputArtifactInspectionAdvisory> InspectionAdvisories { get; }
+
+    /// <summary>Complete evaluated findings followed by the existing observation advisories.</summary>
+    public IReadOnlyList<CompiledInputArtifactInspectionFinding> InspectionFindings { get; }
 
     /// <summary>Stable terminal issue code, including source-access failures.</summary>
     public string? InspectionIssueCode { get; }

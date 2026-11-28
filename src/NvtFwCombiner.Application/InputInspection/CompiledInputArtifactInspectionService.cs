@@ -81,6 +81,9 @@ public sealed record CompiledInputArtifactInspectionResult(
     bool BlocksBuild,
     CompiledInputArtifactInspectionNextAction NextAction)
 {
+    /// <summary>All evaluated findings in stable publication order, independently of the legacy summary.</summary>
+    public IReadOnlyList<CompiledInputArtifactInspectionFinding> Findings { get; internal init; } = [];
+
     /// <summary>Optional path-free evidence from the same compiled validation evaluation.</summary>
     public InputDiagnosticEvidence? DiagnosticEvidence { get; init; }
 
@@ -189,21 +192,37 @@ public static class CompiledInputArtifactInspectionService
                     nameof(addressSpaceId)),
             };
         inspection = ApplySourceEnvelopeWarning(details, slot, inspection);
-        return !inspection.BlocksBuild && slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
+        inspection = AppendSummaryFinding(inspection);
+        if (!inspection.BlocksBuild && slot.ArtifactClass == CompiledInputArtifactClass.TpFirmware &&
             inspection.AcceptedSnapshotRange is { } accepted &&
             FirmwareConfigChipCountDiagnostics.AssessPositive(
                 sourceBytes.Span.Slice(checked((int)accepted.Start), checked((int)accepted.Length)),
-                CompiledInputArtifactObservationService.DeclaredNvtEndFlag(composition), addressSpaceId, out _) is { } countIssue
-            ? inspection with
+                CompiledInputArtifactObservationService.DeclaredNvtEndFlag(composition), addressSpaceId, out _) is { } countIssue)
+        {
+            inspection = inspection with
             {
                 Severity = CompiledInputArtifactInspectionSeverity.Blocking,
                 IssueCode = countIssue.Code,
                 AdmissionIssue = countIssue,
                 BlocksBuild = true,
                 NextAction = CompiledInputArtifactInspectionNextAction.SelectCompatibleInput,
-            }
-            : CompiledReferenceBankInspection.Inspect(composition, addressSpaceId, sourceBytes,
-                ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection));
+            };
+            inspection = AppendSummaryFinding(inspection);
+        }
+        return CompiledReferenceBankInspection.Inspect(composition, addressSpaceId, sourceBytes,
+            ApplyInputLoadValidation(composition, addressSpaceId, sourceBytes, inspection));
+    }
+
+    private static CompiledInputArtifactInspectionResult AppendSummaryFinding(
+        CompiledInputArtifactInspectionResult inspection)
+    {
+        return inspection.Severity == CompiledInputArtifactInspectionSeverity.Valid
+            ? inspection
+            : inspection with
+            {
+                Findings = Array.AsReadOnly<CompiledInputArtifactInspectionFinding>(
+                    [.. inspection.Findings, CompiledInputArtifactInspectionFinding.FromSummary(inspection)]),
+            };
     }
 
     private static CompiledInputArtifactInspectionResult ApplySourceEnvelopeWarning(
@@ -347,20 +366,38 @@ public static class CompiledInputArtifactInspectionService
         ReadOnlyMemory<byte> sourceBytes,
         CompiledInputArtifactInspectionResult inspection)
     {
+        InputLoadValidationEvaluationResult[] evaluations = [.. composition.V2Details.Provenance.ValidationRequirements
+            .OfType<CompiledUniformInputRangeValidation>()
+            .Where(requirement => StringComparer.Ordinal.Equals(
+                requirement.AddressSpaceId,
+                addressSpaceId))
+            .OrderByDescending(static requirement => requirement.Severity)
+            .Select(requirement => CompiledInputLoadValidationEvaluator.Evaluate(sourceBytes.Span, requirement))
+        ];
+        inspection = inspection with
+        {
+            Findings = Array.AsReadOnly<CompiledInputArtifactInspectionFinding>(
+            [
+                .. inspection.Findings,
+                .. evaluations.SelectMany(static evaluation => evaluation.RangeFindings)
+                    .Select(finding =>
+                    {
+                        CompositionIssue issue = finding.Issue;
+                        InputDiagnosticEvidence evidence = finding.DiagnosticEvidence;
+                        return new CompiledInputArtifactInspectionFinding(
+                            new CompiledInputArtifactFindingIdentity(inspection.SlotId, addressSpaceId,
+                                issue.Code, evidence.SourceRange, issue.OperationId),
+                            issue.Severity, CompiledInputArtifactInspectionNextAction.None, evidence, issue);
+                    }),
+            ]),
+        };
         if (inspection.BlocksBuild)
         {
             return inspection;
         }
 
-        InputLoadValidationEvaluationResult? failed = composition.V2Details.Provenance.ValidationRequirements
-            .OfType<CompiledUniformInputRangeValidation>()
-            .Where(requirement => StringComparer.Ordinal.Equals(
-                requirement.AddressSpaceId,
-                addressSpaceId))
-            .Where(static requirement => requirement.Severity != CompiledValidationSeverity.Info)
-            .OrderByDescending(static requirement => requirement.Severity)
-            .Select(requirement => CompiledInputLoadValidationEvaluator.Evaluate(sourceBytes.Span, requirement))
-            .FirstOrDefault(static evaluation => evaluation.Issue is not null);
+        InputLoadValidationEvaluationResult? failed = evaluations.FirstOrDefault(static evaluation =>
+            evaluation.Issue is { Severity: not CompositionIssueSeverity.Info });
         bool blocksBuild = failed?.Issue?.Severity == CompositionIssueSeverity.Error;
         return failed is null || (!blocksBuild &&
                 inspection.Severity != CompiledInputArtifactInspectionSeverity.Valid)
