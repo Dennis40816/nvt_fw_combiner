@@ -64,7 +64,7 @@ internal static class MemoryCoverageBarProjection
         long end = parts[^1].RangeEndExclusive!.Value;
         string address = FormattableString.Invariant($"0x{start:X5}-0x{end - 1:X5}");
         string length = FormattableString.Invariant($"len 0x{end - start:X}");
-        bool partial = parts.Any(static part => part.IsSelectedForWrite) && parts.Any(static part => part.UsesKeptPattern);
+        bool partial = IsPartialReplacement(parts);
         bool sameRole = parts.All(part => part.ContentRole == first.ContentRole && part.CtrlRamRegionRole == first.CtrlRamRegionRole);
         return new MemoryCoverageSegmentViewModel(
             $"{address} ({length})", Join(parts.Select(static part => part.SourceLabel)),
@@ -91,6 +91,12 @@ internal static class MemoryCoverageBarProjection
     private static string Join(IEnumerable<string> values)
     {
         return string.Join(" / ", values.Distinct(StringComparer.Ordinal));
+    }
+
+    /// <summary>Display-only mixed write/kept state, shared by the old map and layered panel.</summary>
+    internal static bool IsPartialReplacement(IReadOnlyList<MemoryCoverageSegmentViewModel> parts)
+    {
+        return parts.Any(static part => part.IsSelectedForWrite) && parts.Any(static part => part.UsesKeptPattern);
     }
 
     /// <summary>Outer start and end of the ranged slices of one address space; empty when there is none or several.</summary>
