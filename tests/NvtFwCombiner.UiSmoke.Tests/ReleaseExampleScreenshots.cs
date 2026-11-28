@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
@@ -170,41 +171,24 @@ public sealed class ReleaseExampleScreenshots
             if (!captureWarningPopup) { Save("details-open"); }
             if (exampleId == "nt51929-ab-ctrlram-candidate")
             {
-                Control overview = Assert.Single(window.GetVisualDescendants().OfType<Control>(),
-                    control => control.Name == "CtrlRamFlashOverview" && control.IsEffectivelyVisible);
-                Assert.Single(overview.GetVisualDescendants().OfType<MemoryCoverageBar>()).ReducedMotion = true;
-                Control dp = overview.GetVisualDescendants().OfType<Control>().First(control =>
-                    control.Classes.Contains("memoryExplorerSlice") && control.DataContext is MemoryCoverageSegmentViewModel
-                    { ContentRole: Application.MemoryLayout.MemoryContentRole.Dp });
-                Assert.True(dp.Focus(NavigationMethod.Tab));
+                OutputLayoutPanel panel = Assert.Single(window.GetVisualDescendants().OfType<OutputLayoutPanel>(),
+                    static control => control.IsEffectivelyVisible);
+                OutputLayoutPanelModel model = Assert.IsType<OutputLayoutPanelModel>(shell.Replace.OutputLayout.Current.Panel);
+                MemoryCoverageSegmentViewModel dp = model.RowSegments.First(static segment =>
+                    segment.ContentRole == Application.MemoryLayout.MemoryContentRole.Dp);
+                MergeOutputLayoutTestHost.Open(window, panel, dp);
+                Button row = MergeOutputLayoutTestHost.RowFor(panel, dp);
+                Control body = OutputLayoutPanelTestHost.Body(row);
+                Button technical = Assert.Single(body.GetVisualDescendants().OfType<Button>(), button =>
+                    AutomationProperties.GetAutomationId(button) == "OutputLayout.Technical");
+                technical.Command!.Execute(null);
                 Dispatcher.UIThread.RunJobs();
                 window.UpdateLayout();
-                Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
-                Assert.Single(card.GetVisualDescendants().OfType<Expander>()).IsExpanded = true;
-                using (var wait = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
-                {
-                    while (true)
-                    {
-                        Dispatcher.UIThread.RunJobs();
-                        window.UpdateLayout();
-                        card.UpdateLayout();
-                        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                        Dispatcher.UIThread.RunJobs();
-                        if (card.Opacity == 1 &&
-                            card.GetVisualDescendants().OfType<TextBlock>().Any(control => control.IsEffectivelyVisible && control.Text == "a-cmi-dp-version") &&
-                            card.GetVisualDescendants().OfType<TextBlock>().Any(control => control.IsEffectivelyVisible && control.Bounds.Width > 0 && control.Text == "flash [0x401A,0x401D)"))
-                        {
-                            break;
-                        }
-                        Assert.False(wait.IsCancellationRequested,
-                            $"DP card reveal/expanded field layout did not complete for {exampleId}: opacity={card.Opacity}, bounds={card.Bounds}.");
-                        await Task.Delay(50, TestContext.Current.CancellationToken);
-                    }
-                }
-                Assert.Equal(1, card.Opacity);
-                Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), control => control.IsEffectivelyVisible && control.Text == "a-cmi-dp-version");
-                Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), control => control.IsEffectivelyVisible && control.Bounds.Width > 0 && control.Text == "flash [0x401A,0x401D)");
-                Save("dp-card");
+                Assert.Contains(body.GetVisualDescendants().OfType<TextBlock>(), control =>
+                    control.IsEffectivelyVisible && control.Text == "a-cmi-dp-version");
+                Assert.Contains(body.GetVisualDescendants().OfType<TextBlock>(), control =>
+                    control.IsEffectivelyVisible && control.Text == "flash [0x401A,0x401D)");
+                Save("dp-inline");
             }
         }
         finally { await CloseAndFlushAsync(window); }

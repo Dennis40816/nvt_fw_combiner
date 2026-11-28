@@ -183,7 +183,29 @@
             IsVisible="{Binding IsReplaceVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:ReplacePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+              <Border Container.Name="ReplaceWorkspace" Container.Sizing="Width">
+                <Border.Styles>
+                  <Style Selector="Grid.replaceLayout">
+                    <Setter Property="ColumnDefinitions" Value="1.15*,430" />
+                  </Style>
+                  <Style Selector="views|OutputLayoutPanel.replaceOutput">
+                    <Setter Property="Grid.Row" Value="2" />
+                    <Setter Property="Grid.Column" Value="1" />
+                  </Style>
+                  <ContainerQuery Name="ReplaceWorkspace" Query="max-width:1000">
+                    <Style Selector="Grid.replaceLayout">
+                      <Setter Property="ColumnDefinitions" Value="*" />
+                    </Style>
+                    <Style Selector="ContentControl.replaceSettings">
+                      <Setter Property="Grid.ColumnSpan" Value="1" />
+                    </Style>
+                    <Style Selector="views|OutputLayoutPanel.replaceOutput">
+                      <Setter Property="Grid.Row" Value="3" />
+                      <Setter Property="Grid.Column" Value="0" />
+                    </Style>
+                  </ContainerQuery>
+                </Border.Styles>
+              <Grid Classes="replaceLayout" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
           <StackPanel Spacing="{DynamicResource NfcSpace16}" Container.Name="ReplaceContent" Container.Sizing="Width">
             <StackPanel.Styles>
               <Style Selector="Grid.replaceHeaderActions">
@@ -267,7 +289,7 @@
 
           </StackPanel>
 
-          <ContentControl Grid.Row="1" Grid.ColumnSpan="2" Content="{Binding}"
+          <ContentControl Classes="replaceSettings" Grid.Row="1" Grid.ColumnSpan="2" Content="{Binding}"
                           ContentTemplate="{StaticResource CtrlRamModeSettingsTemplate}" />
 
           <ContentControl
@@ -275,13 +297,14 @@
               Content="{Binding}"
               ContentTemplate="{StaticResource ReplaceModeContentTemplate}" />
 
-          <ContentControl
-              Grid.Row="2"
-              Grid.Column="1"
+          <views:OutputLayoutPanel
+              x:Name="ReplaceOutputLayoutPanel"
+              Classes="replaceOutput"
               VerticalAlignment="Top"
-              Content="{Binding}"
-              ContentTemplate="{StaticResource ReplaceOutputLayoutPanelTemplate}" />
+              Model="{Binding OutputLayout.Current.Panel}"
+              ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
               </Grid>
+              </Border>
             </DataTemplate>
           </ContentControl.ContentTemplate>
         </ContentControl>
@@ -292,8 +315,25 @@
             IsVisible="{Binding IsMergeVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:MergePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
-          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+              <Border Container.Name="MergeWorkspace" Container.Sizing="Width">
+                <Border.Styles>
+                  <Style Selector="views|OutputLayoutPanel.mergeOutput">
+                    <Setter Property="Grid.Row" Value="1" />
+                    <Setter Property="Grid.Column" Value="1" />
+                  </Style>
+                  <ContainerQuery Name="MergeWorkspace" Query="max-width:1000">
+                    <Style Selector=":is(Control).mergeInput">
+                      <Setter Property="Grid.ColumnSpan" Value="2" />
+                    </Style>
+                    <Style Selector="views|OutputLayoutPanel.mergeOutput">
+                      <Setter Property="Grid.Row" Value="2" />
+                      <Setter Property="Grid.Column" Value="0" />
+                      <Setter Property="Grid.ColumnSpan" Value="2" />
+                    </Style>
+                  </ContainerQuery>
+                </Border.Styles>
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+          <StackPanel Classes="mergeInput" Spacing="{DynamicResource NfcSpace16}">
             <Grid
                 x:Name="MergePageHeader"
                 ColumnDefinitions="*,Auto"
@@ -325,17 +365,18 @@
           </StackPanel>
 
           <ContentControl
+              Classes="mergeInput"
               Grid.Row="1"
               Content="{Binding}"
               ContentTemplate="{StaticResource MergeModeContentTemplate}" />
 
-          <ContentControl
-              Grid.Row="1"
-              Grid.Column="1"
+          <views:OutputLayoutPanel
+              Classes="mergeOutput"
               VerticalAlignment="Top"
-              Content="{Binding}"
-              ContentTemplate="{StaticResource MergeOutputLayoutPanelTemplate}" />
+              Model="{Binding OutputLayout.Current.Panel}"
+              ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
               </Grid>
+              </Border>
             </DataTemplate>
           </ContentControl.ContentTemplate>
         </ContentControl>

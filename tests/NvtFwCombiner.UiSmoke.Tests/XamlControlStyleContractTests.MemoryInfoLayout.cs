@@ -29,7 +29,7 @@ public sealed partial class XamlControlStyleContractTests
     private static readonly Uri ProductionWorkflowTemplatesUri = new(
         "avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml");
 
-    /// <summary>The real NT51950 golden route stays legible and bounded in the production rail.</summary>
+    /// <summary>The real NT51950 golden route keeps complete rows inside the responsive production panel.</summary>
     [AvaloniaTheory]
     [InlineData(430, false, false)]
     [InlineData(430, false, true)]
@@ -40,155 +40,33 @@ public sealed partial class XamlControlStyleContractTests
     [InlineData(360, true, false)]
     [InlineData(360, true, true)]
     public async Task RealNt51950GoldenCtrlRamPanelFitsProductionRail(
-        double railWidth,
-        bool useDarkTheme,
-        bool useTraditionalChinese)
+        double railWidth, bool useDarkTheme, bool useTraditionalChinese)
     {
-        MainWindowViewModel viewModel = await CreateNt51950GoldenCtrlRamViewModelAsync(
-            TestContext.Current.CancellationToken);
-        viewModel.IsReducedMotionEnabled = true;
-        if (useTraditionalChinese)
-        {
-            viewModel.SelectedLanguage = "Traditional Chinese";
-        }
-
-        ThemeVariant theme = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
-        var workflowTemplates = new ResourceInclude(ProductionWorkflowTemplatesUri)
-        {
-            Source = ProductionWorkflowTemplatesUri,
-        };
-        Assert.True(workflowTemplates.TryGetResource(
-            "ReplaceOutputLayoutPanelTemplate",
-            theme,
-            out object? templateResource));
-        IDataTemplate template = Assert.IsType<IDataTemplate>(templateResource, exactMatch: false);
-        var panel = new ContentControl
-        {
-            Content = viewModel.Replace,
-            ContentTemplate = template,
-        };
-        var viewport = new ScrollViewer
-        {
-            Width = railWidth,
-            Height = 760,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Content = panel,
-        };
-        var host = new Window
-        {
-            Width = railWidth,
-            Height = 760,
-            RequestedThemeVariant = theme,
-            DataContext = viewModel,
-            Content = viewport,
-        };
-        host.Resources.MergedDictionaries.Add(new ResourceInclude(ProductionSharedTemplatesUri)
-        {
-            Source = ProductionSharedTemplatesUri,
-        });
-        host.Resources.MergedDictionaries.Add(workflowTemplates);
-        host.Styles.Add(new StyleInclude(ProductionMainWindowStylesUri)
-        {
-            Source = ProductionMainWindowStylesUri,
-        });
-        host.Styles.Add(new StyleInclude(ProductionButtonStylesUri)
-        {
-            Source = ProductionButtonStylesUri,
-        });
-        host.Styles.Add(new StyleInclude(ProductionVisualStylesUri)
-        {
-            Source = ProductionVisualStylesUri,
-        });
-
-        host.Show();
-        try
-        {
-            host.Measure(new Size(railWidth, 760));
-            host.Arrange(new Rect(0, 0, railWidth, 760));
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-
-            MemoryCoverageGroupViewModel common = Assert.Single(
-                viewModel.Replace.ReplaceCoverageGroups,
-                group => group.RegionGroup == ReplaceRegionGroup.Common);
-            Assert.Equal(3, common.Items.Count);
-            Assert.True(viewModel.Replace.HasCtrlRamFocusLayout);
-            Assert.DoesNotContain(
-                panel.GetVisualDescendants().OfType<TextBlock>(),
-                candidate => candidate.Text == viewModel.Replace.ReplaceSelectedCoverageSummary && candidate.IsEffectivelyVisible);
-            Assert.All(
-                panel.GetVisualDescendants().OfType<Control>()
-                    .Where(candidate => candidate.IsEffectivelyVisible && candidate.Bounds is { Width: > 0, Height: > 0 }),
-                candidate => AssertControlFitsWidth(candidate, panel));
-            AssertVisibleTextDoesNotOverlap(panel);
-
-            MemoryCoverageBar[] bars = [.. panel.GetVisualDescendants().OfType<MemoryCoverageBar>().Where(bar => bar.IsEffectivelyVisible)];
-            MemoryCoverageBar overview = Assert.Single(bars);
-            foreach (MemoryCoverageBar bar in bars)
-            {
-                ProportionalStackPanel proportionalBar = bar.GetVisualDescendants().OfType<ProportionalStackPanel>().First();
-                Control[] arrangedSegments = [.. proportionalBar.Children.Where(child => child.Bounds.Width > 0)];
-                Assert.NotEmpty(arrangedSegments);
-                Assert.Equal(0d, arrangedSegments[0].Bounds.X, 1);
-                Assert.Equal(proportionalBar.Bounds.Width, arrangedSegments[^1].Bounds.Right, 1);
-                Assert.True(proportionalBar.Bounds.Width > 300d);
-            }
-            Assert.DoesNotContain(panel.GetVisualDescendants().OfType<Expander>(),
-                candidate => candidate.Classes.Contains("inlineDisclosure") && candidate.IsEffectivelyVisible);
-
-            Assert.NotEmpty(viewModel.Replace.CtrlRamFocusLanes);
-            bool sawVisibleNf = false;
-            foreach (MemoryFocusLaneViewModel lane in viewModel.Replace.CtrlRamFocusLanes)
-            {
-                ProportionalStackPanel localStrip = CtrlRamMemoryLayoutTests.OpenLane(host, lane);
-                Border local = Assert.Single(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemoryLocalView");
-                Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), candidate =>
-                    candidate.Text == lane.Title && candidate.IsEffectivelyVisible);
-                Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), candidate =>
-                    candidate.Text?.StartsWith(viewModel.Replace.Text.MemoryCtrlRamDetailLabel + " · ", StringComparison.Ordinal) == true && candidate.IsEffectivelyVisible);
-                sawVisibleNf |= local.GetVisualDescendants().OfType<TextBlock>().Any(candidate =>
-                    candidate.Text == "NF" && candidate.IsEffectivelyVisible);
-                AssertControlFitsWidth(local, panel);
-                AssertVisibleTextDoesNotOverlap(local);
-                Control[] cells = [.. localStrip.Children.Where(child => child.Bounds.Width > 0)];
-                Assert.NotEmpty(cells);
-                Assert.Equal(0d, cells[0].Bounds.X, 1);
-                // Same independently snapped child-width contract as
-                // CtrlRamMemoryLayoutTests.AssertLiftIsNotClipped; overview precision above is unchanged.
-                Assert.InRange(cells[^1].Bounds.Right - localStrip.Bounds.Width, -1, 1);
-                Assert.InRange(localStrip.Bounds.Width, 1, overview.Bounds.Width);
-                foreach (Control cell in cells)
-                {
-                    Assert.True(cell.Focus(NavigationMethod.Tab));
-                    Dispatcher.UIThread.RunJobs();
-                    AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                    Border card = Assert.Single(host.GetVisualDescendants().OfType<Border>(), candidate => candidate.Name == "MemorySliceCard");
-                    Assert.Same(cell.DataContext, card.DataContext);
-                    AssertControlFitsWidth(card, panel);
-                }
-            }
-            Assert.True(sawVisibleNf, "The real NF segment must be visible after opening its lane; shared DiffDLM has a separate lane.");
-
-            using Avalonia.Media.Imaging.Bitmap? frame = host.GetLastRenderedFrame();
-            Assert.NotNull(frame);
-            string? outputDirectory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                _ = Directory.CreateDirectory(outputDirectory);
-                string themeName = useDarkTheme ? "dark" : "light";
-                string languageName = useTraditionalChinese ? "zh-tw" : "en";
-                string outputPath = Path.Combine(
-                    outputDirectory,
-                    $"nfc-memory-ctrlram-golden-{railWidth:F0}-{themeName}-{languageName}.png");
-                await using FileStream output = File.Create(outputPath);
-                frame.SavePng(output);
-            }
-        }
-        finally
-        {
-            host.Close();
-        }
+        using var workspace = TempWorkspace.Create("ctrlram-golden-panel");
+        await using ReplaceOutputLayoutTestHost host = await ReplaceOutputLayoutTestHost.CreateAsync(workspace,
+            width: railWidth == 430 ? 1280 : 960, height: 1000,
+            dark: useDarkTheme, chinese: useTraditionalChinese);
+        await LoadNt51950GoldenCtrlRamInputsAsync(host.Shell, TestContext.Current.CancellationToken);
+        await host.SettleAsync();
+        OutputLayoutPanel panel = host.Panel;
+        OutputLayoutPanelModel model = host.Model;
+        Assert.True(host.Shell.Replace.HasCtrlRamFocusLayout);
+        Assert.Same(host.Shell.Replace.OutputLayout.Current.Panel, panel.Model);
+        Assert.NotEmpty(model.LaneLinks);
+        Assert.Contains(model.RowSegments, static segment => segment.CtrlRamRegionRole == CtrlRamRegionRole.Nf);
+        Assert.All(panel.GetVisualDescendants().OfType<Control>()
+            .Where(static control => control.IsEffectivelyVisible && control.Bounds is { Width: > 0, Height: > 0 }),
+            control => AssertControlFitsWidth(control, panel));
+        AssertVisibleTextDoesNotOverlap(panel);
+        Canvas bar = panel.FindControl<Canvas>("LayoutBar")!;
+        Assert.NotEmpty(bar.Children);
+        Assert.InRange(bar.Bounds.Height, 33.5, 34.5);
+        Assert.True(bar.Bounds.Width > 300d);
+        Assert.All(model.LaneLinks, static link => Assert.NotNull(link.Zoom));
+        MemoryCoverageSegmentViewModel nf = model.RowSegments.First(
+            static segment => segment.CtrlRamRegionRole == CtrlRamRegionRole.Nf && segment.IsSelectedForWrite);
+        host.AssertDetails(nf);
+        host.Capture($"nfc-memory-ctrlram-golden-{railWidth:F0}-{(useDarkTheme ? "dark" : "light")}-{(useTraditionalChinese ? "zh-tw" : "en")}");
     }
 
     /// <summary>The live region card stacks its title, range, size and summary within the fixed 430 px rail.</summary>
@@ -305,27 +183,15 @@ public sealed partial class XamlControlStyleContractTests
 
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
-        Assert.DoesNotContain(
-            "MaxHeight=\"320\"",
-            ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate"),
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "ShowLegend=\"True\"",
-            ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate"),
-            StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "MaxHeight=\"320\"",
-            ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate"),
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceOutputLayoutPanelTemplate", workflowTemplates, StringComparison.Ordinal);
+        Assert.DoesNotContain("<views:MemoryCoverageBar", workflowTemplates, StringComparison.Ordinal);
         XElement slotGroupTemplate = Assert.Single(XDocument.Parse(sharedTemplates).Descendants(),
             element => element.Name.LocalName == "DataTemplate" &&
                 element.Attributes().Any(attribute => attribute.Name.LocalName == "Key" && attribute.Value == "FirmwareSlotGroupTemplate"));
         _ = Assert.Single(slotGroupTemplate.Descendants(),
             element => element.Name.LocalName == "Expander" &&
                 ((string?)element.Attribute("Classes"))?.Split(' ').Contains("inlineDisclosure", StringComparer.Ordinal) == true);
-        string replacePanelTemplate =
-            ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
-        Assert.DoesNotContain("ReplaceBaseCoverageGroup.IsExpanded", replacePanelTemplate, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceBaseCoverageGroup.IsExpanded", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("MemoryCoverageGroupTemplate", sharedTemplates, StringComparison.Ordinal);
         string mainWindowStyles = ReadPresentationFile("Styles/MainWindowStyles.axaml");
         Assert.Contains(

@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
@@ -19,45 +20,26 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>All primary ranges remain inspectable without persistent supporting cards.</summary>
 public sealed class MemoryCoverageLegendTests
 {
-    /// <summary>The canonical AB example exposes five content runs while retaining exact raw operation facts.</summary>
+    /// <summary>The AB panel coalesces both banks while retaining every original operation and processing fact.</summary>
     [AvaloniaTheory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Nt51950AbLegendCoalescesBanksAndPostbuildImports(bool darkChinese)
+    public async Task Nt51950AbRowsCoalesceBanksAndPostbuildImports(bool darkChinese)
     {
         using var workspace = TempWorkspace.Create("ab-content-legend");
-        PresentationHostServices services = await CreateServicesAsync(workspace);
-        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
-            services, ShellPreferenceSnapshot.Default)
-        { Width = 1920, Height = 1032, RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light };
-        window.Show();
-        try
-        {
-            await AwaitHistoryReadyAsync(window);
-            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-            string folder = RepositoryPaths.FromTestData("golden/canonical/NT51950/ab-merge/boe-d82t80/topology-unscoped/nt51950-ab-boe-d82t80/inputs");
-            string dp = Path.Combine(folder, "NT51950TT_Initial Code_BOE_AS172QD0-B00 2560x1600_BOE only_PD fixed pixelonoff_D82_20260616.bin");
-            string tp = Path.Combine(folder, "nt51950_fw_T80.bin");
-            UiLaunchOptions options = UiLaunchOptions.Parse(["--workflow", "ab-merge", "--ic", "NT51950", "--ic-num", "single", "--dp", dp, "--tp-a", tp, "--tp-b", tp]);
-            await MainWindow.ApplyAbMergeLaunchAsync(shell, options.AbMerge!, TestContext.Current.CancellationToken);
-            if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
-            Render();
-            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
-            MemoryCoverageSegmentViewModel[] raw = [.. (IEnumerable<MemoryCoverageSegmentViewModel>)bar.ItemsSource!];
-            MemoryCoverageSegmentViewModel[] rows = [.. bar.GetVisualDescendants().OfType<Border>()
-                .Where(border => border.Name == "MemoryLegendTarget").Select(border => (MemoryCoverageSegmentViewModel)border.DataContext!)];
-            Assert.Equal([(0L, 0xA000L), (0xA000L, 0x37000L), (0x37000L, 0x4A000L), (0x4A000L, 0x77000L), (0x77000L, 0x80000L)],
-                rows.Select(row => (row.RangeStart!.Value, row.RangeEndExclusive!.Value)));
-            Assert.Equal([MemoryCoverageFillRole.Dp, MemoryCoverageFillRole.Tp, MemoryCoverageFillRole.Dp, MemoryCoverageFillRole.TpBackup, MemoryCoverageFillRole.Dp],
-                rows.Select(row => row.FillRole));
-            Assert.Equal(rows[1].ContentArtifactIdentity, rows[3].ContentArtifactIdentity);
-            Assert.NotEqual(rows[0].ContentArtifactIdentity, rows[1].ContentArtifactIdentity);
-            Assert.Equal(raw, rows.SelectMany(row => row.DisplayParts.Count == 0 ? [row] : row.DisplayParts));
-            Assert.Equal(raw.SelectMany(row => row.ProcessingFacts).Distinct(), rows.SelectMany(row => row.ProcessingFacts).Distinct());
-            Assert.Empty(shell.Reports.ReportHistoryEntries);
-            SaveFrame(window, $"nt51950-ab-content-{darkChinese}.png");
-        }
-        finally { await CloseAndFlushAsync(window); }
+        await using MergeOutputLayoutTestHost host = await MergeOutputLayoutTestHost.CreateAsync(workspace, dark: darkChinese, chinese: darkChinese);
+        await host.LoadAbAsync("NT51950", "nt51950-ab-boe-d82t80");
+        MemoryCoverageSegmentViewModel[] raw = [.. host.Model.Segments];
+        MemoryCoverageSegmentViewModel[] rows = [.. host.Model.Rows.SelectMany(static row => row.Members)];
+        Assert.Equal([(0L, 0xA000L), (0xA000L, 0x37000L), (0x37000L, 0x4A000L), (0x4A000L, 0x77000L), (0x77000L, 0x80000L)],
+            rows.Select(static row => (row.RangeStart!.Value, row.RangeEndExclusive!.Value)));
+        Assert.Equal([MemoryCoverageFillRole.Dp, MemoryCoverageFillRole.Tp, MemoryCoverageFillRole.Dp, MemoryCoverageFillRole.TpBackup, MemoryCoverageFillRole.Dp],
+            rows.Select(static row => row.FillRole));
+        Assert.Equal(rows[1].ContentArtifactIdentity, rows[3].ContentArtifactIdentity);
+        Assert.NotEqual(rows[0].ContentArtifactIdentity, rows[1].ContentArtifactIdentity);
+        Assert.Equal(raw, rows.SelectMany(static row => row.DisplayParts.Count == 0 ? [row] : row.DisplayParts));
+        Assert.Equal(raw.SelectMany(static row => row.ProcessingFacts).Distinct(), rows.SelectMany(static row => row.ProcessingFacts).Distinct());
+        Assert.Empty(host.Shell.Reports.ReportHistoryEntries);
     }
 
     /// <summary>Actual CtrlRAM keeps section context, partial focus and exact raw content ownership under the shared legend.</summary>
@@ -86,11 +68,15 @@ public sealed class MemoryCoverageLegendTests
             }
             Assert.Contains(shell.Replace.CtrlRamFocusLanes.SelectMany(lane => lane.Ranges), row =>
                 row.DisplayParts.Any(part => part.IsSelectedForWrite) && row.DisplayParts.Any(part => part.UsesKeptPattern));
-            MemoryCoverageBar overview = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
-            Border[] legend = [.. overview.GetVisualDescendants().OfType<Border>().Where(border => border.Name == "MemoryLegendTarget")];
-            ItemsControl rail = Assert.Single(overview.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail");
-            Assert.True(legend[0].TranslatePoint(default, window)!.Value.Y >= rail.TranslatePoint(default, window)!.Value.Y + rail.Bounds.Height);
-            Assert.All((IEnumerable<MemoryCoverageSegmentViewModel>)overview.ItemsSource!, section => Assert.Null(section.ContentArtifactIdentity));
+            OutputLayoutPanel panel = Assert.Single(window.GetVisualDescendants().OfType<OutputLayoutPanel>(),
+                static control => control.IsEffectivelyVisible);
+            OutputLayoutPanelModel model = Assert.IsType<OutputLayoutPanelModel>(shell.Replace.OutputLayout.Current.Panel);
+            Assert.Same(model, panel.Model);
+            Assert.All(model.Segments, static section => Assert.Null(section.ContentArtifactIdentity));
+            Assert.Contains(model.Rows.SelectMany(static row => row.Members),
+                static segment => segment.IsSelectedForWrite && segment.CtrlRamRegionRole == CtrlRamRegionRole.Nf);
+            Assert.Contains(model.Rows.SelectMany(static row => row.Members),
+                static segment => segment.UsesKeptPattern && segment.CtrlRamRegionRole == CtrlRamRegionRole.Nf);
             SaveFrame(window, "nt51950-ctrlram-content.png");
         }
         finally { await CloseAndFlushAsync(window); }
@@ -114,90 +100,64 @@ public sealed class MemoryCoverageLegendTests
     [InlineData(true, true)]
     public async Task StandardLegendKeepsEveryRangeWithoutDefaultCards(bool darkChinese, bool replace)
     {
-        using var workspace = TempWorkspace.Create("memory-legend");
-        using var golden = StandardMergeGoldenManifest.Load();
-        System.Text.Json.JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace);
-        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
-            services, ShellPreferenceSnapshot.Default)
-        { Width = 1180, Height = 1040, RequestedThemeVariant = darkChinese ? ThemeVariant.Dark : ThemeVariant.Light };
-        window.Show();
-        try
+        if (!replace)
         {
-            await AwaitHistoryReadyAsync(window);
-            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-            if (replace) { shell.ShowReplaceCommand.Execute(null); }
-            else { shell.ShowMergeCommand.Execute(null); }
-            shell.WorkflowSession.SelectedIc = replace ? "NT51950" : "NT51928";
-            if (replace) { shell.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace; }
-            else { shell.Merge.SelectedMergeMode = ExperienceIds.StandardMerge; }
-            if (darkChinese) { shell.SelectedLanguage = "Traditional Chinese"; }
-            (string, string)[] selectedInputs = replace
-                ? [(CompositionSlotIds.ReplaceBase, "reference"), ("replace-ctrlram-normal", "normal")]
-                : [(CompositionSlotIds.MergeDp, "dp-input"), (CompositionSlotIds.MergeTp, "tp-input"), (CompositionSlotIds.MergeLdc, "ldc-input")];
-            foreach ((string slot, string artifact) in selectedInputs)
+            using var mergeWorkspace = TempWorkspace.Create("merge-numbered-rows");
+            await using MergeOutputLayoutTestHost host = await MergeOutputLayoutTestHost.CreateAsync(mergeWorkspace, dark: darkChinese, chinese: darkChinese);
+            await host.LoadStandardAsync("NT51928");
+            OutputLayoutPanelModel originalModel = host.Model;
+            Assert.NotEmpty(originalModel.Rows);
+            Assert.All(originalModel.Rows.SelectMany(static row => row.Members), segment =>
             {
-                string path = replace
-                    ? workspace.Write($"{artifact}.bin", artifact == "reference"
-                        ? ShellViewModelTestBase.ReadCtrlRamReference() : ShellViewModelTestBase.ReadCtrlRamNormalSource())
-                    : golden.ManifestPath(inputs.GetProperty(artifact));
-                await shell.WorkflowSession.SetSlotFileAsync(slot, path,
-                    TestContext.Current.CancellationToken);
-            }
-            Render();
-            MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
-            MemoryCoverageSegmentViewModel[] original = [.. (IEnumerable<MemoryCoverageSegmentViewModel>)rail.ItemsSource!];
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.IsEffectivelyVisible && border.Classes.Contains("memoryInfoRow"));
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Control>(), control => control.Name == "MemorySliceCard");
-            AssertLegendReferences();
-            Assert.Contains(original, row => row.ContentRole == MemoryContentRole.Dp);
-            Assert.Contains(original, row => row.ContentRole == MemoryContentRole.Tp);
-            Border target = LegendTargets().First();
-            MemoryCoverageSegmentViewModel expected = Assert.IsType<MemoryCoverageSegmentViewModel>(target.DataContext);
-            Assert.False(target.Focus(NavigationMethod.Tab));
-            Control railTarget = Assert.Single(rail.GetVisualDescendants().OfType<Control>(), candidate =>
-                ReferenceEquals(candidate.DataContext, expected) && candidate.Classes.Contains("memoryExplorerSlice"));
-            Assert.True(railTarget.Focus(NavigationMethod.Tab));
-            Render();
-            Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
-            Assert.Same(expected, card.DataContext);
-            Assert.False(Assert.Single(card.GetVisualDescendants().OfType<Expander>()).IsExpanded);
-            Assert.Contains(card.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == expected.AddressRangeLabel);
-            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-            Render();
-            shell.SelectedLanguage = darkChinese ? "English" : "Traditional Chinese";
-            Render();
-            AssertLegendReferences();
-            Assert.Equal(original.Select(row => (row.RangeStart, row.RangeEndExclusive, row.ContentRole)),
-                ((IEnumerable<MemoryCoverageSegmentViewModel>)rail.ItemsSource!).Select(row => (row.RangeStart, row.RangeEndExclusive, row.ContentRole)));
-            shell.SelectedLanguage = darkChinese ? "Traditional Chinese" : "English";
-            Render();
-            string? directory = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
-            if (!string.IsNullOrEmpty(directory))
-            {
-                using Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
-                Assert.NotNull(frame);
-                frame.SavePng(Path.Combine(directory, $"nt51928-legend-{replace}-{darkChinese}.png"));
-            }
-            // Clearing an input must publish current facts, not retain stale legend targets.
-            await shell.WorkflowSession.ClearSlotFileAsync(selectedInputs[^1].Item1, TestContext.Current.CancellationToken);
-            Render();
-            AssertLegendReferences();
-
-            Border[] LegendTargets()
-            {
-                return [.. rail.GetVisualDescendants().OfType<Border>().Where(border => border.Name == "MemoryLegendTarget")];
-            }
-            void AssertLegendReferences()
-            {
-                Assert.Equal(((IEnumerable<MemoryCoverageSegmentViewModel>)rail.ItemsSource!).Where(row => row.IsPrimaryContent)
-                    .OrderBy(row => row.RangeStart),
-                    LegendTargets().Select(target => (MemoryCoverageSegmentViewModel)target.DataContext!)
-                        .SelectMany(row => row.DisplayParts.Count > 0 ? row.DisplayParts : [row]));
-            }
+                Button row = host.RowFor(segment);
+                Assert.NotEmpty(AutomationProperties.GetName(row) ?? string.Empty);
+                Assert.False(OutputLayoutPanelTestHost.Body(row).IsVisible);
+            });
+            host.Shell.SelectedLanguage = darkChinese ? "English" : "Traditional Chinese";
+            host.Render();
+            Assert.Equal(originalModel.Rows.SelectMany(static row => row.Members).Select(static row => (row.RangeStart, row.RangeEndExclusive, row.ContentRole)),
+                host.Model.Rows.SelectMany(static row => row.Members).Select(static row => (row.RangeStart, row.RangeEndExclusive, row.ContentRole)));
+            Assert.Contains(host.Model.Segments, static row => row.ContentRole == MemoryContentRole.Dp);
+            Assert.Contains(host.Model.Segments, static row => row.ContentRole == MemoryContentRole.Tp);
+            Assert.Contains(host.Model.Segments, static row => row.ContentRole == MemoryContentRole.Ldc);
+            return;
         }
-        finally { await CloseAndFlushAsync(window); }
+        using var workspace = TempWorkspace.Create("memory-legend");
+        await using ReplaceOutputLayoutTestHost host = await ReplaceOutputLayoutTestHost.CreateAsync(workspace,
+            width: 1180, height: 1040, dark: darkChinese, chinese: darkChinese);
+        host.Shell.WorkflowSession.SelectedIc = "NT51950";
+        host.Shell.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
+        (string Slot, string Artifact)[] selectedInputs =
+            [(CompositionSlotIds.ReplaceBase, "reference"), ("replace-ctrlram-normal", "normal")];
+        foreach ((string slot, string artifact) in selectedInputs)
+        {
+            string path = workspace.Write($"{artifact}.bin", artifact == "reference"
+                ? ShellViewModelTestBase.ReadCtrlRamReference() : ShellViewModelTestBase.ReadCtrlRamNormalSource());
+            await host.Shell.WorkflowSession.SetSlotFileAsync(slot, path, TestContext.Current.CancellationToken);
+        }
+        await host.SettleAsync();
+        OutputLayoutPanelModel original = host.Model;
+        Assert.Same(host.Shell.Replace.OutputLayout.Current.Panel, host.Panel.Model);
+        Assert.Contains(original.RowSegments, static row => row.ContentRole == MemoryContentRole.Dp);
+        Assert.Contains(original.RowSegments, static row => row.ContentRole == MemoryContentRole.Tp);
+        Assert.All(original.Rows.SelectMany(static row => row.Members), segment =>
+        {
+            Button disclosure = host.RowFor(segment);
+            Assert.False(OutputLayoutPanelTestHost.Body(disclosure).IsVisible);
+        });
+        MemoryCoverageSegmentViewModel selected = original.Rows.SelectMany(static row => row.Members)
+            .First(static segment => segment.IsSelectedForWrite);
+        host.AssertDetails(selected);
+        host.Shell.SelectedLanguage = darkChinese ? "English" : "Traditional Chinese";
+        host.Render();
+        Assert.Equal(original.RowSegments.Select(static row => (row.RangeStart, row.RangeEndExclusive, row.ContentRole)),
+            host.Model.RowSegments.Select(static row => (row.RangeStart, row.RangeEndExclusive, row.ContentRole)));
+        host.Capture($"nt51928-inline-replace-{darkChinese}");
+        await host.Shell.WorkflowSession.ClearSlotFileAsync(selectedInputs[^1].Slot, TestContext.Current.CancellationToken);
+        await host.SettleAsync();
+        Assert.Same(host.Shell.Replace.OutputLayout.Current.Panel, host.Panel.Model);
+        Assert.DoesNotContain(host.Model.RowSegments, static row => row.SourceSlotId == "replace-ctrlram-normal" &&
+            row.IsSelectedForWrite);
     }
 
     private static void Render()

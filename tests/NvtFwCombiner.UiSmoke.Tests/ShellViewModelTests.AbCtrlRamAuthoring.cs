@@ -106,7 +106,7 @@ public sealed partial class CtrlRamWorkflowTests
         MainWindowViewModel viewModel = await CreateAbCtrlRamReadyAsync(selection);
         byte[] reference = File.ReadAllBytes(AbCtrlRamReferencePath);
         byte[] nf = File.ReadAllBytes(AbCtrlRamNfPath);
-        Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
+        Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, viewModel.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
         Assert.NotEmpty(viewModel.Replace.ReplaceCoverageSegments);
         Assert.Equal(0x80000, viewModel.Replace.ReplaceCoverageSegments.Max(static segment => segment.RangeEndExclusive));
         Assert.Equal(0, viewModel.Replace.ReplaceCoverageSegments.Min(static segment => segment.RangeStart));

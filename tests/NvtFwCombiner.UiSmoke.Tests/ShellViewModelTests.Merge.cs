@@ -170,12 +170,12 @@ public sealed partial class MergeWorkflowTests
             ["single", "cascade"],
             viewModel.WorkflowSession.NumberSelectionChoices.Select(static choice => choice.Token));
         Assert.Equal("single", viewModel.WorkflowSession.SelectedNumber);
-        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.OutputLayout.Current.Rows).RangeLabel);
 
         viewModel.WorkflowSession.SelectedNumber = "cascade";
 
         Assert.Equal("cascade", viewModel.WorkflowSession.SelectedNumber);
-        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.OutputLayout.Current.Rows).RangeLabel);
 
         viewModel.WorkflowSession.SelectedIc = "NT51951";
         Assert.True(viewModel.Merge.IsAbMergeSupported);
@@ -218,22 +218,22 @@ public sealed partial class MergeWorkflowTests
             dpPath,
             TestContext.Current.CancellationToken);
 
-        Assert.Equal("0x00000-0x8FFFF (len 0x90000)", viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "DP AB");
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPA");
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TPB");
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, row =>
+        Assert.Equal("0x00000-0x8FFFF (len 0x90000)", viewModel.Merge.OutputLayout.Current.RangeLabel);
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, row => row.AfterSource == "DP AB");
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, row => row.AfterSource == "TPA");
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, row => row.AfterSource == "TPB");
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, row =>
             row.AfterSource == "TPB" && row.ActionLabel == "Transform + Overlay");
         IReadOnlyList<string> sourceLabels =
         [
-            .. viewModel.Merge.MergeCoverageSegments
+            .. viewModel.Merge.OutputLayout.Current.CoverageSegments
                 .Select(static segment => segment.SourceLabel)
                 .Distinct(StringComparer.Ordinal),
         ];
         Assert.Contains("DP AB", sourceLabels);
         Assert.Contains("TPA", sourceLabels);
         Assert.Contains("TPB", sourceLabels);
-        Assert.DoesNotContain(viewModel.Merge.MergeMemoryRows, static row =>
+        Assert.DoesNotContain(viewModel.Merge.OutputLayout.Current.Rows, static row =>
             row.RangeLabel.Contains("Staging", StringComparison.OrdinalIgnoreCase));
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(static slot =>
             slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
@@ -260,13 +260,13 @@ public sealed partial class MergeWorkflowTests
         {
             viewModel.WorkflowSession.SelectedNumber = count == 1 ? "single" : "cascade";
         }
-        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.OutputLayout.Current.Rows).RangeLabel);
         await viewModel.WorkflowSession.SetSlotFileAsync("dp-ab-input", workspace.Write("dp.bin", new byte[dpLength]), TestContext.Current.CancellationToken);
-        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.MergeMemoryRows).RangeLabel);
+        Assert.Equal(viewModel.Text.NotAvailableLabel, Assert.Single(viewModel.Merge.OutputLayout.Current.Rows).RangeLabel);
         await LoadFormatMemoryTpPairAsync(viewModel, workspace, format, count);
-        Assert.Equal(range, viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, static row => row.AfterSource == "TPA");
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, static row => row.AfterSource == "TPB");
+        Assert.Equal(range, viewModel.Merge.OutputLayout.Current.RangeLabel);
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, static row => row.AfterSource == "TPA");
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, static row => row.AfterSource == "TPB");
     }
 
     private static async Task LoadFormatMemoryTpPairAsync(MainWindowViewModel viewModel, TempWorkspace workspace,
@@ -452,8 +452,8 @@ public sealed partial class MergeWorkflowTests
         Assert.Equal("NT51950: refresh profile, slots, validation", viewModel.WorkflowSession.DeviceContextStatus);
         Assert.Equal("0x100000", viewModel.Merge.GeneralMergeOutputLength);
         Assert.Equal("0x00", viewModel.Merge.GeneralMergeOutputFillByte);
-        Assert.Equal("Waiting for source mapping", viewModel.Merge.MergeMemoryRangeLabel);
-        MemoryMapRowViewModel pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        Assert.Equal("Waiting for source mapping", viewModel.Merge.OutputLayout.Current.RangeLabel);
+        MemoryMapRowViewModel pendingMapping = Assert.Single(viewModel.Merge.OutputLayout.Current.Rows);
         Assert.Equal("Waiting for source mapping", pendingMapping.AfterSource);
         Assert.Contains("source BIN", pendingMapping.Detail, StringComparison.Ordinal);
         Assert.Equal("Merge", viewModel.Merge.MergePreview.Title);
@@ -462,10 +462,10 @@ public sealed partial class MergeWorkflowTests
         viewModel.SelectedLanguage = "Traditional Chinese";
         Assert.Contains(nameof(viewModel.Merge.MergePreview), localizedProperties);
         Assert.Equal("合併", viewModel.Merge.MergePreview.Title);
-        pendingMapping = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        pendingMapping = Assert.Single(viewModel.Merge.OutputLayout.Current.Rows);
         Assert.Equal("等待來源對應", pendingMapping.AfterSource);
         Assert.Contains("來源 BIN", pendingMapping.Detail, StringComparison.Ordinal);
-        Assert.Equal("等待來源對應", Assert.Single(viewModel.Merge.MergeCoverageSegments).SourceLabel);
+        Assert.Equal("等待來源對應", Assert.Single(viewModel.Merge.OutputLayout.Current.CoverageSegments).SourceLabel);
         Assert.Equal("nt51950-general-merge.bin", viewModel.Merge.MergeOutputFileName);
         _ = Assert.Single(viewModel.Merge.GeneralMergeMappings);
 
@@ -476,7 +476,7 @@ public sealed partial class MergeWorkflowTests
         GeneralMergeMappingViewModel mapping = Assert.Single(viewModel.Merge.GeneralMergeMappings);
         Assert.Equal(1, mapping.Index);
         Assert.Equal("No source BIN selected", mapping.DisplayName);
-        Assert.Contains("保留值", viewModel.Merge.MergeMemorySummary, StringComparison.Ordinal);
+        Assert.Contains("保留值", viewModel.Merge.OutputLayout.Current.Panel!.SummaryText, StringComparison.Ordinal);
         viewModel.SelectedLanguage = "English";
         Assert.Equal("Merge", viewModel.Merge.MergePreview.Title);
     }
@@ -523,7 +523,7 @@ public sealed partial class MergeWorkflowTests
         viewModel.WorkflowSession.SelectedIc = "NT51926";
 
         MemoryMapRowViewModel copyRow = Assert.Single(
-            viewModel.Merge.MergeMemoryRows,
+            viewModel.Merge.OutputLayout.Current.Rows,
             row => row.RangeLabel == "0x00000-0x3BFFF (len 0x3C000)" && row.ActionLabel == "Copy");
         Assert.Equal("Initialization: 0x00 -> TP BIN", copyRow.FlowLabel);
         Assert.Contains("Sequence 100", copyRow.Detail, StringComparison.Ordinal);
@@ -617,7 +617,7 @@ public sealed partial class MergeWorkflowTests
             viewModel.Merge.GeneralMergeOutputFillByte = "0xA5";
             await viewModel.Merge.Inspection.ActiveTask;
             Assert.Contains(
-                viewModel.Merge.MergeMemoryRows,
+                viewModel.Merge.OutputLayout.Current.Rows,
                 row => row.Detail.Contains("0xA5", StringComparison.Ordinal));
             Assert.Equal(acceptedStamp, mapping.AcceptedFileStamp);
             mapping.TargetStartAddress = "0x5";

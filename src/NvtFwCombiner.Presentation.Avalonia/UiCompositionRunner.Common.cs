@@ -115,14 +115,28 @@ internal static partial class UiCompositionRunner
         MemoryPendingPrerequisite fallbackPrerequisite,
         ActiveSessionSnapshot? authoring = null, IReadOnlyList<string>? requiredAddressSpaces = null)
     {
+        return GetPendingMemoryDisplay(text, slots, fallbackPrerequisite, out _, authoring, requiredAddressSpaces);
+    }
+
+    internal static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(
+        ShellTextResources text,
+        IEnumerable<FirmwareSlotViewModel> slots,
+        MemoryPendingPrerequisite fallbackPrerequisite,
+        out MemoryLayoutPendingDisplay projection,
+        ActiveSessionSnapshot? authoring = null, IReadOnlyList<string>? requiredAddressSpaces = null)
+    {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(slots);
         FirmwareSlotViewModel[] current = [.. slots];
-        MemoryLayoutPendingDisplay projection = MemoryLayoutProjector.ProjectPending(authoring,
+        projection = MemoryLayoutProjector.ProjectPending(authoring,
             current.Select(static slot => new MemoryLayoutPendingInput(slot.SlotId, slot.AddressSpaceId,
                 !slot.DeclaredIsOptional, slot.FilePath, slot.InputIssueStatus, slot.CompiledSlotId,
                 slot.InputAvailabilityIssue, slot.InputAuthoringIssues)), fallbackPrerequisite, requiredAddressSpaces);
-        FirmwareSlotViewModel? pending = current.FirstOrDefault(slot => slot.SlotId == projection.SlotId);
+        string? pendingSlotId = projection.SlotId;
+        FirmwareSlotViewModel? pending = current.FirstOrDefault(slot => slot.SlotId == pendingSlotId);
         (string waitingLabel, string detail) = projection.Readiness == MemoryLayoutReadiness.Blocked
             ? text.GetBlockingInputText(projection, pending!.Title)
             : pending is null ? text.GetPendingInputText(projection.FallbackPrerequisite)
@@ -244,6 +258,9 @@ internal static partial class UiCompositionRunner
             300d * conflict.Range.Length / layout.Capacity,
             diagnosticSeverity: MemoryDiagnosticSeverity.Error,
             text: text,
+            rangeStart: conflict.Range.Start,
+            rangeEndExclusive: conflict.Range.EndExclusive,
+            addressSpaceId: layout.AddressSpaceId,
             addressRangeLabel: FormatMemoryAddressRange(conflict.Range),
             lengthLabel: FormatMemoryLength(conflict.Range),
             compactDetail: detail,

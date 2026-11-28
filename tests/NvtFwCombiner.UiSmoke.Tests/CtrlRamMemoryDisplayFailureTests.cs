@@ -66,7 +66,7 @@ public sealed class CtrlRamMemoryDisplayFailureTests
                 .ToDictionary(slot => slot.SlotId, slot => slot.FilePath!);
             failDisplay = false;
             await shell.WorkflowSession.SetSlotFileAsync("replace-base", basePath, TestContext.Current.CancellationToken);
-            Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
+            Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, shell.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
             Assert.NotEmpty(shell.Replace.CtrlRamFocusLanes);
             Assert.True(shell.Replace.CanBuildReplace);
 
@@ -75,7 +75,7 @@ public sealed class CtrlRamMemoryDisplayFailureTests
             AssertPreviewUnavailable(shell.Replace);
             Assert.True(shell.Replace.CanBuildReplace);
             await shell.WorkflowSession.ClearSlotFileAsync("replace-base", TestContext.Current.CancellationToken);
-            Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
+            Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, shell.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
             Assert.False(shell.Replace.CanBuildReplace);
 
             await shell.WorkflowSession.SetSlotFileAsync("replace-base", workspace.Write("invalid-base.bin", new byte[8]),
@@ -105,11 +105,11 @@ public sealed class CtrlRamMemoryDisplayFailureTests
                 Assert.Equal("NT51926", shell.WorkflowSession.SelectedIc);
                 Assert.Equal(ExperienceIds.CtrlRamReplace, shell.Replace.SelectedReplaceMode);
                 Assert.True(shell.Replace.CanBuildReplace, shell.Replace.ReplaceReadinessStatus);
-                Assert.True(shell.Replace.HasMemoryLayoutDisplayError);
+                Assert.Equal(OutputLayoutNoticeKind.Unavailable, shell.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
                 Assert.Contains(ExperienceIds.GeneralReplace, shell.Replace.ReplaceModeChoices);
                 shell.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
                 Assert.Equal(ExperienceIds.GeneralReplace, shell.Replace.SelectedReplaceMode);
-                Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
+                Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, shell.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
             }
             Assert.Empty(shell.Reports.ReportHistoryEntries);
         }
@@ -118,7 +118,7 @@ public sealed class CtrlRamMemoryDisplayFailureTests
 
     private static void AssertPreviewUnavailable(ReplacePresentationViewModel viewModel)
     {
-        Assert.True(viewModel.HasMemoryLayoutDisplayError);
+        Assert.Equal(OutputLayoutNoticeKind.Unavailable, viewModel.OutputLayout.Current.Panel?.Notice?.Kind);
         Assert.Empty(viewModel.ReplaceMemoryRangeLabel);
         Assert.Empty(viewModel.ReplaceMemoryRows);
         Assert.Empty(viewModel.ReplaceCoverageSegments);

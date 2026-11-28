@@ -8,8 +8,6 @@ internal sealed partial class ReplacePresentationViewModel
 {
     private Action? _restoreCtrlRamBuildPreparation;
 
-    public string ReplaceMemorySummary => Text.GetReplaceMemorySummary(SelectedReplaceMode);
-
     public string ReplaceReadinessStatus => !HasSelectedIc
         ? Text.NotAvailableLabel
         : Inspection.IsRunning

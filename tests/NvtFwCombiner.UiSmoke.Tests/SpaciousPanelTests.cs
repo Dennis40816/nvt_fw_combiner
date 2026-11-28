@@ -31,19 +31,16 @@ public sealed class SpaciousPanelTests
         Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ItemsControl.spaciousList\"", styles, StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace8}\"", styles, StringComparison.Ordinal);
-        Assert.Equal(2, outputTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, outputTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
         XElement slotGroups = Assert.Single(XDocument.Parse(workflowTemplates).Descendants(),
             element => element.Name.LocalName == "ItemsControl" &&
                 ((string?)element.Attribute("Classes"))?.Split(' ').Contains("spaciousList", StringComparer.Ordinal) == true);
         Assert.Equal("{Binding ReplaceSlotGroups}", (string?)slotGroups.Attribute("ItemsSource"));
-        // The approved hover-only layout keeps legends, not persistent detail lists.
+        // Production output details are disclosed by the shared panel.
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceSelectedCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
-        XElement[] memoryBars = [.. XDocument.Parse(workflowTemplates).Descendants()
-            .Where(element => element.Name.LocalName == "MemoryCoverageBar")];
-        Assert.Equal(["{Binding CtrlRamOverview}", "{Binding ReplaceCoverageSegments}"],
-            memoryBars.Select(element => (string?)element.Attribute("ItemsSource")));
-        Assert.All(memoryBars, element => Assert.Equal("True", (string?)element.Attribute("ShowLegend")));
+        Assert.DoesNotContain(XDocument.Parse(workflowTemplates).Descendants(),
+            static element => element.Name.LocalName == "MemoryCoverageBar");
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace16}\"", outputTemplates, StringComparison.Ordinal);
         Assert.Contains("<views:SpaciousPanel Classes=\"compact\"", reportPanels, StringComparison.Ordinal);
         Assert.Contains(

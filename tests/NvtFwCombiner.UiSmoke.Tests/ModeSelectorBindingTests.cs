@@ -22,7 +22,7 @@ public sealed class ModeSelectorBindingTests
     [AvaloniaFact]
     public async Task FirstReplaceSelectionRendersRowsWithoutOpeningReport()
     {
-        using var workspace = NvtFwCombiner.TestSupport.TempWorkspace.Create();
+        using var workspace = TestSupport.TempWorkspace.Create();
         MainWindowViewModel viewModel = await CreateViewModelAsync();
         viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51927";
@@ -178,7 +178,6 @@ public sealed class ModeSelectorBindingTests
             nameof(MergePresentationViewModel.Inspection),
             nameof(MergePresentationViewModel.IsAbCodeMergeModeSelected),
             nameof(MergePresentationViewModel.MergeOutputFileName),
-            nameof(MergePresentationViewModel.MergeMemorySummary),
             nameof(MergePresentationViewModel.StandardMergeSupportSummary));
         AssertHiddenReplaceContextWasNotPublished(replaceChanges);
         Assert.Equal(
@@ -221,7 +220,6 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.Inspection),
             nameof(ReplacePresentationViewModel.IsGeneralReplaceModeSelected),
             nameof(ReplacePresentationViewModel.ReplaceOutputFileName),
-            nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
             nameof(ReplacePresentationViewModel.SelectedReplaceWorkflowReadiness),
             nameof(ReplacePresentationViewModel.SelectedReplaceModeEvidenceLabel));
         AssertHiddenMergeContextWasNotPublished(mergeChanges);
@@ -245,8 +243,7 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.SelectedReplaceMode),
             nameof(ReplacePresentationViewModel.Inspection),
             nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
-            nameof(ReplacePresentationViewModel.ReplaceOutputFileName),
-            nameof(ReplacePresentationViewModel.ReplaceMemorySummary));
+            nameof(ReplacePresentationViewModel.ReplaceOutputFileName));
         AssertHiddenMergeContextWasNotPublished(mergeChanges);
         Assert.DoesNotContain(nameof(WorkflowSessionPresentationViewModel.IcChoices), workflowChanges);
     }
@@ -282,8 +279,7 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.SelectedReplaceMode),
             nameof(ReplacePresentationViewModel.Inspection),
             nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
-            nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
-            nameof(ReplacePresentationViewModel.IsReplaceCoverageGrouped));
+            nameof(ReplacePresentationViewModel.ReplaceOutputFileName));
     }
 
     /// <summary>A selected CtrlRAM Base awaiting inspection does not publish during preparation.</summary>
@@ -308,8 +304,7 @@ public sealed class ModeSelectorBindingTests
             nameof(ReplacePresentationViewModel.SelectedReplaceMode),
             nameof(ReplacePresentationViewModel.Inspection),
             nameof(ReplacePresentationViewModel.IsCtrlRamReplaceModeSelected),
-            nameof(ReplacePresentationViewModel.ReplaceMemorySummary),
-            nameof(ReplacePresentationViewModel.IsReplaceCoverageGrouped));
+            nameof(ReplacePresentationViewModel.ReplaceOutputFileName));
     }
 
     /// <summary>Merge and Replace retain independent modes during repeated page activation.</summary>
@@ -360,7 +355,7 @@ public sealed class ModeSelectorBindingTests
             ItemsControl.ItemsSourceProperty,
             new Binding(nameof(MergePresentationViewModel.MergeModeChoices)));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding(nameof(MergePresentationViewModel.SelectedMergeMode))
             {
                 Mode = BindingMode.TwoWay,
@@ -376,7 +371,7 @@ public sealed class ModeSelectorBindingTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.IcChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc")
             {
                 Mode = BindingMode.TwoWay,
@@ -392,7 +387,7 @@ public sealed class ModeSelectorBindingTests
             ItemsControl.ItemsSourceProperty,
             new Binding(nameof(ReplacePresentationViewModel.ReplaceModeChoices)));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding(nameof(ReplacePresentationViewModel.SelectedReplaceMode))
             {
                 Mode = BindingMode.TwoWay,
@@ -473,7 +468,6 @@ public sealed class ModeSelectorBindingTests
         Assert.DoesNotContain(nameof(MergePresentationViewModel.Inspection), changes);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.IsAbCodeMergeModeSelected), changes);
         Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeOutputFileName), changes);
-        Assert.DoesNotContain(nameof(MergePresentationViewModel.MergeMemorySummary), changes);
     }
 
     private static void AssertHiddenReplaceContextWasNotPublished(IReadOnlyCollection<string> changes)
@@ -501,6 +495,6 @@ public sealed class ModeSelectorBindingTests
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.Inspection), changes);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.IsGeneralReplaceModeSelected), changes);
         Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceOutputFileName), changes);
-        Assert.DoesNotContain(nameof(ReplacePresentationViewModel.ReplaceMemorySummary), changes);
+        Assert.NotNull(viewModel.Replace.OutputLayout.Current.Panel);
     }
 }

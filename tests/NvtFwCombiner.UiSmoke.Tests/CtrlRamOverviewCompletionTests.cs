@@ -9,6 +9,7 @@ using Avalonia.VisualTree;
 using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+using NvtFwCombiner.Presentation.Avalonia.Views;
 using NvtFwCombiner.TestSupport;
 using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
@@ -52,7 +53,7 @@ public sealed class CtrlRamOverviewCompletionTests
             }
             Assert.Equal(WorkflowInspectionAttemptState.Succeeded, shell.Replace.Inspection.State);
             Assert.True(shell.Replace.CanBuildReplace);
-            Assert.False(shell.Replace.HasMemoryLayoutDisplayError);
+            Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, shell.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
             await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-overview");
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Tp);
             Assert.Contains(shell.Replace.CtrlRamOverview, section => section.ContentRole == MemoryContentRole.Dp);
@@ -75,27 +76,17 @@ public sealed class CtrlRamOverviewCompletionTests
             Assert.All(master.Ranges, range => Assert.Equal(ReplaceRegionGroup.Common, range.RegionGroup));
             Assert.Equal("Master", master.PositionLabel);
             Assert.Contains(shell.Replace.ReplaceSlotGroups, group => group.Title == "Common");
-            // Capturing is optional in CI; realization must not depend on its
-            // NFC_VISUAL_OUTPUT_DIR-gated render loop.
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Dispatcher.UIThread.RunJobs();
-            _ = CtrlRamMemoryLayoutTests.OpenLane(window, master);
-            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-master-hover");
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
-                block.IsEffectivelyVisible && block.Text == "Master");
+            OutputLayoutPanel panel = Assert.Single(window.GetVisualDescendants().OfType<OutputLayoutPanel>(),
+                static control => control.IsEffectivelyVisible);
+            OutputLayoutPanelModel model = Assert.IsType<OutputLayoutPanelModel>(shell.Replace.OutputLayout.Current.Panel);
+            Assert.Same(model, panel.Model);
+            Assert.Contains(model.LaneLinks, link => ReferenceEquals(link.Lane, master));
+            Assert.Contains(model.Rows.SelectMany(static row => row.Members),
+                static segment => segment.ContentRole == MemoryContentRole.CtrlRam);
             foreach (MemoryContentRole role in new[] { MemoryContentRole.Dp, MemoryContentRole.Tp })
             {
-                Control target = window.GetVisualDescendants().OfType<Control>().First(control =>
-                    control.Focusable && control.Classes.Contains("memoryExplorerSlice") &&
-                    !control.Classes.Contains("memoryLocalSlice") && control.DataContext is MemoryCoverageSegmentViewModel segment && segment.ContentRole == role);
-                Assert.True(target.Focus(NavigationMethod.Tab));
-                Dispatcher.UIThread.RunJobs();
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-direct-" + role);
-                Border card = Assert.Single(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemorySliceCard");
-                Assert.Same(target.DataContext, card.DataContext);
-                Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), control => control.Name == "MemoryLocalView");
+                Assert.Contains(model.Rows.SelectMany(static row => row.Members),
+                    segment => segment.ContentRole == role);
             }
             shell.SelectedLanguage = "Traditional Chinese";
             window.RequestedThemeVariant = ThemeVariant.Dark;
@@ -104,13 +95,9 @@ public sealed class CtrlRamOverviewCompletionTests
                 .Where(section => section.ContentRole == MemoryContentRole.Dp).Select(section => section.DisplayTitle));
             Assert.Contains(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC");
             Assert.DoesNotContain(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "共用");
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Dispatcher.UIThread.RunJobs();
-            _ = CtrlRamMemoryLayoutTests.OpenLane(window, Assert.Single(shell.Replace.CtrlRamFocusLanes, lane => lane.Title == "主 IC"));
-            await CtrlRamCascadeMemoryLayoutTests.CaptureAsync(window, ic + "-single-master-hover-dark-zh");
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block =>
-                block.IsEffectivelyVisible && block.Text == "主 IC");
+            OutputLayoutPanelModel localized = Assert.IsType<OutputLayoutPanelModel>(shell.Replace.OutputLayout.Current.Panel);
+            Assert.Same(localized, panel.Model);
+            Assert.Contains(localized.LaneLinks, link => link.Lane.Title == "主 IC");
             Assert.True(shell.Replace.CanBuildReplace);
             Assert.Empty(shell.Reports.ReportHistoryEntries);
         }

@@ -80,58 +80,21 @@ internal sealed partial class ReplacePresentationViewModel
 
     public ObservableCollection<CtrlRamRegionViewModel> CtrlRamRegions { get; } = [];
 
-    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
+    public OutputLayoutPresentationViewModel OutputLayout { get; } = new();
 
-    public ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
+    internal ResettableObservableCollection<MemoryCoverageSegmentViewModel> ReplaceCoverageSegments { get; } = [];
 
-    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> CtrlRamOverview { get; } = [];
-    public ObservableCollection<MemoryFocusLaneViewModel> CtrlRamFocusLanes { get; } = [];
-    public bool HasCtrlRamFocusLayout => IsCtrlRamReplaceModeSelected && (CtrlRamFocusLanes.Count > 0 || HasCtrlRamBankView);
-    public string CtrlRamCapacityLabel => CtrlRamOverview.Count == 0 ? string.Empty :
-        FormattableString.Invariant($"{CtrlRamOverview.Sum(static section => section.BarWidth) / 1024:0.###} KiB");
-    public IReadOnlyList<MemoryFocusPositionViewModel> CtrlRamPositions => MemoryFocusLaneViewModel.CreatePositions(
-        CtrlRamFocusLanes, (long)CtrlRamOverview.Sum(static section => section.BarWidth),
-        CtrlRamOverview.FirstOrDefault()?.RangeStart ?? 0);
-    public string ReplaceStartAddress => MemoryCoverageBarProjection.OuterAddresses(ReplaceCoverageSegments).Start;
-    public string ReplaceEndAddress => MemoryCoverageBarProjection.OuterAddresses(ReplaceCoverageSegments).End;
-    public string CtrlRamEndAddress => MemoryCoverageBarProjection.OuterAddresses(CtrlRamOverview).End;
-    public string CtrlRamStartAddress => MemoryCoverageBarProjection.OuterAddresses(CtrlRamOverview).Start;
-    public string CtrlRamSharedInputHint => Text.FormatMemorySharedInputHint(string.Join(" / ",
-        CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges)
-            .Where(static range => range.IsSelectedForWrite && range.SourceSlotId is not null)
-            .GroupBy(static range => range.SourceSlotId)
-            .Where(static group => group.Select(static range => range.RegionGroup).Distinct().Count() > 1)
-            .Select(static group => ShellTextResources.GetMemoryFocusLabel(group.First().CtrlRamRegionRole)).Distinct()));
+    internal ObservableCollection<MemoryCoverageGroupViewModel> ReplaceCoverageGroups { get; } = [];
 
-    public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceSelectedCoverageItems =>
-    [
-        .. ReplaceCoverageGroups
-            .Where(static group => !group.IsBaseFirmwareGroup)
-            .SelectMany(static group => group.Items),
-    ];
+    internal ResettableObservableCollection<MemoryCoverageSegmentViewModel> CtrlRamOverview { get; } = [];
+    internal ObservableCollection<MemoryFocusLaneViewModel> CtrlRamFocusLanes { get; } = [];
+    internal bool HasCtrlRamFocusLayout => IsCtrlRamReplaceModeSelected && (CtrlRamFocusLanes.Count > 0 || HasCtrlRamBankView);
 
-    public IReadOnlyList<MemoryCoverageLogicalItemViewModel> ReplaceBaseCoverageItems =>
-    [
-        .. ReplaceCoverageGroups
-            .Where(static group => group.IsBaseFirmwareGroup)
-            .SelectMany(static group => group.Items),
-    ];
-
-    public MemoryCoverageGroupViewModel? ReplaceBaseCoverageGroup =>
-        ReplaceCoverageGroups.FirstOrDefault(static group => group.IsBaseFirmwareGroup);
-
-    public bool HasReplaceBaseCoverage => ReplaceBaseCoverageItems.Count > 0;
-
-    public string ReplaceSelectedCoverageSummary =>
-        Text.FormatSelectedCtrlRamCoverageSummary(ReplaceSelectedCoverageItems.Count);
-
-    public string ReplaceBaseCoverageSummary => Text.FormatBaseFirmwareCoverageSummary();
-
-    public ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
+    internal ObservableCollection<MemoryMapRowViewModel> ReplaceMemoryRows { get; } = [];
 
     public ObservableCollection<GeneralReplaceMappingViewModel> GeneralReplaceMappings { get; } = [];
 
-    public string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
+    internal string ReplaceMemoryRangeLabel { get; private set; } = string.Empty;
 
     public string SelectedReplaceMode
     {
@@ -190,10 +153,6 @@ internal sealed partial class ReplacePresentationViewModel
 
     public bool IsNonCtrlRamStructuredReplaceModeSelected => IsStructuredReplaceModeSelected &&
         !IsCtrlRamReplaceModeSelected;
-
-    public bool IsReplaceCoverageGrouped => IsCtrlRamReplaceModeSelected && ReplaceCoverageGroups.Count > 0;
-
-    public bool IsReplaceCoverageFlat => !IsReplaceCoverageGrouped;
 
     public string SelectedReplaceModeDescription => Text.GetReplaceModeDescription(SelectedReplaceMode);
 
@@ -398,7 +357,6 @@ internal sealed partial class ReplacePresentationViewModel
         OnPropertyChanged(nameof(SelectedReplaceMode));
         OnPropertyChanged(nameof(Inspection));
         OnPropertyChanged(nameof(IsCtrlRamReplaceModeSelected));
-        OnPropertyChanged(nameof(ShowsGenericCoverageStateLegend));
         OnPropertyChanged(nameof(IsGeneralReplaceModeSelected));
         OnPropertyChanged(nameof(IsStructuredReplaceModeSelected));
         OnPropertyChanged(nameof(IsNonCtrlRamStructuredReplaceModeSelected));

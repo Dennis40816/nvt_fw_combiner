@@ -24,7 +24,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
     : ShellViewModelTestBase(fixture), IClassFixture<ShellViewModelTestHostFixture>
 {
-    /// <summary>The compact bank viewport is keyboard operable and cannot change the write scope.</summary>
+    /// <summary>The bank viewport changes only display facts and leaves the selected write scope intact.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(true, true)]
@@ -44,179 +44,76 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
         try
         {
             window.Show();
-            window.Measure(new Size(1440, 1000));
-            window.Arrange(new Rect(0, 0, 1440, 1000));
-            Dispatcher.UIThread.RunJobs();
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<ToggleButton>(), static item => item.Name is "CtrlRamAbReferenceChoice" or "CtrlRamStandardReferenceChoice");
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            Assert.True(viewModel.Replace.IsAbCtrlRamReference);
-            Assert.True(viewModel.Replace.IsCtrlRamBothBanksSelected);
-            DropDownButton scope = Assert.Single(window.GetVisualDescendants().OfType<DropDownButton>(), item => item.Name == "CtrlRamBankScopeMenu");
-            MenuFlyout choices = Assert.IsType<MenuFlyout>(scope.Flyout);
-            Assert.True(scope.Focus());
-            PressSpace(window);
-            Assert.True(choices.IsOpen);
-            Assert.Equal(3, choices.Items.Count);
-            MenuItem aOnly = Assert.Single(choices.Items.OfType<MenuItem>(), item => Equals(item.CommandParameter, AbCtrlRamBankSelection.A));
-            Assert.Same(viewModel.Replace.SelectCtrlRamBanksCommand, aOnly.Command);
-            Assert.True(aOnly.Focus());
-            window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            window.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
-            Dispatcher.UIThread.RunJobs();
-            await viewModel.Replace.SelectCtrlRamBanksCommand.ExecutionTask!;
-            choices.Hide();
-            Assert.True(viewModel.Replace.IsCtrlRamBankASelected);
-            await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
+            await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.A);
             await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
-            Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
-            Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
-            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
-            Assert.Equal("AB FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
-            Assert.NotEmpty(viewModel.Replace.CtrlRamFocusLanes);
-            Assert.All(viewModel.Replace.CtrlRamFocusLanes, lane => Assert.Equal(chinese ? "主 IC" : "Master", lane.Title));
-            AssertNfSourceNames();
-            long[] aStarts = [.. viewModel.Replace.CtrlRamFocusLanes.Select(static lane => lane.Start)];
-            double[] aWeights = [.. viewModel.Replace.CtrlRamPositions.Select(static position => position.BarWidth)];
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            ToggleButton bankView = Assert.Single(window.GetVisualDescendants().OfType<ToggleButton>(), item => item.Name == "CtrlRamBankViewSwitch");
-            TextBlock subtitle = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(), item => item.Name == "CtrlRamBankViewSubtitle");
-            Assert.True(bankView.IsEffectivelyVisible);
-            Border settings = Assert.Single(window.GetVisualDescendants().OfType<Border>(), item => item.Name == "CtrlRamModeSettings");
-            Assert.True(settings.Bounds.Width > 1300);
-            Assert.True(settings.TranslatePoint(default, window)!.Value.Y + settings.Bounds.Height < subtitle.TranslatePoint(default, window)!.Value.Y);
-            Assert.False(bankView.IsChecked);
-            Assert.InRange(bankView.Bounds.Width, 43.5, 44.5);
-            Assert.InRange(bankView.Bounds.Height, 31.5, 32.5);
-            double toggleCenter = bankView.TranslatePoint(default, window)!.Value.Y + (bankView.Bounds.Height / 2);
-            double subtitleCenter = subtitle.TranslatePoint(default, window)!.Value.Y + (subtitle.Bounds.Height / 2);
-            Assert.InRange(Math.Abs(toggleCenter - subtitleCenter), 0, 0.5);
+            Assert.True(viewModel.Replace.CanBuildReplace, viewModel.Replace.ReplaceReadinessStatus);
+            Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, viewModel.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
+            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
+            Assert.Equal("AB FlashCode", viewModel.Replace.ReplaceBaseSlot.DetectedBaseTypeLabel);
+            OutputLayoutPanel panel = Assert.Single(window.GetVisualDescendants().OfType<OutputLayoutPanel>(),
+                static candidate => candidate.IsEffectivelyVisible);
+            OutputLayoutPanelModel a = Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel);
+            Assert.Same(a, panel.Model);
+            Assert.NotNull(a.Bank);
+            Assert.False(a.Bank.IsViewingBankB);
+            Assert.Equal("0x00000", a.StartAddress);
+            Assert.Equal("0x3FFFF", a.EndAddress);
+            Assert.NotEmpty(a.LaneLinks);
+            Assert.All(a.LaneLinks, link => Assert.Equal(chinese ? "主 IC" : "Master", link.Lane.Title));
+            Assert.Contains(a.Segments, static segment => segment.SourceSlotId == "replace-ctrlram-nf" &&
+                segment.SourceLabel == "NF CtrlRAM");
+            long[] aStarts = [.. a.LaneLinks.Select(static link => link.Lane.Start)];
             CtrlRamAuthoringDraftState? draft = viewModel.Replace.CurrentCtrlRamDraft;
             AuthoringRevision revision = viewModel.Replace.ReplaceInputAuthoringRevision;
             object? inspection = viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection;
             WorkflowInspectionAttemptState inspectionState = viewModel.Replace.Inspection.State;
-            Assert.True(bankView.Focus());
-            PressSpace(window);
-            Assert.True(bankView.IsChecked);
-            Assert.True(viewModel.Replace.IsViewingCtrlRamBankB);
-            Assert.Equal("0x40000", viewModel.Replace.CtrlRamStartAddress);
-            Assert.Equal("0x7FFFF", viewModel.Replace.CtrlRamEndAddress);
-            Assert.Equal(viewModel.Text.FormatCtrlRamBankView(true, false), subtitle.Text);
+            a.Bank.SelectBankCommand.Execute(true);
+            Dispatcher.UIThread.RunJobs();
+            OutputLayoutPanelModel b = Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel);
+            Assert.Same(b, panel.Model);
+            Assert.True(b.Bank!.IsViewingBankB);
+            Assert.Equal("0x40000", b.StartAddress);
+            Assert.Equal("0x7FFFF", b.EndAddress);
+            Assert.Equal(viewModel.Text.FormatCtrlRamBankView(true, false), b.Bank.BankBLabel);
+            Assert.Equal(aStarts.Select(static start => start + 0x40000), b.LaneLinks.Select(static link => link.Lane.Start));
+            Assert.All(b.LaneLinks.SelectMany(static link => link.Lane.Ranges),
+                static range => Assert.False(range.IsSelectedForWrite));
             Assert.Same(draft, viewModel.Replace.CurrentCtrlRamDraft);
             Assert.Equal(revision, viewModel.Replace.ReplaceInputAuthoringRevision);
             Assert.Same(inspection, viewModel.Replace.ReplaceBaseSlot.CurrentInspectionProjection);
             Assert.Equal(inspectionState, viewModel.Replace.Inspection.State);
             Assert.True(viewModel.Replace.IsCtrlRamBankASelected);
             Assert.True(viewModel.Replace.CanBuildReplace);
-            Assert.Equal(aStarts.Select(static start => start + 0x40000), viewModel.Replace.CtrlRamFocusLanes.Select(static lane => lane.Start));
-            Assert.Equal(aWeights, viewModel.Replace.CtrlRamPositions.Select(static position => position.BarWidth));
-            Assert.Equal(0x40000, viewModel.Replace.CtrlRamPositions.Sum(static position => position.BarWidth));
-            Assert.All(viewModel.Replace.CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges),
-                static range => Assert.False(range.IsSelectedForWrite));
-            _ = CtrlRamMemoryLayoutTests.OpenLane(window, viewModel.Replace.CtrlRamFocusLanes[0]);
-            Border local = Assert.Single(window.GetVisualDescendants().OfType<Border>(), static control => control.Name == "MemoryLocalView");
-            Assert.Contains(local.GetVisualDescendants().OfType<TextBlock>(), static text => text.Text == "NF");
-            Assert.Contains(window.GetVisualDescendants().OfType<Border>(), static border =>
-                border.Classes.Contains("memoryPositionUnderline") && border.IsEffectivelyVisible);
-            Assert.True(bankView.Focus());
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            string? output = Environment.GetEnvironmentVariable("NFC_VISUAL_OUTPUT_DIR");
-            using global::Avalonia.Media.Imaging.Bitmap? frame = window.GetLastRenderedFrame();
-            Assert.NotNull(frame);
-            if (output is not null)
-            {
-                _ = Directory.CreateDirectory(output);
-                frame.SavePng(Path.Combine(output, $"ab-info-layout-a-only-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
-            }
-            PressSpace(window);
-            Assert.False(viewModel.Replace.IsViewingCtrlRamBankB);
-            Assert.Equal("0x00000", viewModel.Replace.CtrlRamStartAddress);
-            // General is authorable only on NT51926; exercise the real catalog transition.
+            Assert.DoesNotContain(window.GetVisualDescendants(), static control =>
+                control.Name is "MemorySliceCard" or "MemoryLocalView");
+            b.Bank.SelectBankCommand.Execute(false);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("0x00000", Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel).StartAddress);
             viewModel.WorkflowSession.SelectedIc = "NT51926";
             await viewModel.Replace.Inspection.ActiveTask;
             Assert.Contains(ExperienceIds.GeneralReplace, viewModel.Replace.ReplaceModeChoices);
             viewModel.Replace.SelectedReplaceMode = ExperienceIds.GeneralReplace;
-            Dispatcher.UIThread.RunJobs();
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
-            Assert.Empty(viewModel.Replace.CtrlRamOverview);
-            viewModel.Replace.IsViewingCtrlRamBankB = true;
-            Assert.Empty(viewModel.Replace.CtrlRamOverview);
+            Assert.Null(Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel).Bank);
             viewModel.WorkflowSession.SelectedIc = "NT51929";
             viewModel.Replace.SelectedReplaceMode = ExperienceIds.CtrlRamReplace;
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase, AbCtrlRamReferencePath, TestContext.Current.CancellationToken);
             await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.Both);
             await viewModel.WorkflowSession.SetSlotFileAsync("replace-ctrlram-nf", AbCtrlRamNfPath, TestContext.Current.CancellationToken);
             Assert.True(viewModel.Replace.HasCtrlRamBankView);
-            AssertNfSourceNames();
-            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
             viewModel.Replace.IsViewingCtrlRamBankB = true;
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            using global::Avalonia.Media.Imaging.Bitmap? bothFrame = window.GetLastRenderedFrame();
-            Assert.NotNull(bothFrame);
-            if (output is not null)
-            {
-                bothFrame.SavePng(Path.Combine(output, $"ab-info-layout-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
-            }
+            Assert.Equal(["TPA Version", "TPB Version"], viewModel.Replace.ReplaceBaseSlot.PrimaryFirmwareFacts.Take(2).Select(static fact => fact.Label));
             viewModel.Replace.ReplaceBaseSlot.IsAdditionalFirmwareFactsExpanded = true;
             Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "DPA Version");
             Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "DPB Version");
             Assert.Contains(viewModel.Replace.ReplaceBaseSlot.AdditionalFirmwareFacts, static fact => fact.Label == "IC Count (A/B)");
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            using global::Avalonia.Media.Imaging.Bitmap? detailsFrame = window.GetLastRenderedFrame();
-            Assert.NotNull(detailsFrame);
-            if (output is not null)
-            {
-                detailsFrame.SavePng(Path.Combine(output, $"ab-info-details-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
-            }
-            _ = CtrlRamMemoryLayoutTests.OpenLane(window, viewModel.Replace.CtrlRamFocusLanes[0]);
-            Control nfCell = window.GetVisualDescendants().OfType<Control>().First(static control =>
-                control.Classes.Contains("memoryLocalSlice") && control.Focusable &&
-                control.DataContext is MemoryCoverageSegmentViewModel { CtrlRamRegionRole: CtrlRamRegionRole.Nf });
-            Assert.True(nfCell.Focus(NavigationMethod.Tab));
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Border detailCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), static control => control.Name == "MemorySliceCard");
-            MemoryCoverageSegmentViewModel detailSegment = Assert.IsType<MemoryCoverageSegmentViewModel>(detailCard.DataContext);
-            Assert.Equal("NF CtrlRAM", detailSegment.SourceLabel);
-            Assert.Equal(0x5FC00, detailSegment.RangeStart);
-            var revealWait = Stopwatch.StartNew();
-            bool detailCardReady;
-            do
-            {
-                Dispatcher.UIThread.RunJobs();
-                window.UpdateLayout();
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                Dispatcher.UIThread.RunJobs();
-                detailCardReady = detailCard.IsEffectivelyVisible && detailCard.Opacity == 1 &&
-                    (detailCard.RenderTransform?.Value ?? Matrix.Identity) == Matrix.Identity &&
-                    detailCard.IsMeasureValid && detailCard.IsArrangeValid &&
-                    detailCard.Bounds.Width > 0 && detailCard.Bounds.Height > 0;
-                if (detailCardReady)
-                {
-                    break;
-                }
-                await Task.Delay(10, TestContext.Current.CancellationToken);
-            }
-            while (revealWait.Elapsed < TimeSpan.FromSeconds(5));
-            Assert.True(detailCardReady,
-                $"MemorySliceCard reveal/layout did not complete within 5 seconds: visible={detailCard.IsEffectivelyVisible}, " +
-                $"opacity={detailCard.Opacity}, transform={detailCard.RenderTransform?.Value}, " +
-                $"measureValid={detailCard.IsMeasureValid}, arrangeValid={detailCard.IsArrangeValid}, bounds={detailCard.Bounds}.");
-            using global::Avalonia.Media.Imaging.Bitmap? hoverFrame = window.GetLastRenderedFrame();
-            Assert.NotNull(hoverFrame);
-            if (output is not null)
-            {
-                hoverFrame.SavePng(Path.Combine(output, $"ab-focus-hover-1440x1000-{(dark ? "dark-zh" : "light-en")}.png"));
-            }
             await viewModel.Replace.SelectCtrlRamBanksCommand.ExecuteAsync(AbCtrlRamBankSelection.B);
-            AssertNfSourceNames();
             viewModel.Replace.IsViewingCtrlRamBankB = false;
             Assert.All(viewModel.Replace.CtrlRamFocusLanes.SelectMany(static lane => lane.Ranges),
                 static range => Assert.False(range.IsSelectedForWrite));
-            // A prior symmetric B viewport must not survive a non-symmetric AB Base.
             viewModel.Replace.IsViewingCtrlRamBankB = true;
             viewModel.WorkflowSession.SelectedIc = "NT51950";
             await viewModel.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.ReplaceBase,
@@ -226,40 +123,25 @@ public sealed class AbCtrlRamVisualTests(ShellViewModelTestHostFixture fixture)
                 CanonicalGoldenTestData.ArtifactPath(CanonicalGoldenTestData.Artifact(
                     CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", "nt51950-fw200-single-auto-prj-676-20260717"),
                     "postbuild-nf-ctrlram")), TestContext.Current.CancellationToken);
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(viewModel.Replace.HasMemoryLayoutDisplayError);
+            Assert.NotEqual(OutputLayoutNoticeKind.Unavailable, viewModel.Replace.OutputLayout.Current.Panel?.Notice?.Kind);
             Assert.True(viewModel.Replace.IsAbCtrlRamReference);
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
             Assert.False(viewModel.Replace.IsViewingCtrlRamBankB);
-            Assert.False(bankView.IsEffectivelyVisible);
-            Assert.False(subtitle.IsEffectivelyVisible);
-            Assert.Empty(viewModel.Replace.CtrlRamBankViewSubtitle);
-            Assert.Equal("0x00000", viewModel.Replace.CtrlRamStartAddress);
-            Assert.Equal("0x7FFFF", viewModel.Replace.CtrlRamEndAddress);
-            Assert.Contains(viewModel.Replace.CtrlRamFocusLanes, static lane => lane.EndExclusive <= 0x40000);
-            Assert.Contains(viewModel.Replace.CtrlRamFocusLanes, static lane => lane.Start >= 0x40000);
+            OutputLayoutPanelModel full = Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel);
+            Assert.Null(full.Bank);
+            Assert.Equal("0x00000", full.StartAddress);
+            Assert.Equal("0x7FFFF", full.EndAddress);
+            Assert.Contains(full.LaneLinks, static link => link.Lane.EndExclusive <= 0x40000);
+            Assert.Contains(full.LaneLinks, static link => link.Lane.Start >= 0x40000);
             viewModel.Replace.IsViewingCtrlRamBankB = true;
             Assert.False(viewModel.Replace.IsViewingCtrlRamBankB);
-            Assert.Equal("0x7FFFF", viewModel.Replace.CtrlRamEndAddress);
             await viewModel.WorkflowSession.ClearSlotFileCommand.ExecuteAsync(CompositionSlotIds.ReplaceBase);
             Assert.False(viewModel.Replace.HasCtrlRamBankView);
-            Assert.Empty(viewModel.Replace.CtrlRamBankViewSubtitle);
-            viewModel.WorkflowSession.SelectedIc = "NT51950";
-            Dispatcher.UIThread.RunJobs();
-            Assert.False(viewModel.Replace.HasCtrlRamBankSettings);
-            Assert.False(viewModel.Replace.HasCtrlRamBankView);
+            Assert.Null(Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel).Bank);
         }
         finally
         {
             await ReportControlTestHost.CloseAndFlushAsync(window);
-        }
-
-        void AssertNfSourceNames()
-        {
-            MemoryCoverageSegmentViewModel[] selected = [.. viewModel.Replace.ReplaceCoverageSegments
-                .Where(static segment => segment.SourceSlotId == "replace-ctrlram-nf")];
-            Assert.NotEmpty(selected);
-            Assert.All(selected, static segment => Assert.Equal("NF CtrlRAM", segment.SourceLabel));
         }
     }
 

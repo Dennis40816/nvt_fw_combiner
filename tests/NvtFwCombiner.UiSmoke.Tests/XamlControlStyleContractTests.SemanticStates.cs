@@ -252,27 +252,24 @@ public sealed partial class XamlControlStyleContractTests
         string styles = ReadPresentationFile("Styles/MainWindowControlStyles.axaml") +
             ReadPresentationFile("Styles/MemoryCoverageStyles.axaml");
         string tokens = ReadPresentationFile("Styles/ThemeTokens.axaml");
-        var shell = System.Xml.Linq.XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
+        var shell = XDocument.Parse(ReadPresentationFile("MainWindow.axaml"));
         string sharedTemplates = ReadPresentationFile("Resources/MainWindowSharedTemplates.axaml");
         string workflowTemplates = ReadPresentationFile("Resources/MainWindowWorkflowTemplates.axaml");
         string templates = sharedTemplates + workflowTemplates;
         string replaceBar = ExtractDataTemplate(sharedTemplates, "MemoryCoverageSegmentBarTemplate");
         string mergeBar = ExtractDataTemplate(sharedTemplates, "MemoryCoveragePlainSegmentBarTemplate");
         string logicalRange = ExtractDataTemplate(sharedTemplates, "MemoryCoverageLogicalRangeTemplate");
-        string replacePanel = ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate");
-        string mergePanel = ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate");
+        string replacePanel = shell.ToString();
         string viewModel = ReadPresentationFile("ViewModels/MemoryCoverageSegmentViewModel.cs");
         string keptBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge");
         string changedBadge = ExtractStyle(styles, "Label.countBadge.coverageChangeBadge.changed");
         string keptMarker = ExtractStyle(styles, "Border.memoryCoverageMarker");
         string changedMarker = ExtractStyle(styles, "Border.memoryCoverageMarker.changed");
-        System.Xml.Linq.XElement[] memoryPanelHosts =
+        XElement[] memoryPanelHosts =
         [
-            .. shell.Descendants().Where(element =>
-                element.Name.LocalName == "ContentControl" &&
-                ((string?)element.Attribute("ContentTemplate"))?.Contains(
-                    "OutputLayoutPanelTemplate",
-                    StringComparison.Ordinal) == true),
+            .. shell.Descendants().Where(element => element.Name.LocalName == "OutputLayoutPanel" &&
+                element.Attributes().Any(attribute => attribute.Name.LocalName == "Name" &&
+                    attribute.Value == "ReplaceOutputLayoutPanel")),
         ];
 
         Assert.Contains("NfcSurfaceSubtleBrush", keptBadge, StringComparison.Ordinal);
@@ -281,12 +278,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("NfcInfoSurfaceStrongBrush", changedBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentBorderLightBrush", changedBadge, StringComparison.Ordinal);
         Assert.Contains("NfcAccentStrongBrush", changedBadge, StringComparison.Ordinal);
-        Assert.Equal(2, memoryPanelHosts.Length);
-        Assert.All(memoryPanelHosts, host =>
-        {
-            Assert.Equal("1", (string?)host.Attribute("Grid.Column"));
-            Assert.Equal("Top", (string?)host.Attribute("VerticalAlignment"));
-        });
+        XElement replacePanelHost = Assert.Single(memoryPanelHosts);
+        Assert.Equal("{Binding OutputLayout.Current.Panel}", (string?)replacePanelHost.Attribute("Model"));
         Assert.Contains("Value=\"0\"", keptMarker, StringComparison.Ordinal);
         Assert.DoesNotContain("NfcAccentStrongBrush", changedMarker, StringComparison.Ordinal);
         Assert.Contains("Value=\"0\"", changedMarker, StringComparison.Ordinal);
@@ -341,22 +334,9 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("ItemsSource=\"{Binding ProcessingFacts}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("IsExpanded=\"False\"", regionCard, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(templates, "Classes=\"technicalValue\" Text=\"·\""));
-        Assert.Contains(XElement.Parse(replacePanel).Descendants(), element =>
-            element.Name.LocalName == "MemoryCoverageBar" &&
-            (string?)element.Attribute("ItemsSource") == "{Binding ReplaceCoverageSegments}");
+        Assert.DoesNotContain("<views:MemoryCoverageBar", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("<Viewbox", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("<views:MemoryCoverageBar ItemsSource=\"{Binding MergeCoverageSegments}\"", mergePanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("<Viewbox", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"panelSurface memoryInfoPanel\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"mutedText memoryInfoDescription\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"mutedText memoryInfoDescription\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"compactSubtleSurface memoryInfoAddress\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Classes=\"monoText detailText memoryInfoAddressText\"", mergePanel, StringComparison.Ordinal);
-        Assert.Contains("ShowLegend=\"True\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("ShowLegend=\"True\"", mergePanel, StringComparison.Ordinal);
+        Assert.Contains("Classes=\"replaceOutput\"", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReplaceSelectedCoverageItems", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ReplaceBaseCoverageItems", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceCoverageGroups}\"", replacePanel, StringComparison.Ordinal);
@@ -385,14 +365,11 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Text=\"{Binding FlashRangeLabel}\"", regionCard, StringComparison.Ordinal);
         Assert.Contains("Text=\"{Binding DispositionLabel}\"", regionCard, StringComparison.Ordinal);
         Assert.DoesNotContain("UsesKeptPattern", mergeBar, StringComparison.Ordinal);
-        Assert.Contains("x:Name=\"ReplaceCoverageStateLegend\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding ShowsGenericCoverageStateLegend}\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("IsVisible=\"{Binding HasObservedMemoryChanges}\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.OutputLayoutChangedStateLabel}\"", replacePanel, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.OutputLayoutKeptStateLabel}\"", replacePanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReplaceCoverageStateLegend", replacePanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowsGenericCoverageStateLegend", replacePanel, StringComparison.Ordinal);
+        Assert.DoesNotContain("HasObservedMemoryChanges", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("MaxHeight=\"320\"", replacePanel, StringComparison.Ordinal);
         Assert.DoesNotContain("VerticalScrollBarVisibility=\"Auto\"", replacePanel, StringComparison.Ordinal);
-        Assert.DoesNotContain("MaxHeight=\"320\"", mergePanel, StringComparison.Ordinal);
 
         Assert.Contains("public MemoryCoverageFillRole FillRole", viewModel, StringComparison.Ordinal);
         Assert.DoesNotContain("public IBrush FillBrush", viewModel, StringComparison.Ordinal);

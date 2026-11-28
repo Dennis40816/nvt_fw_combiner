@@ -25,7 +25,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
             segment.FillRole == MemoryCoverageFillRole.Kept && segment.UsesKeptPattern);
         Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment => segment.IsChanged);
-        Assert.False(viewModel.Replace.HasObservedMemoryChanges);
+        Assert.DoesNotContain(Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel).Segments,
+            static segment => segment.IsChanged);
         Assert.Contains(viewModel.Replace.ReplaceCoverageSegments, segment =>
             !segment.UsesKeptPattern && segment.ChangeLabel == "Will replace");
         Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, segment =>

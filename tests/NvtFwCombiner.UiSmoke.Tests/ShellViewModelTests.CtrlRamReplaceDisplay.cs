@@ -343,7 +343,7 @@ public sealed partial class CtrlRamWorkflowTests
             "Output range keeps bytes from the base firmware.",
             keptNf.CompactDetail);
         Assert.Contains("NF CtrlRAM", keptNf.AccessibleDetail, StringComparison.Ordinal);
-        Assert.False(viewModel.Replace.ShowsGenericCoverageStateLegend);
+        Assert.NotEmpty(Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel).Rows);
         Assert.Contains(viewModel.Replace.ReplaceCoverageGroups, group =>
             group.Items.Any(item => item.IsSelectedForWrite) && group.IsExpanded);
         (string SlotId, long MaximumLength)[] replacements =
@@ -628,7 +628,7 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal(
             ["Common", "Master", "Slave R", "Slave L"],
             viewModel.Replace.ReplaceSlotGroups.Select(group => group.Title));
-        Assert.False(viewModel.Replace.IsReplaceCoverageGrouped);
+        Assert.NotEmpty(Assert.IsType<OutputLayoutPanelModel>(viewModel.Replace.OutputLayout.Current.Panel).Segments);
         Assert.Empty(viewModel.Replace.ReplaceCoverageGroups);
         Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
     }

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Avalonia.Controls;
-using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -13,60 +12,33 @@ using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-/// <summary>Every Memory Layout bar shows its outer start and end address above the rail.</summary>
+/// <summary>Each production output panel shows its outer addresses and full output range.</summary>
 public sealed class MemoryOuterAddressTests
 {
-    /// <summary>The AB Merge bar shows the image's outer addresses and keeps its range box.</summary>
+    /// <summary>The AB panel retains outer endpoints and the full output-range fact in its collapsed context.</summary>
     [AvaloniaFact]
-    public async Task AbMergeBarShowsOuterAddresses()
+    public async Task AbMergePanelShowsOuterAddressesAndFullRange()
     {
         using var workspace = TempWorkspace.Create("outer-address-merge");
-        PresentationHostServices services = await CreateServicesAsync(workspace);
-        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default)
-        { Width = 1440, Height = 1040, RequestedThemeVariant = ThemeVariant.Light };
-        window.Show();
-        try
-        {
-            await AwaitHistoryReadyAsync(window);
-            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-            JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51929-ab-t05-d06");
-            await MainWindow.ApplyAbMergeLaunchAsync(shell, new AbMergeLaunchRequest("NT51929", "single",
-                PathFor(golden, "dp-ab-input"), PathFor(golden, "tp-a-input"), PathFor(golden, "tp-b-input")),
-                TestContext.Current.CancellationToken);
-            var addressWait = System.Diagnostics.Stopwatch.StartNew();
-            while (true)
-            {
-                Dispatcher.UIThread.RunJobs();
-                window.UpdateLayout();
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                Dispatcher.UIThread.RunJobs();
-                if (shell.Merge.MergeStartAddress == "0x00000" && shell.Merge.MergeEndAddress == "0x7FFFF" &&
-                    window.GetVisualDescendants().OfType<Grid>().Any(grid =>
-                        grid.Name == "MemoryOverviewAddresses" && grid.IsEffectivelyVisible &&
-                        grid.Children.OfType<TextBlock>().Where(static text => text.IsEffectivelyVisible)
-                            .Select(static text => text.Text).SequenceEqual(["0x00000", "0x7FFFF"])))
-                {
-                    break;
-                }
-
-                Assert.True(addressWait.Elapsed < TimeSpan.FromSeconds(10),
-                    "Timed out waiting for AB Merge outer addresses 0x00000 and 0x7FFFF in the view model and visible overview labels.");
-                await Task.Delay(10, TestContext.Current.CancellationToken);
-            }
-            Assert.Equal("0x00000", shell.Merge.MergeStartAddress);
-            Assert.Equal("0x7FFFF", shell.Merge.MergeEndAddress);
-            Assert.False(string.IsNullOrEmpty(shell.Merge.MergeMemoryRangeLabel));
-            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), static bar => bar.IsEffectivelyVisible);
-            Grid addresses = Assert.Single(bar.GetVisualDescendants().OfType<Grid>(), static grid => grid.Name == "MemoryOverviewAddresses");
-            Assert.True(addresses.IsEffectivelyVisible);
-            Assert.Equal(["0x00000", "0x7FFFF"], addresses.Children.OfType<TextBlock>().Select(static text => text.Text));
-        }
-        finally { await CloseAndFlushAsync(window); }
+        await using MergeOutputLayoutTestHost host = await MergeOutputLayoutTestHost.CreateAsync(workspace);
+        await host.LoadAbAsync();
+        Assert.Equal("0x00000", host.Model.StartAddress);
+        Assert.Equal("0x7FFFF", host.Model.EndAddress);
+        Assert.Equal(host.Model.StartAddress, host.Panel.FindControl<TextBlock>("LayoutStart")!.Text);
+        Assert.Equal(host.Model.EndAddress, host.Panel.FindControl<TextBlock>("LayoutEnd")!.Text);
+        Expander context = host.Panel.FindControl<Expander>("LayoutContext")!;
+        Assert.False(context.IsExpanded);
+        context.IsExpanded = true;
+        host.Render();
+        TextBlock range = host.Panel.FindControl<TextBlock>("LayoutRange")!;
+        Assert.Equal(host.Shell.Merge.OutputLayout.Current.RangeLabel, range.Text);
+        Assert.True(range.IsEffectivelyVisible);
+        Assert.Contains("0x7FFFF", range.Text!, StringComparison.Ordinal);
     }
 
-    /// <summary>The Replace flash bar carries the same outer addresses as the CtrlRAM overview of the image.</summary>
+    /// <summary>The Replace panel carries the exact outer addresses and clears them with its publication.</summary>
     [AvaloniaFact]
-    public async Task ReplaceFlashBarCarriesOuterAddresses()
+    public async Task ReplacePanelCarriesOuterAddresses()
     {
         using var workspace = TempWorkspace.Create("outer-address-replace");
         PresentationHostServices services = await CreateServicesAsync(workspace);
@@ -78,22 +50,28 @@ public sealed class MemoryOuterAddressTests
             await AwaitHistoryReadyAsync(window);
             MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
             JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", "nt51950-fw200-single-auto-prj-676-20260717");
-            UiLaunchOptions options = UiLaunchOptions.Parse(["--workflow", "ctrlram-replace", "--ic", "NT51950", "--ic-num", "single",
+            var options = UiLaunchOptions.Parse(["--workflow", "ctrlram-replace", "--ic", "NT51950", "--ic-num", "single",
                 "--base", PathFor(fixture, "expected-output"), "--ctrlram", "replace-ctrlram-nf=" + PathFor(fixture, "postbuild-nf-ctrlram")]);
             await MainWindow.ApplyCtrlRamLaunchAsync(shell, options.CtrlRam!, TestContext.Current.CancellationToken);
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal("0x00000", shell.Replace.ReplaceStartAddress);
-            Assert.Equal("0x3FFFF", shell.Replace.ReplaceEndAddress);
-            Assert.Equal(shell.Replace.CtrlRamStartAddress, shell.Replace.ReplaceStartAddress);
-            Assert.Equal(shell.Replace.CtrlRamEndAddress, shell.Replace.ReplaceEndAddress);
-            MemoryCoverageBar flash = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
-                bar => ReferenceEquals(bar.ItemsSource, shell.Replace.ReplaceCoverageSegments));
-            Assert.Equal("0x00000", flash.StartAddress);
-            Assert.Equal("0x3FFFF", flash.EndAddress);
+            OutputLayoutPanel panel = Assert.Single(window.GetVisualDescendants().OfType<OutputLayoutPanel>(),
+                static candidate => candidate.IsEffectivelyVisible);
+            OutputLayoutPanelModel model = Assert.IsType<OutputLayoutPanelModel>(shell.Replace.OutputLayout.Current.Panel);
+            Assert.Same(model, panel.Model);
+            Assert.Equal("0x00000", model.StartAddress);
+            Assert.Equal("0x3FFFF", model.EndAddress);
+            Assert.Equal(model.StartAddress, panel.FindControl<TextBlock>("LayoutStart")!.Text);
+            Assert.Equal(model.EndAddress, panel.FindControl<TextBlock>("LayoutEnd")!.Text);
+            Expander context = panel.FindControl<Expander>("LayoutContext")!;
+            context.IsExpanded = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(shell.Replace.OutputLayout.Current.RangeLabel, panel.FindControl<TextBlock>("LayoutRange")!.Text);
             shell.Replace.ClearCtrlRamInspectionDisplay();
             Dispatcher.UIThread.RunJobs();
-            Assert.True(string.IsNullOrEmpty(flash.StartAddress), "A cleared display keeps no outer start address.");
-            Assert.True(string.IsNullOrEmpty(flash.EndAddress), "A cleared display keeps no outer end address.");
+            OutputLayoutPanelModel cleared = Assert.IsType<OutputLayoutPanelModel>(shell.Replace.OutputLayout.Current.Panel);
+            Assert.Same(cleared, panel.Model);
+            Assert.True(string.IsNullOrEmpty(cleared.StartAddress), "A cleared display keeps no outer start address.");
+            Assert.True(string.IsNullOrEmpty(cleared.EndAddress), "A cleared display keeps no outer end address.");
         }
         finally { await CloseAndFlushAsync(window); }
     }
