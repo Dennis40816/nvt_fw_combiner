@@ -504,15 +504,63 @@
           "alignment": 1
         },
         {
-          "regionId": "gap-prefix-100",
+          "regionId": "s0-fw-header",
           "parentRegionId": "flash-image",
-          "owner": "unknown",
-          "kind": "unmapped",
+          "owner": "tp",
+          "kind": "header",
           "range": {
             "start": 256,
             "length": 256
           },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-s0-header-00-to-1c",
+          "parentRegionId": "s0-fw-header",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 256,
+            "length": 28
+          },
           "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "s0-header-crc-1c",
+          "parentRegionId": "s0-fw-header",
+          "owner": "system",
+          "kind": "header",
+          "range": {
+            "start": 284,
+            "length": 4
+          },
+          "writeConstraint": "explicit-range",
+          "alignment": 1
+        },
+        {
+          "regionId": "gap-s0-header-20-to-fc",
+          "parentRegionId": "s0-fw-header",
+          "owner": "unknown",
+          "kind": "unmapped",
+          "range": {
+            "start": 288,
+            "length": 220
+          },
+          "writeConstraint": "forbidden",
+          "alignment": 1
+        },
+        {
+          "regionId": "s0-header-crc-fc",
+          "parentRegionId": "s0-fw-header",
+          "owner": "system",
+          "kind": "header",
+          "range": {
+            "start": 508,
+            "length": 4
+          },
+          "writeConstraint": "explicit-range",
           "alignment": 1
         },
         {

@@ -91,13 +91,18 @@ public sealed class Nt51925EndFlagSelectionTests
         ]);
     }
 
-    /// <summary>TP Overview C130: the 1.x Cascade owns separate slave CtrlRAM and Vec Table ranges.</summary>
+    /// <summary>
+    /// TP Overview C130: the 1.x Cascade owns separate slave CtrlRAM and Vec Table ranges. Owner 2026-11-28 (9b):
+    /// the second IC (S0) header at 0x100 opens only its +0x1C and +0xFC fields.
+    /// </summary>
     [Fact]
     public void GetFirmwareFamilyFw1xCascadeRegionsMatchOwnerOverview()
     {
         AssertLayoutRegions("141", "cascade",
         [
-            .. CommonRegions(0x780, 0x77C, 0x2277C, 4),
+            .. CommonRegions(0x780, 0x77C, 0x2277C, 4).Where(static row => row.Id != "gap-prefix-100"),
+            ("s0-fw-header", 0x100, 0x100), ("gap-s0-header-00-to-1c", 0x100, 0x1C), ("s0-header-crc-1c", 0x11C, 4),
+            ("gap-s0-header-20-to-fc", 0x120, 0xDC), ("s0-header-crc-fc", 0x1FC, 4),
             ("normal-ctrlram", 0x22780, 0x2800), ("mp-ctrlram", 0x24F80, 0x2000),
             ("normal-slave-ctrlram", 0x26F80, 0x2800), ("mp-slave-ctrlram", 0x29780, 0x2000),
             ("vn-ctrlram-fw141", 0x2B780, 0x338), ("nf-ctrlram", 0x2BAB8, 0x1EB0),
@@ -171,7 +176,7 @@ public sealed class Nt51925EndFlagSelectionTests
     /// <summary>Every declared postbuild block uses its selected candidate's geometry.</summary>
     [Theory]
     [InlineData("141", "single", "1.0.0", "normal,mp,vn,nf,fw-config-backup")]
-    [InlineData("141", "cascade", "1.0.0", "normal,mp,vn,nf,fw-config-backup")]
+    [InlineData("141", "cascade", "1.0.0", "normal,mp,normal-slave,vn,nf,fw-config-backup")]
     [InlineData("200", "single", "2.0.0", "normal,mp,vn,nf,fw-config-backup,header-copy,header-copy-final")]
     [InlineData("200", "cascade", "2.0.0", "normal,diff,mp,vn,nf,fw-config-backup,header-copy,header-copy-final")]
     public void GetPostbuildCatalogEachLayoutCommandRangesMatchCandidateFamily(
@@ -199,6 +204,7 @@ public sealed class Nt51925EndFlagSelectionTests
             {
                 "normal" => "normal-ctrlram",
                 "mp" => "mp-ctrlram",
+                "normal-slave" => "normal-slave-ctrlram",
                 "vn" => $"vn-ctrlram-fw{fw}",
                 "nf" => "nf-ctrlram",
                 "diff" => "diff-ctrlram",
@@ -216,8 +222,8 @@ public sealed class Nt51925EndFlagSelectionTests
     [Theory]
     [InlineData("141", "single", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
     [InlineData("141", "single", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
-    [InlineData("141", "cascade", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,normal-slave-ctrlram,mp-slave-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
-    [InlineData("141", "cascade", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,normal-slave-ctrlram,mp-slave-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
+    [InlineData("141", "cascade", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,s0-fw-header,s0-header-crc-1c,s0-header-crc-fc,normal-ctrlram,mp-ctrlram,normal-slave-ctrlram,mp-slave-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
+    [InlineData("141", "cascade", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,s0-fw-header,s0-header-crc-1c,s0-header-crc-fc,normal-ctrlram,mp-ctrlram,normal-slave-ctrlram,mp-slave-ctrlram,vn-ctrlram-fw141,nf-ctrlram,fw-config-backup")]
     [InlineData("200", "single", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]
     [InlineData("200", "single", "full-flash-256k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]
     [InlineData("200", "cascade", "tp-work-192k", "flash-image,fw-header,header-crc-18,header-crc-1c,header-crc-3c,header-crc-4c,header-crc-5c,header-crc-fc,normal-ctrlram,mp-ctrlram,diff-ctrlram,nf-ctrlram,vn-ctrlram-fw200,header-copy,fw-config-backup")]

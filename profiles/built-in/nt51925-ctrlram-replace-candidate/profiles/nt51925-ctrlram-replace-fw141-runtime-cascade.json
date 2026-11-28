@@ -47,7 +47,7 @@
   "mapBinding": {
     "familyId": "nt51925-ctrlram-replace",
     "familyVersion": "0.1.0",
-    "familyContentHash": "83d899082fd2d2fe452a2d49395c8df0c875c2ac9ca308bb75c87e62175140d4",
+    "familyContentHash": "48fdabf88df951eecd2a50ba3f9b8d27d7cdf953d5a3f400b7ba060e1207dae9",
     "mapIds": [
       "nt51925-ctrlram-fw141-cascade-tp-work-192k",
       "nt51925-ctrlram-fw141-cascade-full-flash-256k"
@@ -73,6 +73,9 @@
       "header-crc-4c",
       "header-crc-5c",
       "header-crc-fc",
+      "s0-fw-header",
+      "s0-header-crc-1c",
+      "s0-header-crc-fc",
       "vector-table",
       "end-flag"
     ],
@@ -174,6 +177,14 @@
       }
     },
     {
+      "viewId": "normal-slave-ctrlram-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "normal-slave-ctrlram"
+      }
+    },
+    {
       "viewId": "vn-ctrlram-output",
       "spaceId": "output-image",
       "selector": {
@@ -244,6 +255,22 @@
         "kind": "map-region",
         "regionId": "header-crc-fc"
       }
+    },
+    {
+      "viewId": "s0-header-crc-1c-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "s0-header-crc-1c"
+      }
+    },
+    {
+      "viewId": "s0-header-crc-fc-output",
+      "spaceId": "output-image",
+      "selector": {
+        "kind": "map-region",
+        "regionId": "s0-header-crc-fc"
+      }
     }
   ],
   "metadataBindings": [],
@@ -260,8 +287,8 @@
     },
     {
       "regionId": "normal-slave-ctrlram",
-      "access": "read-only",
-      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: The postbuild flow declares no replacement source for this CtrlRAM_S range; preserve the reference bytes."
+      "access": "explicit-range",
+      "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Copy at most 0x2800 bytes into the second IC (S0) CtrlRAM and preserve the reference tail when the immutable source is shorter. Owner decision 2026-11-28 12:40 (9b, 9c). The official Common FW 1.x cascade postbuild passes the ICS CtrlRAM at 0x26F80 with length 10240."
     },
     {
       "regionId": "mp-slave-ctrlram",
@@ -314,6 +341,16 @@
       "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Only the declared Legacy Combiner processor may recalculate this header CRC."
     },
     {
+      "regionId": "s0-header-crc-1c",
+      "access": "hidden",
+      "reason": "Second IC (S0) header field +0x1C at 0x11C. Owner decision 2026-11-28 12:40 (9b, 9c). Evidence: the S0 header at 0x100 has the P header layout. In the official Common FW 1.x cascade sample this field equals the P header +0x1C value and changes with the TP FW, so it is likely a copy of the code CRC. The algorithm is not verified. Only the declared Legacy Combiner processor may write it."
+    },
+    {
+      "regionId": "s0-header-crc-fc",
+      "access": "hidden",
+      "reason": "Second IC (S0) header field +0xFC at 0x1FC. Owner decision 2026-11-28 12:40 (9b, 9c). Evidence: in the same sample it differs from the P header +0xFC value and changes between the original and the new TP FW, so it is likely the S0 header's own CRC. The algorithm is not verified. Only the declared Legacy Combiner processor may write it."
+    },
+    {
       "regionId": "vector-table",
       "access": "read-only",
       "reason": "Prepared isolated NT51925 candidate, owner's TP overview and postbuild flow: Preserve the Vec Table; no replacement source or processor write contract is declared."
@@ -347,6 +384,7 @@
       "allowedWriteViewIds": [
         "normal-ctrlram-output",
         "mp-ctrlram-output",
+        "normal-slave-ctrlram-output",
         "vn-ctrlram-output",
         "nf-ctrlram-output",
         "fw-config-backup-output",
@@ -355,7 +393,9 @@
         "header-crc-3c-output",
         "header-crc-4c-output",
         "header-crc-5c-output",
-        "header-crc-fc-output"
+        "header-crc-fc-output",
+        "s0-header-crc-1c-output",
+        "s0-header-crc-fc-output"
       ],
       "stagedSourceBindings": [],
       "stagedArtifactBindings": [],

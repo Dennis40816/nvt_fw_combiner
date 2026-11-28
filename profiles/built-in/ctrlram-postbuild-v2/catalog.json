@@ -5644,6 +5644,16 @@
               "stagedArtifactId": "postbuild-mp-ctrlram"
             },
             {
+              "blockId": "normal-slave",
+              "sectionId": "tp-ctrlram-replacement",
+              "sourceKind": "staged-file",
+              "sourceFileName": "Normal_Ctrlram_S.bin",
+              "sourceOffset": 0,
+              "targetStart": 159616,
+              "targetLength": 10240,
+              "stagedArtifactId": "postbuild-normal-ctrlram-s"
+            },
+            {
               "blockId": "vn",
               "sectionId": "tp-ctrlram-replacement",
               "sourceKind": "staged-file",

@@ -238,7 +238,7 @@
       "bundleDirectory": "nt51925-ctrlram-replace-candidate",
       "bundleSchemaVersion": "1.0",
       "bundleVersion": "1.2.2-nt51925.1",
-      "contentHash": "269a2e4f36a5275fd63d1982882f0321719212356963691cd69978ed7a85fd6b",
+      "contentHash": "b9104e27e002a8f93d69b0f3c9f67bfc6a5bb00605f59343e9bb46cd21a00ea9",
       "materialization": {
         "compositionProfileSchemaFile": "composition-profile-v2.9.schema.json",
         "firmwareFamilySchemaFile": "firmware-family-v1-relations.schema.json"

@@ -158,7 +158,9 @@ public sealed class Nt51925RestorationProfileTests
         CompositionOperation postbuild = prepared.Plan.OrderedOperations[1];
         ByteRange[] expectedWrites = [new(0x18, 4), new(0x1C, 4), new(0x3C, 4), new(0x4C, 4), new(0x5C, 4), new(0xFC, 4),
             new(vnStart, 0x120), new(0x2F000, fw == "141" ? 0x780 : 0x800),
-            .. fw == "200" ? new ByteRange[] { new(0x2E980, 0x100) } : []];
+            .. fw == "200" ? new ByteRange[] { new(0x2E980, 0x100) } : [],
+            // Owner 2026-11-28 (9b): the 1.x Cascade S0 header opens only its +0x1C and +0xFC CRC fields.
+            .. fw == "141" && chipCount > 1 ? new ByteRange[] { new(0x11C, 4), new(0x1FC, 4) } : []];
         Assert.Equal(expectedWrites.OrderBy(static range => range.Start), postbuild.DeclaredWriteRanges);
         Assert.Equal(expectedWrites.OrderBy(static range => range.Start), postbuild.ExternalProcessorInvocation!.AllowedWriteRanges);
         Assert.Equal([new ByteRange(0, 0x30000)], postbuild.ExternalProcessorInvocation.AllowedReadRanges);
@@ -210,6 +212,56 @@ public sealed class Nt51925RestorationProfileTests
             "NT51925", workflow, "1-ic", 0x40000);
         Assert.False(result.Succeeded);
         Assert.Equal(CapabilityCatalogIssueCodes.RouteUnavailable, result.Issue!.Code);
+    }
+
+    /// <summary>
+    /// Owner 2026-11-28 (9c): the FW 1.x Cascade S0 Normal CtrlRAM is a replacement source. A mapping inside it compiles
+    /// and the processor may write only that range plus the declared header CRC fields. MP CtrlRAM_S stays read-only,
+    /// and a mapping shifted or extended by one byte past the S0 range is rejected.
+    /// </summary>
+    [Theory]
+    [InlineData(0x30000)]
+    [InlineData(0x40000)]
+    public void Fw1xCascadeS0CtrlRamIsTheOnlyNewReplacementTarget(int capacity)
+    {
+        V2CompositionPlanCompileResult s0 = CompileFw1xCascadeMapping(capacity, new ByteRange(0x26F80, 0x2800));
+        Assert.True(s0.IsCompiled, string.Join(Environment.NewLine, s0.Issues.Select(static issue => issue.Message)));
+        CompiledComposition compiled = Assert.IsType<CompiledComposition>(s0.CompiledComposition);
+        Assert.Equal(new ByteRange(0x26F80, 0x2800), compiled.Plan.OrderedOperations[0].TargetRange);
+        CompositionOperation postbuild = compiled.Plan.OrderedOperations[1];
+        ByteRange[] expectedWrites = [new(0x18, 4), new(0x1C, 4), new(0x3C, 4), new(0x4C, 4), new(0x5C, 4), new(0xFC, 4),
+            new(0x11C, 4), new(0x1FC, 4), new(0x26F80, 0x2800), new(0x2F000, 0x780)];
+        Assert.Equal(expectedWrites, postbuild.DeclaredWriteRanges);
+        Assert.Equal(expectedWrites, postbuild.ExternalProcessorInvocation!.AllowedWriteRanges);
+
+        AssertRejected(capacity, new ByteRange(0x29780, 0x10), "profile.v2.plan.region-access-denied");
+        AssertRejected(capacity, new ByteRange(0x26F81, 0x2800), "profile.v2.runtime-reference-replace.ctrlram-target-invalid");
+        AssertRejected(capacity, new ByteRange(0x26F80, 0x2801), "profile.v2.runtime-reference-replace.ctrlram-target-invalid");
+    }
+
+    private static void AssertRejected(int capacity, ByteRange target, string code)
+    {
+        V2CompositionPlanCompileResult result = CompileFw1xCascadeMapping(capacity, target);
+        Assert.False(result.IsCompiled);
+        Assert.Equal(code, Assert.Single(result.Issues).Code);
+    }
+
+    private static V2CompositionPlanCompileResult CompileFw1xCascadeMapping(int capacity, ByteRange target)
+    {
+        byte[] reference = CreateRuntimeReference("141", capacity, "NT51925", 2);
+        return BuiltInV2BundleRegistry.All["nt51925-ctrlram-replace-candidate"]
+            .CompileRuntimeReferenceReplace(
+                "nt51925-ctrlram-replace-fw141-runtime-cascade", "0.1.0", "NT51925",
+                ExperienceIds.CtrlRamReplace,
+                new TopologySelection(2, "cascade", TopologySelectionSource.Requested, "ic-number"),
+                [new FirmwareArtifactPayload("reference-base", reference)],
+                new V2RuntimeReferenceReplaceCompileRequest(
+                    [new V2ExplicitMappingInputBinding("reference-base", "reference-base", capacity),
+                     new V2ExplicitMappingInputBinding("s0-source", "ctrlram-source", target.Length)],
+                    [new ExplicitMapping("replace-s0", 100, ExplicitMappingOperationKind.ReplaceRange,
+                        "s0-source", new ByteRange(0, target.Length), CompositionAddressSpaceIds.OutputImage,
+                        target, OverlapPolicy.Reject, alignment: 1,
+                        reason: "Synthetic replacement against the owner-declared NT51925 S0 CtrlRAM boundary.")]));
     }
 
     private static CompiledComposition CompileRuntime(string ic, string profileVersion, string fw, int chipCount, int capacity)

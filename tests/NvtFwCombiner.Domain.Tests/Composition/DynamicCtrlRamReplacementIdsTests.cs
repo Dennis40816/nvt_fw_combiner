@@ -11,6 +11,7 @@ public sealed class DynamicCtrlRamReplacementIdsTests
     [InlineData("replace-ctrlram-mp-master", "MP CtrlRAM (Master)")]
     [InlineData("replace-ctrlram-normal-slave-r", "Normal CtrlRAM (Slave R)")]
     [InlineData("replace-ctrlram-vn-slave-l", "VN CtrlRAM (Slave L)")]
+    [InlineData("replace-ctrlram-normal-slave", "Normal CtrlRAM (Slave)")]
     public void TryFormatDisplayLabelFormatsKnownDynamicIds(string addressSpaceId, string expectedLabel)
     {
         bool formatted = DynamicCtrlRamReplacementIds.TryFormatDisplayLabel(addressSpaceId, out string label);
@@ -24,6 +25,7 @@ public sealed class DynamicCtrlRamReplacementIdsTests
     [InlineData("nf", "NF CtrlRAM")]
     [InlineData("normal-master", "Normal CtrlRAM")]
     [InlineData("vn-slave-l", "VN CtrlRAM")]
+    [InlineData("normal-slave", "Normal CtrlRAM")]
     public void FormatRegionBaseDisplayLabelOmitsTopology(string regionId, string expectedLabel)
     {
         Assert.Equal(expectedLabel, DynamicCtrlRamReplacementIds.FormatRegionBaseDisplayLabel(regionId));

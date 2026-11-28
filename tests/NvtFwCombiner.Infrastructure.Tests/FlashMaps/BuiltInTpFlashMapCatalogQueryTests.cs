@@ -60,7 +60,7 @@ public sealed class BuiltInTpFlashMapCatalogQueryTests
         byte[] bytes = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
             "profiles/built-in/ctrlram-postbuild-v2/flash-map.json".Replace('/', Path.DirectorySeparatorChar)));
         BuiltInTpFlashMapCatalog.LoadedCatalog loaded = BuiltInTpFlashMapCatalog.LoadCatalog(bytes,
-            "2c880f6786a611654b84d888d7ac6590856a0109dbb184c6b22b14d58d158c01");
+            "510699e6bff5c0acfa4e95c5532c705803774f2e744a12c7f8c5948662d98b02");
         IReadOnlyList<TpFlashMapProfile> profiles = loaded.Profiles;
 
         Assert.Equal(BuiltInTpFlashMapCatalog.IcIds,

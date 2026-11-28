@@ -36,18 +36,21 @@ public sealed class CanonicalCatalogSnapshotDigestTests
     // Task 925-F moves only NT51925 Standard to one version-conditioned map set;
     // all other IC definition identities remain pinned to d554add5e.
     // PR4b re-pins catalog, dynamic-routes and selector: nine NT51925 authoring decisions open.
+    // Owner decision 2026-11-28 (9b, 9c) opens the FW 1.x cascade S0 CtrlRAM and S0 header
+    // fields: the policy source hash and the eight NT51925 CtrlRAM route fingerprints re-pin
+    // catalog and dynamic-routes. Every section length is unchanged.
     // A change here is a published catalog change and needs its own review.
     private const string PinnedSha256 =
-        "4b3f2502af96373d8c5987c06e30bb4e52ded88a237d565b28cc7e3f7f251fb6";
+        "9479b4187b3ff30d476090c727c156afa0335d707871685c5a1f95c09dcad8d1";
     private const int PinnedLength = 524_465;
     private const int SequentialReloads = 5;
     private const int ConcurrentLoads = 4;
 
     private static readonly (string Name, int Length, string Sha256)[] PinnedSections =
     [
-        ("catalog", 341, "b1176937f0416cc34cb1a8bab011f93141846d3d08687a3a9b01eb0090a7b978"),
+        ("catalog", 341, "ce3acd12b6057bde81c70131dae464ece0bf4b19e72db9c183fee3bdae2274be"),
         ("static-routes", 108_496, "bd79eb2c64579f10aa1c7cbccd519d66151cbcdf0e5ab6f25f72e8727e4daf01"),
-        ("dynamic-routes", 277_595, "18f6d5ee9ce59a082a7b35a74fc504421c7130911806e777549f03e997a6f807"),
+        ("dynamic-routes", 277_595, "03368b12b6d3eec0d234719100f043d5929a182fc16324074d8447088ae8f310"),
         ("full-image-plans", 106_364, "3052ae411884f7c44713a18286360b2d4f1d410bf0c4bc97ab2c3f3c9dea2df9"),
         ("disclosure", 20_003, "d950b9463bd0fe11e96a8b2ca4a650448ff9aad0bdaa16beb1a5502c978d35be"),
         ("selector", 11_642, "5bdbc27ac9ba3b60337a34e6f204ac02ae7fbda9c82e5642ba8b6353168b0e14"),

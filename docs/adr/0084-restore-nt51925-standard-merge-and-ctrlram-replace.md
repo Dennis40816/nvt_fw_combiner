@@ -239,6 +239,7 @@ The TP prefix [0x0, 0x30000) is copied whole, including the content from
 CtrlRAM_S keeps the `explicit-range` physical constraint because the range
 exists in the TP overview. The FW 1.x cascade runtime profile makes it
 read-only, since the postbuild flow declares no replacement source for it.
+The 2026-11-28 amendment below supersedes this for Normal CtrlRAM_S.
 
 ## Required owner evidence and gates
 
@@ -441,3 +442,57 @@ remains unmapped and write-forbidden. The four FW 2.0.0 Replace CRC words
 official postbuild runs Combiner twice from zeroed CRC fields; NFC Replace
 starts from the post-built reference. These differences are not a pass.
 No Golden case, expected bytes, evidence rank or support claim changes here.
+
+## Amendment (2026-11-28): FW 1.x cascade S0 CtrlRAM and header CRC fields
+
+Owner decision 2026-11-28 12:40 (items 9b and 9c, relayed by Commander) opens
+two things in the FW 1.x cascade CtrlRAM Replace profile
+(`nt51925-ctrlram-replace-fw141-runtime-cascade`). Both are R3 firmware-owner
+changes.
+
+- 9c: Normal CtrlRAM_S of the second IC (S0), [0x26F80, 0x29780), becomes a
+  replacement source. The postbuild catalog command
+  `nt51925-fw141-cascade-merge-crc` gains the block `normal-slave`
+  (`Normal_Ctrlram_S.bin`, 10240 bytes). The TP flash map names that file for
+  the region.
+- 9b: The S0 header at [0x100, 0x200) opens only two four-byte fields:
+  [0x11C, 0x120) (+0x1C) and [0x1FC, 0x200) (+0xFC). The rest of the S0
+  header stays forbidden. Only the declared Legacy Combiner processor may
+  write the two fields.
+
+Evidence:
+
+- The official PostBuild.py for the Common FW 1.x cascade passes an `ICS
+  ctrlram` block at 0x26F80 with length 10240 to the Combiner.
+- The S0 header at 0x100 has the P header layout.
+- In the official V1 sample, OriginalTPFW and NewTPFW differ only in the P
+  CtrlRAM, the S0 CtrlRAM and four CRC words: 0x1C, 0xFC, 0x11C and 0x1FC.
+  The new P region equals the P replacement file. The new S0 region equals
+  the S0 replacement file.
+- +0x1C at 0x11C equals the P header +0x1C value and changes with the TP FW.
+  It is likely a copy of the code CRC.
+- +0xFC at 0x1FC differs from the P header +0xFC value. It is likely the S0
+  header's own CRC.
+
+The CRC algorithm for both fields is not verified. NFC does not compute them.
+The Legacy Combiner computes them, and the host still rejects any write
+outside the declared ranges.
+
+Mp CtrlRAM_S, [0x29780, 0x2B780), stays read-only. The owner decision does not
+cover it.
+
+Host result on 2026-11-28 (private V1 sample, local run): CtrlRAM Replace on
+the 192 KiB TP work image OriginalTPFW, with the P and S0 replacement files,
+equals the official NewTPFW byte for byte. With the P file only, the output
+differs only in the S0 CtrlRAM and the two S0 header CRC fields, plus the P
+header CRC fields at 0x1C and 0xFC. This is the expected result, because the
+official sample also replaced S0.
+
+The staged source name `Normal_Ctrlram_S.bin` follows the TP overview region
+name CtrlRAM_S, like the `_L` and `_R` names of other ICs. It is a host staging
+name, not a file name the user must supply.
+
+This is a local host run, not a recorded Golden case. The V1 sample stays
+private evidence. Its Golden case is still to be recorded, in the private test
+data repository only. The 256 KiB input shape and 3-IC remain unverified. No
+support, publication or evidence rank changes here.

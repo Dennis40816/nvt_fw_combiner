@@ -167,8 +167,8 @@ public sealed class BuiltInTpFlashMapCatalogNt51925Tests
     /// <summary>Create Display Postbuild Backed Sources Project One Optional Slot Per Source File.</summary>
     [Theory]
     [InlineData("1.0.0", "1", "normal,mp,vn,nf")]
-    [InlineData("1.0.0", "2", "normal,mp,vn,nf")]
-    [InlineData("1.0.0", "3", "normal,mp,vn,nf")]
+    [InlineData("1.0.0", "2", "normal,mp,normal-slave,vn,nf")]
+    [InlineData("1.0.0", "3", "normal,mp,normal-slave,vn,nf")]
     [InlineData("2.0.0", "1", "normal,mp,nf,vn")]
     [InlineData("2.0.0", "2", "normal,mp,diff,nf,vn")]
     [InlineData("2.0.0", "3", "normal,mp,diff,nf,vn")]
