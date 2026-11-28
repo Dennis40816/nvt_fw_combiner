@@ -46,7 +46,8 @@ its original filename), and commands/provenance at `notes.txt`:
 | `VN_Ctrlram.bin` | FW 1.x: 824 bytes (`0x338`); FW 2.0.0: 5,728 bytes (`0x1660`). |
 | `NF_Ctrlram.bin` | FW 1.x Single: 3,328 bytes (`0xD00`); FW 1.x Cascade: 7,856 bytes (`0x1EB0`); FW 2.0.0: 11,776 bytes (`0x2E00`). |
 | `DiffDLM.bin` | FW 2.0.0 Cascade only: 10,240 bytes (`0x2800`); absent from every other layout. |
-| Normal and MP CtrlRAM_S | FW 1.x Cascade only: 10,240 bytes (`0x2800`) and 8,192 bytes (`0x2000`); identify the actual replacement sources rather than inventing filenames. |
+| `Normal_Ctrlram_S.bin` | FW 1.x Cascade only: 10,240 bytes (`0x2800`), the second IC (S0) CtrlRAM. A replacement source since the owner decision of 2026-11-28 (9c). |
+| MP CtrlRAM_S | FW 1.x Cascade only: 8,192 bytes (`0x2000`); preserved because no replacement source is declared. |
 | Vec Table | FW 1.x Cascade only: 400 bytes (`0x190`); preserved because no replacement source or processor write contract is declared. |
 | `expected.bin` | Complete official final FlashCode: 262,144 bytes (`0x40000`). |
 | Independent TP-only expected output, if supplied | 196,608 bytes (`0x30000`), explicitly identified as an official TP-only output. A final FlashCode prefix is not automatically TP-only Golden evidence. |

@@ -28,6 +28,13 @@ official output only after its same-package check is recorded. No NT51925 no-op
 case is recorded yet; the private same-package checks are pending. Single-chip
 and 3-IC remain
 unverified. The 256 KiB Replace input shape has no official before/after file.
+
+Since the owner decision of 2026-11-28 (9b, 9c), the FW 1.x Cascade CtrlRAM
+Replace also replaces the second IC (S0) Normal CtrlRAM and lets the Legacy
+Combiner write only the two S0 header CRC fields, 0x11C and 0x1FC. On the
+private V1 sample the TP-work output equals the official NewTPFW byte for byte
+in a local host run. This is not a recorded Golden case yet. The 256 KiB input
+shape and 3-IC remain unverified. The route stays a `Candidate`. See ADR 0084.
 These evidence distinctions do not change `Candidate/ContractOnly` policy.
 The 2.0.0 Single layout has no DIFF CtrlRAM; `[0x27A00, 0x2A200)` in TP flash
 stays unmapped and write-forbidden.

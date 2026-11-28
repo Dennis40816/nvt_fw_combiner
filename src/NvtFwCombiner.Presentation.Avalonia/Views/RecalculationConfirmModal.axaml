@@ -1,0 +1,124 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<UserControl x:Class="NvtFwCombiner.Presentation.Avalonia.Views.RecalculationConfirmModal"
+    xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+    xmlns:vm="using:NvtFwCombiner.Presentation.Avalonia.ViewModels"
+    x:Name="Root" x:DataType="views:RecalculationConfirmModal"
+    IsVisible="{Binding Model.IsPending, ElementName=Root, FallbackValue=False}"
+    AutomationProperties.Name="{Binding Model.Title, ElementName=Root}"
+    AutomationProperties.ControlTypeOverride="Group" AutomationProperties.AccessibilityView="Content"
+    Focusable="True" KeyboardNavigation.IsTabStop="False" KeyboardNavigation.TabNavigation="Cycle"
+    KeyDown="OnModalKeyDown" Background="{DynamicResource NfcModalScrimBrush}"
+    FontFamily="{DynamicResource NfcUiFontFamily}" FontSize="{DynamicResource NfcFontSize13}"
+    Foreground="{DynamicResource NfcTextBrush}">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/RecalculationConfirmStyles.axaml" />
+  </UserControl.Styles>
+  <Border x:Name="DialogSurface" Classes="modalSurface" Width="600" Padding="22" Margin="0,48"
+      HorizontalAlignment="Center" VerticalAlignment="Center"
+      DataContext="{Binding Model, ElementName=Root}" x:DataType="vm:RecalculationConfirmModel">
+    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+      <Grid x:Name="TitleRow" ColumnDefinitions="Auto,*,Auto">
+        <Path x:Name="NoRuleIcon" Classes="recalculationWarningIcon" IsVisible="{Binding !CanRecalculate}"
+            Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center"
+            Data="M12 3L22 21H2Z M12 10V15 M12 17.5V18" />
+        <TextBlock x:Name="DialogTitle" Grid.Column="1" Classes="modalTitle recalculationTitle" Text="{Binding Title}" TextWrapping="Wrap" />
+        <Border x:Name="IcBadge" Grid.Column="2" Classes="recalculationBadge" Margin="10,0,0,0" VerticalAlignment="Center">
+          <TextBlock Classes="technicalMeta recalculationBadgeText" Text="{Binding IcName}" />
+        </Border>
+      </Grid>
+      <ScrollViewer x:Name="MiddleScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled"
+          VerticalScrollBarVisibility="Auto" Focusable="False" KeyboardNavigation.IsTabStop="False">
+        <StackPanel Spacing="{DynamicResource NfcSpace16}">
+          <ToggleButton x:Name="DetailsButton" Classes="inlineDisclosure recalculationDisclosure"
+              HorizontalAlignment="Left" IsVisible="{Binding CanRecalculate}"
+              AutomationProperties.Name="{Binding Text.Details}" Command="{Binding ToggleDetailsCommand}"
+              IsChecked="{Binding IsExpanded, Mode=OneWay}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Grid Width="14" Height="14" VerticalAlignment="Center">
+                <Path IsVisible="{Binding !IsExpanded}" Data="M6 3L11 8L6 13" />
+                <Path IsVisible="{Binding IsExpanded}" Data="M3 6L8 11L13 6" />
+              </Grid>
+              <TextBlock Text="{Binding Text.Details}" />
+            </StackPanel>
+          </ToggleButton>
+          <Border x:Name="DetailsPanel" Classes="subtleSurface recalculationDetails" IsVisible="{Binding IsExpanded}">
+            <StackPanel>
+              <StackPanel Classes="recalculationSection" Spacing="6">
+                <TextBlock Classes="panelTitle" Text="{Binding Text.Why}" />
+                <TextBlock x:Name="WhyText" Text="{Binding Text.WhyText}" TextWrapping="Wrap" />
+              </StackPanel>
+              <Border Classes="recalculationDivider">
+                <StackPanel Classes="recalculationSection" Spacing="6">
+                  <TextBlock Classes="panelTitle" Text="{Binding Text.Range}" />
+                  <Grid ColumnDefinitions="132,*" RowDefinitions="Auto,Auto">
+                    <TextBlock Classes="recalculationLabel" Text="{Binding Text.Storage}" />
+                    <TextBlock x:Name="StorageOffsets" Grid.Column="1" Classes="recalculationCell"
+                        Classes.monoText="{Binding HasDeclaredStorage}" Text="{Binding StorageText}" TextWrapping="Wrap" MaxWidth="250" HorizontalAlignment="Left" />
+                    <TextBlock Grid.Row="1" Classes="recalculationLabel" Text="{Binding Text.Coverage}" />
+                    <TextBlock x:Name="CoverageText" Grid.Row="1" Grid.Column="1" Classes="recalculationCell"
+                        Classes.monoText="{Binding HasDeclaredCoverage}" Text="{Binding CoverageText}" TextWrapping="Wrap" />
+                  </Grid>
+                  <Border x:Name="CoveringSegmentsWarning" Classes="recalculationWarning" IsVisible="{Binding HasCoveringSegments}"
+                      AutomationProperties.Name="{Binding WarningText}" AutomationProperties.ControlTypeOverride="Group"
+                      AutomationProperties.AccessibilityView="Content">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="{DynamicResource NfcSpace8}">
+                      <Path x:Name="CoveringSegmentsIcon" Classes="recalculationWarningIcon" VerticalAlignment="Top"
+                          Data="M12 3L22 21H2Z M12 10V15 M12 17.5V18" />
+                      <ItemsControl Grid.Column="1" ItemsSource="{Binding CoveringSegments}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:RecalculationConfirmSegment">
+                            <TextBlock Classes="recalculationWarningText" TextWrapping="Wrap"><Run
+                                Text="{Binding Prefix}" /><Run
+                                FontFamily="{DynamicResource NfcTechnicalFontFamily}" Text="{Binding RangeText}" /><Run
+                                Text="{Binding Middle}" /><Run
+                                FontFamily="{DynamicResource NfcTechnicalFontFamily}" Text="{Binding OffsetsText}" /><Run
+                                Text="{Binding Suffix}" /></TextBlock>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Grid>
+                  </Border>
+                </StackPanel>
+              </Border>
+              <Border Classes="recalculationDivider">
+                <StackPanel Classes="recalculationSection" Spacing="6">
+                  <TextBlock Classes="panelTitle" Text="{Binding Text.Versions}" />
+                  <Grid ColumnDefinitions="132,*" RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Classes="recalculationLabel" Text="NVT FW Combiner" />
+                    <TextBlock x:Name="NfcVersion" Grid.Column="1" Classes="monoText recalculationCell" Text="{Binding NfcVersion}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="1" Classes="recalculationLabel" Text="Legacy Combiner" />
+                    <TextBlock x:Name="LegacyVersion" Grid.Row="1" Grid.Column="1" Classes="monoText recalculationCell" Text="{Binding LegacyVersion}" TextWrapping="Wrap" />
+                    <TextBlock Grid.Row="2" Classes="recalculationLabel" Text="{Binding Text.CommandMode}" />
+                    <TextBlock x:Name="CommandMode" Grid.Row="2" Grid.Column="1" Classes="monoText recalculationCell" Text="{Binding ModeText}" TextWrapping="Wrap" />
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Border>
+          <TextBlock x:Name="SavedChoiceNote" Classes="captionText recalculationSavedNote" IsVisible="{Binding CanRecalculate}"
+              Text="{Binding Text.SavedChoice}" TextWrapping="Wrap" />
+          <TextBlock x:Name="NoRuleText" IsVisible="{Binding !CanRecalculate}" Text="{Binding Text.NoRuleText}" TextWrapping="Wrap" />
+        </StackPanel>
+      </ScrollViewer>
+      <Grid x:Name="ButtonRow" Grid.Row="2">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}" IsVisible="{Binding CanRecalculate}">
+          <Button x:Name="CancelButton" Classes="semanticAction recalculationTextAction" Content="{Binding Text.Cancel}"
+              AutomationProperties.Name="{Binding Text.Cancel}" Command="{Binding CancelCommand}" />
+          <Button x:Name="SkipButton" Grid.Column="2" Classes="semanticAction secondary" Content="{Binding Text.Skip}"
+              AutomationProperties.Name="{Binding Text.Skip}" Command="{Binding WriteCommand}" />
+          <Button x:Name="RecalculateButton" Grid.Column="3" Classes="semanticAction primary" Content="{Binding Text.Recalculate}"
+              AutomationProperties.Name="{Binding Text.Recalculate}" Command="{Binding RecalculateCommand}" />
+        </Grid>
+        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace8}" IsVisible="{Binding !CanRecalculate}">
+          <Button x:Name="NoRuleCancelButton" Classes="semanticAction secondary" Content="{Binding Text.Cancel}"
+              AutomationProperties.Name="{Binding Text.Cancel}" Command="{Binding CancelCommand}" />
+          <Button x:Name="WriteButton" Classes="semanticAction primary" Content="{Binding Text.Write}"
+              AutomationProperties.Name="{Binding Text.Write}" Command="{Binding WriteCommand}" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </Border>
+</UserControl>

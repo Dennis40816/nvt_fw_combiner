@@ -85,6 +85,7 @@ public static class DynamicCtrlRamReplacementIds
         {
             [_, string side, ..] when string.Equals(side, "master", StringComparison.OrdinalIgnoreCase) => "Master",
             [_, string side, string direction, ..] when string.Equals(side, "slave", StringComparison.OrdinalIgnoreCase) => $"Slave {direction.ToUpperInvariant()}",
+            [_, string side] when string.Equals(side, "slave", StringComparison.OrdinalIgnoreCase) => "Slave",
             _ => string.Empty,
         };
     }

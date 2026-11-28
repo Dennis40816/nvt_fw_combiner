@@ -167,7 +167,7 @@ public sealed class PrebuiltProfileCatalogEquivalenceTests
     internal static void AssertPinned(JsonNode result)
     {
         Assert.True(result["loaded"]!.GetValue<bool>(), result.ToJsonString());
-        Assert.Equal("4b3f2502af96373d8c5987c06e30bb4e52ded88a237d565b28cc7e3f7f251fb6", result["publication"]!["sha256"]!.GetValue<string>());
+        Assert.Equal("9479b4187b3ff30d476090c727c156afa0335d707871685c5a1f95c09dcad8d1", result["publication"]!["sha256"]!.GetValue<string>());
         Assert.Equal(524465, result["publication"]!["text"]!.GetValue<string>().Length);
         Assert.Equal(7, result["publication"]!["sections"]!.AsArray().Count);
     }

@@ -1399,7 +1399,7 @@
           "start": 159616,
           "length": 10240,
           "visibility": "multi-chip-only",
-          "postbuildFileName": null,
+          "postbuildFileName": "Normal_Ctrlram_S.bin",
           "tags": [
             "slave"
           ]
