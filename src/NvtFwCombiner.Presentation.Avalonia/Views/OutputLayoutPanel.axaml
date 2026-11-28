@@ -1,0 +1,44 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+             x:Class="NvtFwCombiner.Presentation.Avalonia.Views.OutputLayoutPanel"
+             x:DataType="views:OutputLayoutPanel">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/MainWindowButtonStyles.axaml" />
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/OutputLayoutPanelStyles.axaml" />
+  </UserControl.Styles>
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+  <Border Classes="outputLayoutFrame">
+    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto">
+      <Border Width="{DynamicResource NfcSpace16}" Height="{DynamicResource NfcSpace16}" />
+      <Border Grid.Row="2" Grid.Column="2" Width="{DynamicResource NfcSpace16}" Height="{DynamicResource NfcSpace16}" />
+      <StackPanel Grid.Row="1" Grid.Column="1" Spacing="{DynamicResource NfcSpace8}">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+          <TextBlock Name="LayoutTitle" Classes="outputLayoutTitle" TextWrapping="Wrap" />
+          <TextBlock Name="LayoutCapacity" Grid.Column="1" Classes="captionText" VerticalAlignment="Center" />
+        </Grid>
+        <TextBlock Name="LayoutIssues" Classes="outputLayoutIssues" TextWrapping="Wrap" />
+        <StackPanel Name="LayoutNotice" Spacing="{DynamicResource NfcSpace8}" />
+        <StackPanel Name="LayoutMap" Spacing="{DynamicResource NfcSpace4}">
+          <Canvas Name="LayoutPins" Height="22" />
+          <Border CornerRadius="{DynamicResource NfcCompactCornerRadius}" ClipToBounds="True">
+            <Canvas Name="LayoutBar" Height="34" ClipToBounds="True" />
+          </Border>
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+            <TextBlock Name="LayoutStart" Classes="technicalValue" />
+            <TextBlock Name="LayoutEnd" Grid.Column="1" Classes="technicalValue" />
+          </Grid>
+        </StackPanel>
+        <StackPanel Name="LayoutGroups" Spacing="{DynamicResource NfcSpace12}" />
+        <TextBlock Name="LayoutSharedHint" Classes="captionText" TextWrapping="Wrap" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>
