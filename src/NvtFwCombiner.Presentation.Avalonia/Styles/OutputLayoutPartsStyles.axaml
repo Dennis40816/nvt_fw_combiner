@@ -1,0 +1,106 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
+  <Styles.Resources>
+    <DrawingBrush x:Key="LayoutPartKeptHatch" DestinationRect="0,0,10,10" SourceRect="0,0,10,10" Stretch="None" TileMode="Tile">
+      <DrawingBrush.Drawing>
+        <GeometryDrawing Geometry="M -2,10 L 10,-2">
+          <GeometryDrawing.Pen><Pen Brush="{DynamicResource NfcKeptStripeBrush}" Thickness="1" /></GeometryDrawing.Pen>
+        </GeometryDrawing>
+      </DrawingBrush.Drawing>
+    </DrawingBrush>
+  </Styles.Resources>
+  <Style Selector="views|CtrlRamZoomBar, views|OutputLayoutBankSwitch, views|SharedInputHintRow">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.layoutPartCaption, TextBlock.layoutPartAddress">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.layoutPartAddress">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
+  </Style>
+  <Style Selector="TextBlock.layoutPartBody">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.layoutPartFillLabel">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize12}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.layoutPartTrack">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryTrackBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.layoutPartUnderline">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="Border.layoutPartBankTrack">
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryAddressBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button.layoutPartTarget, Button.layoutPartPosition, RadioButton.layoutPartBank">
+    <Setter Property="MinWidth" Value="0" /><Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" /><Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryTrackBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+    <Setter Property="FocusAdorner" Value="{x:Null}" />
+    <Setter Property="Transitions"><Transitions /></Setter>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid>
+          <ContentPresenter Name="PartContent" Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" Background="{TemplateBinding Background}"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+          <Rectangle Name="PartOutline" Stroke="{DynamicResource NfcTextStrongBrush}" StrokeThickness="2"
+                     IsVisible="False" IsHitTestVisible="False" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.layoutPartPosition">
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+  </Style>
+  <Style Selector="Button.layoutPartTarget.selected /template/ Rectangle#PartOutline, Button.layoutPartTarget.highlighted /template/ Rectangle#PartOutline, Button.layoutPartTarget:focus-visible /template/ Rectangle#PartOutline, Button.layoutPartPosition:focus-visible /template/ Rectangle#PartOutline, RadioButton.layoutPartBank:focus-visible /template/ Rectangle#PartOutline">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="Button.layoutPartTiny">
+    <Setter Property="MinWidth" Value="24" /><Setter Property="MinHeight" Value="24" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.layoutPartTiny:pointerover, Button.layoutPartTiny.highlighted, Button.layoutPartTiny.selected">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+  </Style>
+  <Style Selector="RadioButton.layoutPartBank">
+    <Setter Property="Width" Value="36" /><Setter Property="Height" Value="32" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="RadioButton.layoutPartBank:pointerover">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+  </Style>
+  <Style Selector="RadioButton.layoutPartBank:checked">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.layoutPartTarget:disabled, RadioButton.layoutPartBank:disabled">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+</Styles>
