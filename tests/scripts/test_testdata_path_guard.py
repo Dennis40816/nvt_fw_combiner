@@ -45,6 +45,7 @@ IDENTITY_USES = {
     ),
     'scripts/testdata_mirror_check.py': (
         ('REPOSITORY_TESTDATA_NAME = "testdata"', 1, 'Physical repository copy compared with the external mirror; the resolver must not redirect it.'),
+        ('(PurePosixPath("testdata"), "Older nfc/testdata copy. Delete this entry after the nvt-testdata cleanup."),', 1, 'Name of the older copy in the external mirror root, skipped on the mirror side only; not a repository read.'),
     ),
     'scripts/validate_repository.py': (
         ('"testdata/golden/canonical/manifest.json",', 1, 'Required-file identities or tracked-payload policy; reads resolve separately.'),
@@ -156,6 +157,13 @@ IDENTITY_USES = {
         ('golden = "testdata/golden/canonical/synthetic-reference.bin"', 1, 'Snapshot keys, source-binding patterns or synthetic output layout.'),
         ('b"$CanonicalGoldenReleaseAllowlistPath = Join-Path $RepoRoot \'testdata/golden/release-canonical-v1.json\'",', 1, 'Snapshot keys, source-binding patterns or synthetic output layout.'),
         ('b"$ApprovedCanonicalGoldenAllowlistPath = Join-Path $PSScriptRoot \'../testdata/golden/release-canonical-v1.json\'",', 1, 'Snapshot keys, source-binding patterns or synthetic output layout.'),
+    ),
+    'tests/scripts/test_testdata_mirror_check.py': (
+        ('write(mirror / "testdata" / "golden" / "case" / "input.dat", bytes(range(16)))', 1, 'Synthetic mirror-root entry names for the foreign-entry tests; not a repository read.'),
+        ('write(mirror / "testdata" / "README.md", b"synthetic\\n")', 1, 'Synthetic mirror-root entry names for the foreign-entry tests; not a repository read.'),
+        ('@pytest.mark.parametrize("name", [".gitattributes", "docs/note.md", "testdata/golden/input.dat"])', 1, 'Synthetic mirror-root entry names for the foreign-entry tests; not a repository read.'),
+        ('assert names == [".gitattributes", "docs", "testdata"]', 1, 'Synthetic mirror-root entry names for the foreign-entry tests; not a repository read.'),
+        ('for name in ("docs", "testdata"):', 1, 'Synthetic mirror-root entry names for the foreign-entry tests; not a repository read.'),
     ),
     'tests/scripts/test_testdata_paths.py': (
         ('assert resolve_testdata_root() == ROOT / "testdata"', 1, 'Resolver input identity or expected fallback path, not a data read.'),
