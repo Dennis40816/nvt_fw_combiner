@@ -4,6 +4,8 @@ internal sealed partial class ShellTextResources
 {
     public string GetReplaceNotSupportedStatus(string icId)
     {
-        return SelectLanguage($"{icId} Replace: Not available.", $"{icId} Replace：尚未開放。");
+        return SelectLanguage(
+            "Replace is unavailable for the selected IC and mode; choose another IC or mode.",
+            "所選 IC 與模式無法使用 Replace，請選擇其他 IC 或模式。") + Environment.NewLine + icId;
     }
 }

@@ -262,23 +262,15 @@ internal sealed partial class ShellTextResources
         ArgumentNullException.ThrowIfNull(status);
         return status.InspectionLifecycle switch
         {
-            AuthoringSlotLifecycle.Error when status.InspectionIssueCode == InputArtifactInspectionIssueCodes.TpChipCountRequired => SelectLanguage(
-                "Error: TP IC Count was read as 0. Check FWConfig Chip_Num (offset 0x17).",
-                "錯誤：TP IC Count 讀到 0，請檢查 FWConfig Chip_Num（offset 0x17）。"),
-            AuthoringSlotLifecycle.Error when status.InspectionIssueCode == InputArtifactInspectionIssueCodes.TpChipCountUnreadable => SelectLanguage(
-                "Error: TP IC Count is unreadable. Check the canonical NVT FWConfig Backup and its validity.",
-                "錯誤：TP IC Count 讀不到，請檢查 canonical NVT FWConfig Backup 與其有效性。"),
-            AuthoringSlotLifecycle.Error when StringComparer.Ordinal.Equals(
-                status.InspectionIssueCode,
-                InputArtifactInspectionIssueCodes.ExtensionNotAccepted) => SelectLanguage(
-                "Error: this file extension is not accepted for this input. Select a compatible file.",
-                "錯誤：此輸入不接受所選檔案的副檔名，請選擇相容的檔案。"),
+            AuthoringSlotLifecycle.Error when status.InspectionIssueCode is
+                InputArtifactInspectionIssueCodes.TpChipCountRequired or InputArtifactInspectionIssueCodes.TpChipCountUnreadable or
+                InputArtifactInspectionIssueCodes.ExtensionNotAccepted => GetInputIssueHelp(status.InspectionIssueCode, "error")!.Value.Title,
             AuthoringSlotLifecycle.Error when status.FileStamp is null => SelectLanguage(
-                "Error: this BIN could not be read. Select a readable local file.",
-                "錯誤：無法讀取此 BIN，請選擇可讀取的本機檔案。"),
+                "The selected BIN could not be read; select a readable local BIN.",
+                "無法讀取所選 BIN，請選擇可讀取的本機 BIN。"),
             AuthoringSlotLifecycle.Error => SelectLanguage(
-                "Error: the selected BIN does not satisfy the compiled input contract.",
-                "錯誤：所選 BIN 不符合 compiled input contract。"),
+                "The selected BIN does not meet the input requirements; select a compatible BIN.",
+                "所選 BIN 不符合輸入要求，請選擇相容的 BIN。"),
             AuthoringSlotLifecycle.Warning when StringComparer.Ordinal.Equals(
                 status.InspectionIssueCode,
                 InputArtifactInspectionIssueCodes.AbVersionMetadataUnknown) => AbUnknownVersionWarning,
@@ -286,8 +278,8 @@ internal sealed partial class ShellTextResources
                 "warning", status.Inspection?.DiagnosticEvidence, status.Inspection) is { } help =>
                 $"{help.Detail}\n{SelectLanguage("Diagnostic code", "診斷代碼")}: {status.InspectionIssueCode}",
             AuthoringSlotLifecycle.Warning => SelectLanguage(
-                $"Warning: profile content check {status.InspectionIssueCode}; review before Build.",
-                $"警告：profile 內容檢查 {status.InspectionIssueCode}；Build 前請確認。"),
+                "The selected BIN has a warning; review its input status before Build.",
+                "所選 BIN 有警告，請在 Build 前查看其輸入狀態。"),
             AuthoringSlotLifecycle.Verified => SelectLanguage(
                 "Ready: the selected BIN satisfies the compiled input contract.",
                 "Ready：所選 BIN 符合 compiled input contract。"),
@@ -307,22 +299,22 @@ internal sealed partial class ShellTextResources
         int warningCount,
         bool requiresDp = true)
     {
-        return !supported
-            ? SelectLanguage(
-                $"{ic}: AB Code is not available. Select a declared AB Code route for this release.",
-                $"{ic}：尚未開放 AB Code；請選擇本版本已宣告的 AB Code 路徑。")
-            : blockingCount > 0
-            ? SelectLanguage(
-                $"Build blocked: {blockingCount} input error(s) · {selectedCount}/{requiredCount} selected.",
-                $"Build blocked：{blockingCount} 個 input 錯誤 · 已選 {selectedCount}/{requiredCount}。")
-            : selectedCount < requiredCount
-            ? SelectLanguage(
-                $"Select {(requiresDp ? "DP_AB, TPA, and TPB" : "TPA and TPB")} · {selectedCount}/{requiredCount} selected.",
-                $"請選擇 {(requiresDp ? "DP_AB、TPA 與 TPB" : "TPA 與 TPB")} · 已選 {selectedCount}/{requiredCount}。")
-            : warningCount > 0
-            ? SelectLanguage(
-                $"Ready with {warningCount} warning(s): review highlighted inputs before Build.",
-                $"可執行，但有 {warningCount} 個 warning；Build 前請確認標示的 inputs。")
+        string selected = SelectLanguage($"{selectedCount}/{requiredCount} selected", $"已選 {selectedCount}/{requiredCount}");
+        return !supported ? SelectLanguage(
+            "AB Code is unavailable for this IC; select another IC or workflow.",
+            "此 IC 無法使用 AB Code，請選擇其他 IC 或工作流程。") + Environment.NewLine + ic
+            : blockingCount > 0 ? SelectLanguage(
+                "An input is blocking Build; review the input cards and select compatible BINs.",
+                "有輸入阻擋 Build，請查看輸入卡並選擇相容的 BIN。") + Environment.NewLine +
+                SelectLanguage($"{blockingCount} input error(s) · ", $"{blockingCount} 個輸入錯誤 · ") + selected
+            : selectedCount < requiredCount ? SelectLanguage(
+                "Required inputs are missing; select the BINs for the empty input cards.",
+                "缺少必要輸入，請為空白輸入卡選擇所需 BIN。") + Environment.NewLine +
+                selected + " · " + (requiresDp ? "DP_AB, TPA, TPB" : "TPA, TPB")
+            : warningCount > 0 ? SelectLanguage(
+                "Inputs have warnings; review the highlighted files before Build.",
+                "輸入有警告，請在 Build 前確認標示的檔案。") + Environment.NewLine +
+                SelectLanguage($"{warningCount} warning(s)", $"{warningCount} 個警告")
             : SelectLanguage(
                 "Ready: Build will validate the current AB inputs and produce one report.",
                 "Ready：Build 會驗證目前 AB inputs 並產生一份 report。");
@@ -458,14 +450,14 @@ internal sealed partial class ShellTextResources
                 "Ready: Build will replace selected CtrlRAM regions and run postbuild.",
                 "已就緒：Build 會取代選定的 CtrlRAM 區域並執行 postbuild。"),
             ExperienceIds.CtrlRamReplace => SelectLanguage(
-                "Build blocked: base BIN and at least one CtrlRAM region BIN are required.",
-                "無法 Build：需要 Base BIN 檔案與至少一個 CtrlRAM 區域 BIN 檔案。"),
+                "CtrlRAM Replace is not ready; check the base BIN, CtrlRAM inputs, and Build status.",
+                "CtrlRAM Replace 尚未就緒，請檢查基底 BIN、CtrlRAM 輸入及 Build 狀態。"),
             ExperienceIds.GeneralReplace when canRun => SelectLanguage(
                 "Ready: Build will compile explicit mappings and run postbuild when TP ranges are touched.",
                 "已就緒：Build 會編譯明確對應；寫入 TP 範圍時會執行 postbuild。"),
             ExperienceIds.GeneralReplace => SelectLanguage(
-                "Build blocked: base BIN and at least one explicit replacement mapping are required.",
-                "無法 Build：需要 Base BIN 檔案與至少一筆明確取代對應。"),
+                "General Replace is not ready; check the base BIN, mappings, and Build status.",
+                "General Replace 尚未就緒，請檢查基底 BIN、對應及 Build 狀態。"),
             _ => SelectLanguage("Build blocked: select a Replace mode.", "無法 Build：請選擇 Replace 模式。"),
         };
     }
@@ -667,12 +659,18 @@ internal sealed partial class ShellTextResources
 
     public string FormatReportIssueToast(string sourceName)
     {
-        return SelectLanguage($"Report issue: {sourceName}", $"Report issue：{sourceName}");
+        return SelectLanguage(
+            "An error report was created; open it for details.",
+            "已建立錯誤報告，請開啟查看詳細內容。") + Environment.NewLine + sourceName;
     }
 
     public string FormatReportSavedToast(string destinationName, bool bestEffortProviderWrite = false)
     {
-        return SelectLanguage($"Report saved: {destinationName}", $"Report saved：{destinationName}") + (bestEffortProviderWrite ? SelectLanguage(". Atomic replacement is not guaranteed by this provider.", "。此提供者不保證原子替換。") : "");
+        return bestEffortProviderWrite
+            ? SelectLanguage(
+                "The report was saved, but interrupted replacement may leave it incomplete; save a local copy.",
+                "報告已儲存，但取代過程若中斷可能導致檔案不完整，請另存本機副本。") + Environment.NewLine + destinationName
+            : SelectLanguage($"Report saved: {destinationName}", $"Report saved：{destinationName}");
     }
 
     public string FormatReportGeneratedToast(string action)
@@ -683,8 +681,8 @@ internal sealed partial class ShellTextResources
     public string FormatReportSaveFailedToast(string reason)
     {
         return SelectLanguage(
-            $"Report save failed. The destination may be incomplete; retry saving. {reason}",
-            $"Report 儲存失敗。目的檔案可能不完整，請重新儲存。{reason}");
+            "Report save failed and the file may be incomplete; save it again.",
+            "報告儲存失敗且檔案可能不完整，請重新儲存。") + Environment.NewLine + reason;
     }
 
     public string FormatVerifiedFirmwareContextToast(string selectionLabel, byte chipNumber)
@@ -697,8 +695,8 @@ internal sealed partial class ShellTextResources
     public string FormatFirmwareSelectionNotRetainedToast(string fileName)
     {
         return SelectLanguage(
-            $"{fileName} was not retained because the selected IC does not expose the same safe input slot. Select a compatible BIN again.",
-            $"所選 IC 沒有相同的安全輸入 slot，因此未保留 {fileName}。請重新選擇相容的 BIN。");
+            "The previous BIN selection was not kept for this IC; select a compatible BIN.",
+            "切換至此 IC 後未保留先前的 BIN 選擇，請選擇相容的 BIN。") + Environment.NewLine + fileName;
     }
 }
 

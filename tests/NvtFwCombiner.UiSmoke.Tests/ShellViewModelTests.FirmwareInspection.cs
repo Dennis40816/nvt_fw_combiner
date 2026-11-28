@@ -7,6 +7,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises firmware inspection publication, transitions and selection feedback.</summary>
 public sealed partial class FirmwareInspectionSlotTests
 {
     /// <summary>Only the latest worker inspection may publish facts for a rapidly replaced slot path.</summary>
@@ -546,7 +547,7 @@ public sealed partial class FirmwareInspectionSlotTests
             viewModel.Replace.ReplaceSlots,
             slot => string.Equals(slot.FilePath, replacementPath, StringComparison.Ordinal));
         Assert.Contains("NT51929_replacement.bin", viewModel.Reports.ReportToastText, StringComparison.Ordinal);
-        Assert.Contains("same safe input slot", viewModel.Reports.ReportToastText, StringComparison.Ordinal);
+        Assert.Equal("The previous BIN selection was not kept for this IC; select a compatible BIN." + Environment.NewLine + "NT51929_replacement.bin", viewModel.Reports.ReportToastText);
     }
 
     /// <summary>A normal IC refresh never rereads populated CtrlRAM replacement slots whose projections are unused.</summary>

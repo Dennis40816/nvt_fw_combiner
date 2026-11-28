@@ -11,6 +11,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises report save delivery and failure preservation.</summary>
 public sealed partial class RunReportsListTests
 {
     /// <summary>A local picker result must use the existing atomic file adapter.</summary>
@@ -98,7 +99,7 @@ public sealed partial class RunReportsListTests
 
         await modal.SaveReportAsync(CreateSaveProvider("none", reports));
         Assert.Equal(reports.Text.FormatReportSavedToast("saved.json", bestEffortProviderWrite: true), reports.ReportToastText);
-        Assert.Contains("Atomic replacement is not guaranteed", reports.ReportToastText, StringComparison.Ordinal);
+        Assert.Equal("The report was saved, but interrupted replacement may leave it incomplete; save a local copy." + Environment.NewLine + "saved.json", reports.ReportToastText);
         Assert.Equal(json, reports.LoadedReportJson);
     }
 
@@ -135,7 +136,7 @@ public sealed partial class RunReportsListTests
         ((ReportStorageProxy)picker).Call = (_, _) => { pickerCount++; return selected.Task; };
         reports.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(reports.ReportToastText) && reports.ReportToastText.StartsWith("Report saved", StringComparison.Ordinal))
+            if (args.PropertyName == nameof(reports.ReportToastText) && reports.ReportToastText == "The report was saved, but interrupted replacement may leave it incomplete; save a local copy." + Environment.NewLine + "saved.json")
             {
                 successObservations.Add((fileDisposed, !stream.CanWrite));
             }
@@ -172,7 +173,7 @@ public sealed partial class RunReportsListTests
         Assert.Equal(previousToast, reports.ReportToastText);
         Assert.Equal(json, reports.LoadedReportJson);
         await modal.SaveReportAsync(CreateSaveProvider("open", reports));
-        Assert.Contains("Report 儲存失敗", reports.ReportToastText, StringComparison.Ordinal);
+        Assert.StartsWith("報告儲存失敗且檔案可能不完整，請重新儲存。" + Environment.NewLine, reports.ReportToastText, StringComparison.Ordinal);
     }
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "The simulated picker transfers file ownership to the actual save operation under test.")]

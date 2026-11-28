@@ -20,25 +20,25 @@ internal sealed partial class ShellTextResources
         string code = status.InspectionIssueCode ?? string.Empty;
         (string Title, string Detail)? help = GetInputIssueHelp(code, error ? "error" : "warning", status.Inspection?.DiagnosticEvidence, status.Inspection);
         string summary = GetIgnoredTrailingInputDescription(status)
-            ?? (code == "DP_NONSTANDARD_SIZE_WARNING" ? help?.Detail : help?.Title)
+            ?? (code == InputArtifactInspectionIssueCodes.SourceUnreadable && status.FileStamp is null
+                ? GetInputSlotInspectionStatus(status) : code == "DP_NONSTANDARD_SIZE_WARNING" ? help?.Detail : help?.Title)
             ?? GetInputSlotInspectionStatus(status);
-        if (error && code == "input.source-view.incomplete" && status.Inspection is { } inspection &&
-            inspection.ActualLength < inspection.RequiredEndExclusive)
-        {
-            summary = SelectLanguage(
-                $"{subject} too short (≥ {FormatInputLength(inspection.RequiredEndExclusive)})",
-                $"{subject} 太短（≥ {FormatInputLength(inspection.RequiredEndExclusive)}）");
-        }
-        return CreateIssueCard(subject, summary, error) with
+        // Show short-file guidance once; keep typed facts in the existing action/detail row.
+        bool incomplete = error && code == "input.source-view.incomplete" && status.Inspection is { } inspection &&
+            inspection.ActualLength < inspection.RequiredEndExclusive;
+        return CreateIssueCard(subject, incomplete ? InputTooShortStatus : summary, error) with
         {
             DiagnosticCode = code,
             Action = code == "DP_NONSTANDARD_SIZE_WARNING" ? string.Empty
-                : error && code == "input.source-view.incomplete"
-                ? SelectLanguage($"Select a complete {subject} and load it again.", $"請選擇完整的 {subject} 並重新載入。")
-                : error ? SelectLanguage("Check the input file and load it again.", "請檢查輸入檔並重新載入。")
+                : incomplete ? help!.Value.Detail.Split(Environment.NewLine)[0]
+                : error && code is InputArtifactInspectionIssueCodes.TpChipCountRequired or InputArtifactInspectionIssueCodes.TpChipCountUnreadable
+                    ? help!.Value.Detail
+                : error ? SelectLanguage("The selected BIN has an input error; review its status and select a compatible BIN.", "所選 BIN 有輸入錯誤，請查看其狀態並選擇相容的 BIN。")
                     : SelectLanguage($"Confirm this is the intended {subject}.", $"請確認這是預期的 {subject}。"),
         };
     }
+
+    private string InputTooShortStatus => SelectLanguage("The selected BIN is too short; select a complete, compatible BIN.", "所選 BIN 太短，請選擇完整且相容的 BIN。");
 
     private string? GetIgnoredTrailingInputDescription(AuthoringInputSlotStatus status)
     {
@@ -68,7 +68,7 @@ internal sealed partial class ShellTextResources
             summary,
             error ? SelectLanguage("Build is blocked.", "目前無法 Build。")
                 : SelectLanguage("Does not block Build.", "不會阻擋 Build。"),
-            error ? SelectLanguage("Select a compatible input and retry.", "請更換相容輸入後重試。")
+            error ? SelectLanguage("This input is blocked; review its status before Build.", "此輸入目前受阻擋，請在 Build 前查看其狀態。")
                 : SelectLanguage("Check that this is the intended BIN.", "請確認這是預期的 BIN。"),
             error);
     }
@@ -92,8 +92,18 @@ internal sealed partial class ShellTextResources
             },
             "error" => code switch
             {
+                InputArtifactInspectionIssueCodes.TpChipCountRequired => (
+                    SelectLanguage(
+                        "The TP firmware IC count is zero; select a BIN with a valid IC count.",
+                        "TP 韌體的 IC 數量為零，請選擇 IC 數量有效的 BIN。"),
+                    SelectLanguage("FWConfig Chip_Num (offset 0x17): 0.", "FWConfig Chip_Num（offset 0x17）：0。")),
+                InputArtifactInspectionIssueCodes.TpChipCountUnreadable => (
+                    SelectLanguage(
+                        "The TP firmware IC count could not be read; select a BIN with valid firmware configuration.",
+                        "無法讀取 TP 韌體的 IC 數量，請選擇韌體設定有效的 BIN。"),
+                    SelectLanguage("Check the canonical NVT FWConfig Backup and its validity.", "請檢查 canonical NVT FWConfig Backup 與其有效性。")),
                 "input.inspection.extension-not-accepted" => (
-                    SelectLanguage("File extension is not accepted", "副檔名不符"),
+                    SelectLanguage("This file extension is not accepted; select a file with an accepted extension.", "不接受此副檔名，請選擇使用允許副檔名的檔案。"),
                     SelectLanguage("This input does not accept this file extension. Select a compatible BIN before retrying Build.",
                         "此輸入不接受該副檔名；請選擇相容的 BIN，再重試 Build。")),
                 "input.inspection.source-unreadable" or "input.artifact.read-failed" => (
@@ -120,13 +130,13 @@ internal sealed partial class ShellTextResources
             },
             _ => null,
         };
-        if (help is null || evidence is null)
+        if (help is null)
         {
             return help;
         }
 
         if (severity.Equals("warning", StringComparison.OrdinalIgnoreCase) &&
-            evidence.RepeatedByte is { } value && evidence.SourceRange is { Length: > 0 } range)
+            evidence?.RepeatedByte is { } value && evidence.SourceRange is { Length: > 0 } range)
         {
             string input = code switch
             {
@@ -146,16 +156,16 @@ internal sealed partial class ShellTextResources
         }
 
         if (severity.Equals("error", StringComparison.OrdinalIgnoreCase) && code == "input.source-view.incomplete" &&
-            evidence.ActualLength is { } actual && evidence.RequiredEndExclusive is { } required && actual < required)
+            (evidence?.ActualLength ?? inspection?.ActualLength) is { } actual &&
+            (evidence?.RequiredEndExclusive ?? inspection?.RequiredEndExclusive) is { } required && actual < required)
         {
-            string subject = GetInputArtifactRoleLabel(evidence.AddressSpaceId);
-            string title = SelectLanguage($"{subject} too short (requires ≥ {FormatInputLength(required)})",
-                $"{subject} 太短（需 ≥ {FormatInputLength(required)}）");
             string facts = SelectLanguage(
                 FormattableString.Invariant($"Actual: {actual:N0} bytes · Required: ≥ {required:N0} bytes · Missing: {required - actual:N0} bytes"),
                 FormattableString.Invariant($"實際：{actual:N0} bytes · 需要：≥ {required:N0} bytes · 缺少：{required - actual:N0} bytes"));
-            return (title, help.Value.Detail + Environment.NewLine + facts +
-                (evidence.SourceRange is { Length: > 0 } sourceRange
+            string minimum = SelectLanguage($"Required: ≥ {FormatInputLength(required)}", $"需要：≥ {FormatInputLength(required)}");
+            string title = evidence is null ? InputTooShortStatus : $"{GetInputArtifactRoleLabel(evidence.AddressSpaceId)} (≥ {FormatInputLength(required)}) · {InputTooShortStatus}";
+            return (title, minimum + Environment.NewLine + facts +
+                (evidence?.SourceRange is { Length: > 0 } sourceRange
                     ? Environment.NewLine + FormatDiagnosticRange(evidence.AddressSpaceId, sourceRange)
                     : string.Empty));
         }

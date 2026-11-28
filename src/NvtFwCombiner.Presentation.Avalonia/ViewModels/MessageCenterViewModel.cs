@@ -160,7 +160,7 @@ internal sealed partial class MessageCenterViewModel : ObservableObject
     public string GlobalBuildBlockerText => IsRefreshInProgress
         ? Text.RefreshingDiagnosticsLabel
         : GlobalBuildBlocker is { } blocker
-            ? $"{Text.GetSystemDiagnosticMessage(blocker)} {Text.GetSystemDiagnosticAction(blocker)}"
+            ? $"{Text.GetSystemDiagnosticMessage(blocker)} {Text.GetSystemDiagnosticAction(blocker)}".TrimEnd()
             : string.Empty;
 
     /// <summary>Compact canonical catalog state and identity.</summary>

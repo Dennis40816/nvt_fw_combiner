@@ -23,14 +23,42 @@ internal sealed record IssueCardViewModel(
         // Application owns the order and count; Presentation enriches only the exact inspected slot.
         IssueCardViewModel? input = globalBlocked ? null : FindInputCard(blocker, slots);
         int additional = globalBlocked ? 0 : Math.Max(0, availability.Blockers.Count - 1);
-        string next = additional > 0
-            ? FindInputCard(availability.Blockers[1], slots)?.Summary ?? text.FormatCapabilityActionBlocker(availability.Blockers[1])
-            : string.Empty;
+        IssueCardViewModel? nextInput = additional > 0 ? FindInputCard(availability.Blockers[1], slots) : null;
+        string next = additional == 0 ? string.Empty : AdditionalBlocker(availability.Blockers[1], nextInput, text);
         return new IssueCardViewModel(text.BuildIssueCaption, text.BuildBlockedTitle,
-            input?.Summary ?? (globalBlocked ? globalBlockerText : blocker is null ? string.Empty : text.FormatCapabilityActionBlocker(blocker)), string.Empty, input?.Action ?? string.Empty,
+            input?.Summary ?? (globalBlocked ? globalBlockerText : blocker is null ? string.Empty : text.FormatCapabilityActionBlocker(blocker)), string.Empty, input is null ? (globalBlocked || blocker is null ? string.Empty : BlockerDetail(blocker, text))
+                : input.IsShortInput ? NamedMinimum(input) : input.Action,
             IsError: true, DiagnosticCode: input?.DiagnosticCode ?? (globalBlocked ? string.Empty : blocker?.Code ?? string.Empty),
             IsBuildStatus: true, AdditionalBlockerCount: additional,
             AdditionalBlockerText: additional > 0 ? text.FormatAdditionalBuildBlockers(additional, next) : string.Empty);
+    }
+
+    private static string AdditionalBlocker(CapabilityActionBlocker blocker, IssueCardViewModel? input, ShellTextResources text)
+    {
+        if (input is not null)
+        {
+            return $"{input.Summary} ({(input.IsShortInput ? NamedMinimum(input) : input.Subject)})";
+        }
+        string sentence = text.FormatCapabilityActionBlocker(blocker);
+        string detail = BlockerDetail(blocker, text);
+        return detail.Length == 0 ? sentence : $"{sentence} ({detail})";
+    }
+
+    private bool IsShortInput => DiagnosticCode == "input.source-view.incomplete" && IsError;
+
+    private static string NamedMinimum(IssueCardViewModel input)
+    {
+        return $"{input.Subject} · {input.Action}";
+    }
+
+    // The approved sentence replaces the message, so keep the facts only these blockers carry.
+    private static string BlockerDetail(CapabilityActionBlocker blocker, ShellTextResources text)
+    {
+        bool specific = blocker.Code is CapabilityActionReadinessIssueCodes.InputBlocked or
+            CapabilityActionReadinessIssueCodes.PostbuildStageAuthorityMissing or
+            CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked;
+        return !specific ? string.Empty
+            : text.Language == ShellLanguage.ChineseTraditional ? blocker.SubjectId : blocker.Message;
     }
 
     private static IssueCardViewModel? FindInputCard(CapabilityActionBlocker? blocker, IEnumerable<FirmwareSlotViewModel> slots)
