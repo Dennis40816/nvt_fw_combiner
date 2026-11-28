@@ -720,6 +720,15 @@ public sealed class MemoryLayoutSnapshot
     /// </summary>
     public MemoryLayoutFactSet<CompositionOperation> Steps => _facts.Steps;
 
+    /// <summary>
+    /// Content steps' declared writes at every proven output placement, in step order.
+    /// Pure staging, seed and publishing copies are used only to translate coordinates; Steps retains them.
+    /// An input-cloned image copy retains its bound input source; fills, scalar edits and processors have none.
+    /// Processor ranges are declared writes, never the whole staged extent. Missing proof makes the whole set unavailable.
+    /// These planned declarations do not assert final ownership, execution or observed byte changes.
+    /// </summary>
+    public MemoryLayoutFactSet<MemoryLayoutOutputWrite> OutputWrites => _facts.OutputWrites;
+
     private static void ValidateCoverage(
         MemoryLayoutSegment[] segments,
         MemoryLayoutGeometryKind geometryKind,

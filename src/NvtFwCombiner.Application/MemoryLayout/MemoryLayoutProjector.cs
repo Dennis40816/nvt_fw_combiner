@@ -165,11 +165,14 @@ public static partial class MemoryLayoutProjector
                 statesById,
                 contentSources);
 
+        MemoryLayoutBankLocator[] bankLocators = ProjectBanks(composition, map?.AddressSpaceId ?? plan.OutputSpaceId, capacity);
         MemoryLayoutProjectedFacts facts = MemoryLayoutFactProjection.Create(
             capability, authoring, map, map?.AddressSpaceId ?? plan.OutputSpaceId, capacity,
             (sourceSpaceId, range) => contentSources.FindOutputLocations(sourceSpaceId, range, after,
                 compiledOverlay is null ? 0 : plan.OrderedOperations.Count),
-            compiledOverlay);
+            compiledOverlay,
+            MemoryLayoutOutputWriteProjection.Create(compiledOverlay, map?.AddressSpaceId ?? plan.OutputSpaceId,
+                slotsBySpace, bankLocators));
 
         return map is null
             ? new MemoryLayoutSnapshot(
@@ -190,7 +193,7 @@ public static partial class MemoryLayoutProjector
                 after,
                 pendingItems,
                 ProjectSections(capability, map.AddressSpaceId, capacity),
-                ProjectBanks(composition, map.AddressSpaceId, capacity),
+                bankLocators,
                 facts);
     }
 

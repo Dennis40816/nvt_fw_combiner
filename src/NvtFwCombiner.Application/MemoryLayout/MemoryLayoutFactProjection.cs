@@ -12,7 +12,8 @@ namespace NvtFwCombiner.Application.MemoryLayout;
 internal sealed record MemoryLayoutProjectedFacts(
     MemoryLayoutFactSet<MemoryLayoutReadOnlyRange> ReadOnlyRanges,
     MemoryLayoutFactSet<MemoryLayoutVersionLocation> DpVersionLocations,
-    MemoryLayoutFactSet<CompositionOperation> Steps);
+    MemoryLayoutFactSet<CompositionOperation> Steps,
+    MemoryLayoutFactSet<MemoryLayoutOutputWrite> OutputWrites);
 
 /// <summary>Read-only translation of compiled access, operations and already-resolved metadata facts.</summary>
 internal static class MemoryLayoutFactProjection
@@ -21,7 +22,8 @@ internal static class MemoryLayoutFactProjection
         ResolvedCapability capability, ActiveSessionSnapshot authoring,
         FirmwareImageMap? map, string addressSpaceId, long capacity,
         Func<string, ByteRange, IReadOnlyList<ByteRange>>? findOutputLocations = null,
-        CompiledComposition? compiledOverlay = null)
+        CompiledComposition? compiledOverlay = null,
+        MemoryLayoutFactSet<MemoryLayoutOutputWrite>? outputWrites = null)
     {
         return new(
             ProjectReadOnlyRanges(capability.CompiledComposition,
@@ -30,7 +32,9 @@ internal static class MemoryLayoutFactProjection
             compiledOverlay is null
                 ? MemoryLayoutFactSet<CompositionOperation>.Unavailable(
                     MemoryLayoutFactUnavailableReason.CompiledPlanNotResolved)
-                : MemoryLayoutFactSet<CompositionOperation>.Known(compiledOverlay.Plan.OrderedOperations));
+                : MemoryLayoutFactSet<CompositionOperation>.Known(compiledOverlay.Plan.OrderedOperations),
+            outputWrites ?? MemoryLayoutFactSet<MemoryLayoutOutputWrite>.Unavailable(
+                MemoryLayoutFactUnavailableReason.CompiledPlanNotResolved));
     }
 
     internal static MemoryLayoutFactSet<MemoryLayoutReadOnlyRange> ProjectReadOnlyRanges(
