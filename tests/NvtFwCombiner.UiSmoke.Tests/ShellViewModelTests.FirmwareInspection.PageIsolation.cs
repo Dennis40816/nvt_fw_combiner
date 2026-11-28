@@ -51,7 +51,7 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
-        MemoryMapRowViewModel retainedMemoryRow = viewModel.Merge.MergeMemoryRows.First();
+        MemoryMapRowViewModel retainedMemoryRow = viewModel.Merge.MergeMemoryRows[0];
         string retainedOutputName = viewModel.Merge.MergeOutputFileName;
 
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);

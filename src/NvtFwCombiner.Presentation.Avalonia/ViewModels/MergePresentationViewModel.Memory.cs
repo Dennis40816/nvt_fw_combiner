@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.MemoryLayout;
 
@@ -11,7 +10,7 @@ internal sealed partial class MergePresentationViewModel
     internal void RefreshMergeMemoryMapState(bool refreshAuthoring = true)
     {
         PrepareMergeMemoryMapState(refreshAuthoring);
-        PublishMergeMemoryContext();
+        OnPropertyChanged(nameof(MergeMemorySummary));
     }
 
     private void PrepareMergeMemoryMapState(bool refreshAuthoring = true)
@@ -29,45 +28,24 @@ internal sealed partial class MergePresentationViewModel
                 AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
                 _ => _standardMergeSession.CurrentSnapshot,
             };
-            (string rangeLabel, IReadOnlyList<MemoryMapRowViewModel> rows,
-                IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments) =
-                    acceptedSession?.ExactCapability is null
-                    ? UiCompositionRunner.GetPendingMemoryDisplay(
-                        Text,
-                        IsGeneralMergeModeSelected ? [] : MergeSlots,
-                        IsGeneralMergeModeSelected
-                            ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
-                            : MemoryPendingPrerequisite.DpBin,
-                        acceptedSession, SelectedMergeMode == NormalMergeMode ? _appliedStandardMergeRequired : null)
-                    : UiCompositionRunner.GetMemoryDisplay(
-                        _compositionServices,
-                        acceptedSession,
-                        Text,
-                        IsGeneralMergeModeSelected ? _generalMergeAdmission : null);
-            MergeMemoryRangeLabel = rangeLabel;
-            ReplaceRows(MergeMemoryRows, rows);
-            // Logical items assign each slice's interaction state; publish only after, or the rail legend binds a discarded state.
-            IReadOnlyList<MemoryCoverageLogicalItemViewModel> logicalItems =
-                ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, Text);
-            MergeCoverageSegments.ReplaceAll(coverageSegments);
-            ReplaceRows(MergeCoverageRows, logicalItems.SelectMany(static item => item.Ranges));
-            OnPropertyChanged(nameof(MergeStartAddress));
-            OnPropertyChanged(nameof(MergeEndAddress));
+            OutputLayout.Publish(
+                _compositionServices, acceptedSession, Text,
+                IsGeneralMergeModeSelected ? [] : MergeSlots,
+                IsGeneralMergeModeSelected
+                    ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
+                    : MemoryPendingPrerequisite.DpBin,
+                IsGeneralMergeModeSelected ? _generalMergeAdmission : null,
+                SelectedMergeMode == NormalMergeMode ? _appliedStandardMergeRequired : null);
         }
     }
 
-    private void PublishMergeMemoryContext()
+    private void NotifyOutputLayoutChanged()
     {
         OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(MergeMemorySummary));
-    }
-
-    private static void ReplaceRows<T>(ObservableCollection<T> target, IEnumerable<T> rows)
-    {
-        target.Clear();
-        foreach (T row in rows)
-        {
-            target.Add(row);
-        }
+        OnPropertyChanged(nameof(MergeMemoryRows));
+        OnPropertyChanged(nameof(MergeCoverageSegments));
+        OnPropertyChanged(nameof(MergeCoverageRows));
+        OnPropertyChanged(nameof(MergeStartAddress));
+        OnPropertyChanged(nameof(MergeEndAddress));
     }
 }

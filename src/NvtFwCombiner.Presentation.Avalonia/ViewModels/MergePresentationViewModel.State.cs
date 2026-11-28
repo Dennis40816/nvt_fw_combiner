@@ -125,17 +125,19 @@ internal sealed partial class MergePresentationViewModel
 
     public ObservableCollection<CapabilityTopologyChoice> AbMergeTopologyChoices { get; } = [];
 
-    public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
+    public OutputLayoutPresentationViewModel OutputLayout { get; } = new();
 
-    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageSegments { get; } = [];
+    public IReadOnlyList<MemoryMapRowViewModel> MergeMemoryRows => OutputLayout.Current.Rows;
 
-    public ObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageRows { get; } = [];
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> MergeCoverageSegments => OutputLayout.Current.CoverageSegments;
+
+    public IReadOnlyList<MemoryCoverageSegmentViewModel> MergeCoverageRows => OutputLayout.Current.CoverageRows;
 
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
 
-    public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
-    public string MergeStartAddress => MemoryCoverageBarProjection.OuterAddresses(MergeCoverageSegments).Start;
-    public string MergeEndAddress => MemoryCoverageBarProjection.OuterAddresses(MergeCoverageSegments).End;
+    public string MergeMemoryRangeLabel => OutputLayout.Current.RangeLabel;
+    public string MergeStartAddress => OutputLayout.Current.StartAddress;
+    public string MergeEndAddress => OutputLayout.Current.EndAddress;
 
     public string SelectedMergeMode
     {
@@ -144,13 +146,11 @@ internal sealed partial class MergePresentationViewModel
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputLength { get; set; } = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
@@ -198,7 +198,7 @@ internal sealed partial class MergePresentationViewModel
     public string MergeMemorySummary => Text.GetMergeMemorySummary(
         SelectedMergeMode,
         IsStandardMergeSupported,
-        GeneralMergeMappings.Any(mapping => mapping.HasFile));
+        GeneralMergeMappings.Any(static mapping => mapping.HasFile));
 
     public string StandardMergeSupportSummary => Text.GetStandardMergeSupportSummary(
         SelectedIc,
@@ -436,7 +436,8 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(AbMergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        PublishMergeMemoryContext();
+        // A mode switch without an IC publishes the context but no new layout.
+        OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(CanBuildMerge));
     }
 

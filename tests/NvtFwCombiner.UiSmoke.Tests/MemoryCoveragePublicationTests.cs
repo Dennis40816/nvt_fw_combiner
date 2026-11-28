@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
@@ -15,10 +16,9 @@ using NvtFwCombiner.TestSupport;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>
-/// Board decision 112: Merge/Replace memory-coverage publication replaces
-/// <see cref="MergePresentationViewModel.MergeCoverageSegments"/>,
-/// <see cref="ReplacePresentationViewModel.ReplaceCoverageSegments"/> and
-/// <see cref="ReplacePresentationViewModel.CtrlRamOverview"/> with one collection Reset instead of a
+/// Merge publishes the complete <see cref="OutputLayoutPublication"/> once.
+/// Board decision 112: <see cref="ReplacePresentationViewModel.ReplaceCoverageSegments"/> and
+/// <see cref="ReplacePresentationViewModel.CtrlRamOverview"/> publish with one collection Reset instead of a
 /// Clear followed by one Add per segment.
 /// </summary>
 public sealed class MemoryCoveragePublicationTests
@@ -75,11 +75,11 @@ public sealed class MemoryCoveragePublicationTests
         AssertOnlyResetsWithinBounds(overviewActions, maxNotifications: 2);
     }
 
-    /// <summary>Standard Merge with DP, TP and LDC inputs publishes <c>MergeCoverageSegments</c> with a
-    /// small, bounded number of Resets (never a per-item Add), even though the pending/inspected
+    /// <summary>Standard Merge with DP, TP and LDC inputs publishes complete displays with a
+    /// small, bounded number of replacements, even though the pending/inspected
     /// lifecycle republishes more than once.</summary>
     [Fact]
-    public async Task MergePublicationReplacesCoverageSegmentsWithOneReset()
+    public async Task MergePublicationReplacesCompleteDisplayPerLifecycleTransition()
     {
         using var golden = StandardMergeGoldenManifest.Load();
         JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
@@ -96,27 +96,71 @@ public sealed class MemoryCoveragePublicationTests
             golden.ManifestPath(inputs.GetProperty("tp-input")),
             TestContext.Current.CancellationToken);
 
-        List<NotifyCollectionChangedAction> coverageActions = [];
-        viewModel.Merge.MergeCoverageSegments.CollectionChanged += (_, e) => coverageActions.Add(e.Action);
+        List<OutputLayoutPublication> publications = [];
+        viewModel.Merge.OutputLayout.PropertyChanged += (_, e) =>
+        {
+            Assert.Equal(nameof(OutputLayoutPresentationViewModel.Current), e.PropertyName);
+            publications.Add(viewModel.Merge.OutputLayout.Current);
+        };
 
         await viewModel.WorkflowSession.SetSlotFileAsync(
             CompositionSlotIds.MergeLdc,
             golden.ManifestPath(inputs.GetProperty("ldc-input")),
             TestContext.Current.CancellationToken);
 
-        // Setting one slot republishes through the pending/inspected lifecycle (measured: 3 Resets for
-        // MergeCoverageSegments); the bound stays far below the segment count so per-item Add fan-out
-        // (one notification per segment) would still fail it.
-        AssertOnlyResetsWithinBounds(coverageActions, maxNotifications: 3);
+        // Pending/inspected lifecycle transitions may each publish, but segments never publish separately.
+        Assert.InRange(publications.Count, 1, 3);
+        Assert.Same(publications[^1], viewModel.Merge.OutputLayout.Current);
+        Assert.NotNull(publications[^1].Map);
         Assert.True(
             viewModel.Merge.MergeCoverageSegments.Count > 2,
             "The fixture must keep enough segments that per-item Add fan-out would be detected.");
 
-        coverageActions.Clear();
+        publications.Clear();
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
-        AssertOnlyResetsWithinBounds(coverageActions, maxNotifications: 3);
+        _ = Assert.Single(publications);
+        Assert.Same(publications[0], viewModel.Merge.OutputLayout.Current);
+        Assert.NotNull(publications[0].Map);
+    }
+
+    /// <summary>The production template keeps the same rail and follows the child's publication through legacy bindings.</summary>
+    [AvaloniaFact]
+    public void MergeTemplateFollowsAtomicPublicationThroughExistingBindings()
+    {
+        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
+        shell.ShowMergeCommand.Execute(null);
+        var content = new ContentControl { Content = shell.Merge };
+        var window = new Window { Width = 420, Height = 640, Content = content, DataContext = shell };
+        var uri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
+        window.Resources.MergedDictionaries.Add(new ResourceInclude(uri) { Source = uri });
+        content.ContentTemplate = Assert.IsType<IDataTemplate>(window.FindResource("MergeOutputLayoutPanelTemplate"), exactMatch: false);
+        window.Show();
+        try
+        {
+            Render();
+            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>());
+            Assert.Empty(window.GetVisualDescendants().OfType<OutputMap>());
+            Assert.True(bar.ShowLegend);
+            Assert.Same(shell.Merge.OutputLayout.Current.CoverageSegments, bar.ItemsSource);
+
+            shell.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+            shell.SelectedLanguage = "Traditional Chinese";
+            Render();
+
+            Assert.Same(bar, Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>()));
+            Assert.Same(shell.Merge.OutputLayout.Current.CoverageSegments, bar.ItemsSource);
+            Assert.Equal("等待來源對應", Assert.Single(shell.Merge.MergeCoverageSegments).SourceLabel);
+            Assert.Equal(shell.Merge.OutputLayout.Current.StartAddress, bar.StartAddress);
+            Assert.Equal(shell.Merge.OutputLayout.Current.EndAddress, bar.EndAddress);
+            Assert.NotEmpty(Assert.Single(shell.Merge.MergeMemoryRows).Detail);
+            Assert.Null(shell.Merge.OutputLayout.Current.Map);
+        }
+        finally
+        {
+            window.Close();
+        }
     }
 
     /// <summary>One <see cref="ResettableObservableCollection{T}.ReplaceAll"/> rebuilds the rail's
