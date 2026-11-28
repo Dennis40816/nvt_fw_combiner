@@ -12,41 +12,34 @@ public sealed partial class HostInfrastructureBoundaryTests
         Assert.Equal(1, CountOccurrences(loader, "JsonTypeInfo<T> typeInfo"));
     }
 
-    /// <summary>Both external processors acquire the shared disposable staging owner instead of deleting unowned paths.</summary>
+    /// <summary>The staged host alone acquires custody; protocol adapters never delete an unowned run directory.</summary>
     [Fact]
     public void InfrastructureConvergenceSharesStagingCleanup()
     {
-        string manifestStaging = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.Staging.cs");
-        string manifestProcessor = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs")
-            .ReplaceLineEndings("\n");
-        string legacyProcessor = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs")
-            .ReplaceLineEndings("\n");
-        string stagingFileSystem = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalStagingDirectory.cs")
+        string host = ReadExternalToolSources("StagedExternalProcessorHost*.cs");
+        string adapters = ReadExternalToolSources("LegacyCombinerProcessorAdapter*.cs");
+        string manifest = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalCombinerProcessor.cs");
+        string postbuild = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs");
+        string stagingFileSystem = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/ExternalStagingDirectory.cs")
             .ReplaceLineEndings("\n");
 
-        Assert.DoesNotContain("private static void TryDeleteDirectory", manifestStaging, StringComparison.Ordinal);
-        Assert.DoesNotContain("private static void TryDeleteDirectory", legacyProcessor, StringComparison.Ordinal);
+        Assert.DoesNotContain("private static void TryDeleteDirectory", host + adapters + manifest + postbuild, StringComparison.Ordinal);
         Assert.Contains("internal sealed partial class ExternalStagingDirectory : IDisposable", stagingFileSystem, StringComparison.Ordinal);
-        const string acquireOwner =
-            "using ExternalStagingDirectory? staging = ExternalStagingDirectory.TryAcquire(runDirectory);";
-        foreach (string processor in new[] { manifestProcessor, legacyProcessor })
+        Assert.Contains("using ExternalStagingDirectory? staging = ExternalStagingDirectory.TryAcquire(session.RunDirectory);", host, StringComparison.Ordinal);
+        Assert.Contains("if (staging is null)", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExternalStagingDirectory.TryAcquire", manifest, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExternalStagingDirectory.TryAcquire", postbuild, StringComparison.Ordinal);
+        string[] processors = [host, adapters, manifest, postbuild];
+        foreach (string processor in processors)
         {
-            Assert.Contains(acquireOwner, processor, StringComparison.Ordinal);
-            Assert.Contains("if (staging is null)", processor, StringComparison.Ordinal);
             Assert.DoesNotContain("ExternalStagingDirectory.TryDelete", processor, StringComparison.Ordinal);
             Assert.DoesNotContain("Directory.Delete", processor, StringComparison.Ordinal);
         }
+
         Assert.Contains("Interlocked.Exchange(ref _ownedPath, null)", stagingFileSystem, StringComparison.Ordinal);
         Assert.Contains("Directory.Delete(path, recursive: true);", stagingFileSystem, StringComparison.Ordinal);
         Assert.Contains("catch (IOException)\n        {\n        }", stagingFileSystem, StringComparison.Ordinal);
-        Assert.Contains(
-            "catch (UnauthorizedAccessException)\n        {\n        }",
-            stagingFileSystem,
-            StringComparison.Ordinal);
+        Assert.Contains("catch (UnauthorizedAccessException)\n        {\n        }", stagingFileSystem, StringComparison.Ordinal);
     }
 
     /// <summary>Embedded JSON schemas share resource loading while retaining separate lazy authorities.</summary>

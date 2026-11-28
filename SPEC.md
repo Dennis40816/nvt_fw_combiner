@@ -1680,8 +1680,8 @@ to each `0.10.x` version.
   supported legacy Combiner.exe protocol adapter may remain only when its
   wire/argv/staging contract is genuinely distinct. Every compiled processor
   operation follows one route: its Profiles-owned compiled processor plan
-  enters Application `IExternalProcessor`, `ExternalProcessorRouter` selects
-  exactly one registered protocol adapter, and the adapter uses the shared
+  enters Application `IExternalProcessor`, the staged external processor host
+  selects exactly one registered protocol adapter, and the adapter uses the shared
   staging, process, diff, declared-range, assertion, cleanup, and audit safety
   owners. Runtime `LegacyCombinerPostbuildPlanner` and any IC/workflow-based
   command-plan reconstruction are deleted; the command plan is fixed during

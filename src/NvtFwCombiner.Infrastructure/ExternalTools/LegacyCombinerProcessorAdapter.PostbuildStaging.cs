@@ -1,9 +1,11 @@
+// Copyright (c) 2026 Dennis Liu. All rights reserved.
+
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
-public sealed partial class LegacyCombinerPostbuildProcessor
+internal sealed partial class LegacyCombinerProcessorAdapter
 {
     private static CompositionIssue? ApplyStagedSourceOverrides(
         byte[] stagedSourceBytes,
@@ -301,7 +303,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
 
         byte[] tailBytes = new byte[checked((int)(expectedLength - minimumLength))];
-        await using var stream = new FileStream(
+        await using FileStream stream = new(
             firmwarePath,
             FileMode.Open,
             FileAccess.Read,
@@ -349,7 +351,7 @@ public sealed partial class LegacyCombinerPostbuildProcessor
         }
 
         int tailOffset = checked((int)(outputLength - tailSnapshot.Start));
-        await using var stream = new FileStream(
+        await using FileStream stream = new(
             firmwarePath,
             FileMode.Append,
             FileAccess.Write,

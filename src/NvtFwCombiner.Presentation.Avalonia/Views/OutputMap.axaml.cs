@@ -47,6 +47,8 @@ public sealed partial class OutputMap : UserControl
         _parts.Bar.SizeChanged += (_, _) => LayoutOverview();
         _parts.Regions.SizeChanged += (_, _) => LayoutOverview();
         _parts.Crc.SizeChanged += (_, _) => LayoutOverview();
+        // A model set while detached lays labels out unmeasured, and reattaching at the same size raises no SizeChanged.
+        Loaded += (_, _) => LayoutOverview();
         _parts.Zoom.SizeChanged += (_, e) =>
         {
             if (e.PreviousSize.Width != e.NewSize.Width) { RenderZoom(); }

@@ -11,19 +11,28 @@ public sealed partial class ApplicationBoundaryTests
             "src",
             "NvtFwCombiner.Infrastructure",
             "ExternalTools",
-            "LegacyCombinerPostbuildProcessor.cs"));
-        string router = File.ReadAllText(Path.Combine(
+            "LegacyCombinerProcessorAdapter.Postbuild.cs"));
+        string host = File.ReadAllText(Path.Combine(
             Root.FullName,
             "src",
             "NvtFwCombiner.Infrastructure",
             "ExternalTools",
-            "ExternalProcessorRouter.cs"));
+            "StagedExternalProcessorHost.cs"));
+        string adapter = File.ReadAllText(Path.Combine(
+            Root.FullName,
+            "src",
+            "NvtFwCombiner.Infrastructure",
+            "ExternalTools",
+            "LegacyCombinerProcessorAdapter.cs"));
 
         Assert.DoesNotContain("LegacyCombinerPostbuildPlanCompiler.CreatePlan", processor, StringComparison.Ordinal);
         Assert.DoesNotContain("_profilesByProcessorId", processor, StringComparison.Ordinal);
-        Assert.Contains("ExternalProcessorProtocolPlan? plan = request.ProtocolPlan", router, StringComparison.Ordinal);
-        Assert.Contains("external-processor.protocol.unsupported", router, StringComparison.Ordinal);
-        Assert.DoesNotContain("legacyPostbuildProcessorIds", router, StringComparison.Ordinal);
-        Assert.DoesNotContain("request.ProcessorId", router, StringComparison.Ordinal);
+        Assert.Contains("ExternalProcessorProtocolPlan? plan = request.ProtocolPlan", adapter, StringComparison.Ordinal);
+        Assert.Contains("LegacyCombinerPostbuildPlanCompiler.ProtocolId", adapter, StringComparison.Ordinal);
+        Assert.Contains("adapter.ValidateRequest(request)", host, StringComparison.Ordinal);
+        Assert.Contains("external-processor.protocol.unsupported", host, StringComparison.Ordinal);
+        Assert.Contains("external-processor.protocol.unsupported", adapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("legacyPostbuildProcessorIds", host + adapter, StringComparison.Ordinal);
+        Assert.DoesNotContain("request.ProcessorId", host + adapter, StringComparison.Ordinal);
     }
 }
