@@ -76,6 +76,7 @@ public sealed partial class CompositionHostServices
         AbMergeAuthoring = abMergeAuthoring;
         ExternalEnvironment = externalEnvironment ??
             throw new ArgumentNullException(nameof(externalEnvironment));
+        IntegrityRecomputeFactsQuery = new BuiltInIntegrityRecomputeFactsQuery(projection);
         GeneralAuthoring = new GeneralAuthoringExperience(
             new BuiltInGeneralAuthoringPlanner(catalog, compiler, projection),
             new FileContentSnapshotInspector(),
@@ -280,6 +281,9 @@ public sealed partial class CompositionHostServices
 
     /// <summary>Gets the focused General Merge and Replace authoring owner.</summary>
     public IGeneralAuthoring GeneralAuthoring { get; }
+
+    /// <summary>Gets the recompute confirmation facts port for General Replace.</summary>
+    public IIntegrityRecomputeFactsQuery IntegrityRecomputeFactsQuery { get; }
 
     /// <summary>Gets the focused CtrlRAM Replace authoring owner.</summary>
     public ICtrlRamAuthoring CtrlRamAuthoring { get; }

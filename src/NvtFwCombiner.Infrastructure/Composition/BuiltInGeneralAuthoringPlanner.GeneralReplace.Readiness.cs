@@ -23,11 +23,32 @@ internal sealed partial class BuiltInGeneralAuthoringPlanner
     {
         touchesTp = GeneralReplaceTouchesTpRegion(regions, mappings);
         issue = null;
-        if (!touchesTp)
-        {
-            return null;
-        }
+        return touchesTp
+            ? TryResolveGeneralReplacePostbuildPlan(
+                icId,
+                selection,
+                capacity,
+                profileResolved,
+                profile,
+                profileIssue,
+                out issue)
+            : null;
+    }
 
+    /// <summary>
+    /// Resolves the postbuild plan of a TP-touching General Replace and applies its IC number, capacity and
+    /// write-range checks. The planner and the recompute facts query share this one path.
+    /// </summary>
+    internal static LegacyCombinerPostbuildCommandPlan? TryResolveGeneralReplacePostbuildPlan(
+        string icId,
+        IcNumberSelection selection,
+        long capacity,
+        bool profileResolved,
+        LegacyCombinerPostbuildProfile? profile,
+        CompositionIssue? profileIssue,
+        out CompositionIssue? issue)
+    {
+        issue = null;
         if (!profileResolved)
         {
             issue = profileIssue;
