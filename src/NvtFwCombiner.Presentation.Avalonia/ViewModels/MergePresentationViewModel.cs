@@ -19,6 +19,7 @@ internal sealed partial class MergePresentationViewModel : ObservableObject
             throw new ArgumentNullException(nameof(compositionServices));
         _textProvider = textProvider ?? throw new ArgumentNullException(nameof(textProvider));
         _stateBindings = stateBindings ?? throw new ArgumentNullException(nameof(stateBindings));
+        OutputLayout.PropertyChanged += (_, _) => NotifyOutputLayoutChanged();
         InspectionLifecycles = new(NotifyCommandStateChanged, NormalMergeMode, AbCodeMergeMode, GeneralMergeMode);
         ToggleAbSameTpCommand = new AsyncRelayCommand(ToggleAbSameTpAsync);
         KeepTpAForAbSameTpCommand = new AsyncRelayCommand(() => KeepTpForAbSameTpAsync(

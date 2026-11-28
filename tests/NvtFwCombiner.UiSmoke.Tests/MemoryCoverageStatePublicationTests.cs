@@ -54,12 +54,24 @@ public sealed class MemoryCoverageStatePublicationTests
         using var workspace = TempWorkspace.Create("state-publication-merge");
         MainWindowViewModel shell = CreateShell(workspace);
         JsonElement golden = CanonicalGoldenTestData.LoadDirectCase("ab-merge", "nt51929-ab-t05-d06");
-        List<(MemoryCoverageSegmentViewModel Slice, MemoryCoverageInteractionState State)> published = Watch(shell.Merge.MergeCoverageSegments);
+        List<(MemoryCoverageSegmentViewModel Slice, MemoryCoverageInteractionState State)> published = Watch(shell.Merge.OutputLayout);
         await MainWindow.ApplyAbMergeLaunchAsync(shell, new AbMergeLaunchRequest("NT51929", "single",
             PathFor(golden, "dp-ab-input"), PathFor(golden, "tp-a-input"), PathFor(golden, "tp-b-input")),
             TestContext.Current.CancellationToken);
         Assert.NotEmpty(shell.Merge.MergeCoverageRows);
         AssertStatesKept(published);
+    }
+
+    private static List<(MemoryCoverageSegmentViewModel Slice, MemoryCoverageInteractionState State)> Watch(
+        OutputLayoutPresentationViewModel layout)
+    {
+        var published = new List<(MemoryCoverageSegmentViewModel Slice, MemoryCoverageInteractionState State)>();
+        layout.PropertyChanged += (_, _) =>
+        {
+            published.Clear();
+            published.AddRange(layout.Current.CoverageSegments.Select(static slice => (slice, slice.Interaction)));
+        };
+        return published;
     }
 
     private static List<(MemoryCoverageSegmentViewModel Slice, MemoryCoverageInteractionState State)> Watch(
