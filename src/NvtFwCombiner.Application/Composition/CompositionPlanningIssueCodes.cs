@@ -3,7 +3,7 @@ using NvtFwCombiner.Application.Authoring;
 namespace NvtFwCombiner.Application.Composition;
 
 /// <summary>Stable authoring, planning, and report issue codes surfaced by typed clients.</summary>
-public static class CompositionPlanningIssueCodes
+public static partial class CompositionPlanningIssueCodes
 {
     /// <summary>Unexpected UI-triggered run failure.</summary>
     public const string UiRunFailed = "ui.run.failed";
