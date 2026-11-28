@@ -18,7 +18,6 @@ EXEMPT_FILES = {
     'scripts/package.ps1': 'PR B',
     'scripts/smoke-release.ps1': 'PR B',
     'scripts/canonical_golden_validation.py': 'PR B',
-    'tests/NvtFwCombiner.GoldenRegression.Tests/Nt51950Nt51951DpReplaceSyntheticOracleTests.cs': 'PR B',
     'scripts/output_baseline.py': 'G0-3 follow-up',
     'tests/scripts/test_output_baseline.py': 'G0-3 follow-up',
     'tests/scripts/test_testdata_path_guard.py': 'Guard policy inventory and in-memory probe strings only.',
@@ -43,6 +42,9 @@ IDENTITY_USES = {
     'scripts/sync_derived.py': (
         ('path = resolve_testdata_root(root) if identity.parts[0] == "testdata" else root', 1, 'Tests the identity prefix before selecting the resolver.'),
         ('parts = identity.parts[1:] if identity.parts[0] == "testdata" else identity.parts', 1, 'Tests the identity prefix before selecting the resolver.'),
+    ),
+    'scripts/testdata_mirror_check.py': (
+        ('REPOSITORY_TESTDATA_NAME = "testdata"', 1, 'Physical repository copy compared with the external mirror; the resolver must not redirect it.'),
     ),
     'scripts/validate_repository.py': (
         ('"testdata/golden/canonical/manifest.json",', 1, 'Required-file identities or tracked-payload policy; reads resolve separately.'),

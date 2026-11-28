@@ -215,7 +215,7 @@ class CoverageCiContractTests(unittest.TestCase):
             workflow,
         )
         self.assertEqual(
-            3,
+            4,
             workflow.count(
                 "if: github.event_name == 'push' || "
                 "github.event.pull_request.draft == false"

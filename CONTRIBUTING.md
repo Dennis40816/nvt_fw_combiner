@@ -54,6 +54,14 @@ and migrated scripts use the repository copy for now. A set value must name a
 fully qualified, existing directory; an empty, relative or missing directory
 fails instead of falling back.
 
+CI also runs against the nvt-testdata commit pinned in
+`testdata/nvt-testdata.json`. The `testdata-mirror` job checks out that commit
+with the `TESTDATA_DEPLOY_KEY` secret and sets `NFC_TESTDATA_ROOT`. It requires
+the same files with the same SHA-256 as the repository copy, then runs the .NET
+test shards against it. The existing jobs keep testing the repository copy. A
+run without the key fails, and fork or dependabot pull requests are reported as
+unverified. Bump the pin in the same change that updates the mirror.
+
 ## Fixed test area
 
 Run `python -B scripts/fetch_core_packages.py` before a manual `dotnet restore`.

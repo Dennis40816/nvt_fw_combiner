@@ -267,3 +267,70 @@ jobs:
           path: artifacts/coverage/dotnet/
           if-no-files-found: ignore
           retention-days: 3
+
+  testdata-mirror:
+    name: testdata / nvt-testdata mirror (${{ matrix.shard }})
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [bootstrap, ui, core]
+    env:
+      # This job reads the pinned private nvt-testdata commit. A run without the deploy key fails, so
+      # a lost key cannot turn into a silent pass. Fork and dependabot pull requests never receive the
+      # key: they are reported as unverified and this job fails for them.
+      HAS_TESTDATA_KEY: ${{ secrets.TESTDATA_DEPLOY_KEY != '' }}
+      UNVERIFIED: ${{ github.event_name == 'pull_request' && (github.event.pull_request.head.repo.full_name != github.repository || github.event.pull_request.user.login == 'dependabot[bot]') }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require the nvt-testdata deploy key
+        shell: pwsh
+        run: |
+          if ($env:UNVERIFIED -eq 'true') {
+            throw 'Unverified: fork and dependabot pull requests cannot read nvt-testdata.'
+          }
+          if ($env:HAS_TESTDATA_KEY -ne 'true') {
+            throw 'The TESTDATA_DEPLOY_KEY secret is not available to this run.'
+          }
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: '3.13'
+      - name: Checkout pinned nvt-testdata
+        uses: ./.github/actions/checkout-testdata
+        with:
+          deploy-key: ${{ secrets.TESTDATA_DEPLOY_KEY }}
+      - name: Compare nvt-testdata with the repository test data
+        run: python scripts/testdata_mirror_check.py
+      - name: Install pinned repository .NET SDK
+        shell: pwsh
+        run: ./scripts/install-dotnet.ps1 -Scope Repository
+      - name: Add resolved .NET to PATH
+        shell: pwsh
+        run: |
+          $repoDotnet = "${{ github.workspace }}\.dotnet\dotnet.exe"
+          if (Test-Path -LiteralPath $repoDotnet -PathType Leaf) {
+            $dotnetRoot = Split-Path -Parent $repoDotnet
+          } else {
+            $dotnetRoot = Split-Path -Parent (Get-Command dotnet -ErrorAction Stop).Source
+          }
+          $dotnetRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "DOTNET_ROOT=$dotnetRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & (Join-Path $dotnetRoot 'dotnet.exe') --version
+      # Same canonical shard runner as dotnet-test, now reading NFC_TESTDATA_ROOT. Its evidence is not
+      # uploaded: the dotnet / build-test finalizer accepts only the repository-copy producers.
+      - name: Run the test shard against nvt-testdata
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NFC_TESTDATA_ROOT)) {
+            throw 'NFC_TESTDATA_ROOT is not set.'
+          }
+          python scripts/verify.py --ci-dotnet-test-shard ${{ matrix.shard }}
+          if ($LASTEXITCODE -ne 0) { throw 'The test shard failed against nvt-testdata.' }
