@@ -73,7 +73,7 @@ public sealed partial class ApplicationBoundaryTests
         string inspectionOwner = ReadText(
             "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactInspectionService.cs");
         string abOutputNaming = ReadText(
-            "src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
+            "src/NvtFwCombiner.Application/Composition/CompiledOutputNameResolver.BankFields.cs");
         string abProjection = ReadText(
             "src/NvtFwCombiner.Application/Authoring/CompiledAuthoringWorkflow.Selection.cs");
         string abInspection = ReadText(

@@ -1,64 +1,62 @@
-using System.Globalization;
+// Copyright (c) 2026 Dennis Liu. All rights reserved.
+
 using NvtFwCombiner.Application.InputInspection;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
-/// <summary>Renders the closed AB Code v1 filename from accepted immutable execution snapshots.</summary>
-internal static class AbCodeOutputNameResolver
+internal static partial class CompiledOutputNameResolver
 {
-    internal static OutputNameResolution Resolve(
+    private static OutputNameResolution ResolveBankFields(
         CompositionRunRequest request,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         DateTimeOffset startedAtUtc)
     {
         CompiledOutputNamingRequirement output = request.CompiledComposition.V2Details.OutputNamingRequirement;
-        TokenResolution dpA = ReadDpToken(
+        OutputNameTokenValue dpA = ReadDpToken(
             request,
             output,
             inputBytes,
             inputSummaries,
             "a-cmi-dp-version",
-            "dp-a");
-        TokenResolution dpB = ReadDpToken(
+            "a");
+        OutputNameTokenValue dpB = ReadDpToken(
             request,
             output,
             inputBytes,
             inputSummaries,
             "b-cmi-dp-version",
-            "dp-b");
-        TokenResolution tpA = ReadTpToken(
+            "b");
+        OutputNameTokenValue tpA = ReadTpToken(
             request,
             output,
             inputBytes,
             inputSummaries,
             CompositionAddressSpaceIds.TpAInput,
-            "tp-a");
-        TokenResolution tpB = ReadTpToken(
+            "a");
+        OutputNameTokenValue tpB = ReadTpToken(
             request,
             output,
             inputBytes,
             inputSummaries,
             CompositionAddressSpaceIds.TpBInput,
-            "tp-b");
-        string date = startedAtUtc.UtcDateTime.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        string canonicalIcNumber =
-            CompiledOutputNameResolver.GetCanonicalIcIdentity(
-                request.CompiledComposition.V2Details.Provenance.Context.MemberId)[2..];
-        OutputNamingTokenSummary[] tokens =
+            "b");
+        OutputNameTokenValue[] tokenValues =
         [
-            new OutputNamingTokenSummary("ic", canonicalIcNumber, IsKnown: true, null, null, "compiled-profile"),
-            dpA.Summary,
-            tpA.Summary,
-            dpB.Summary,
-            tpB.Summary,
-            new OutputNamingTokenSummary("date", date, IsKnown: true, null, null, "utc-clock"),
+            OutputNameTokenValue.ForIc(
+                request.CompiledComposition.V2Details.Provenance.Context.MemberId,
+                numberOnly: true),
+            dpA,
+            tpA,
+            dpB,
+            tpB,
+            OutputNameTokenValue.ForDate(startedAtUtc),
         ];
-        string automaticFileName = $"NT{canonicalIcNumber}_FlashCode_A_{dpA.Summary.Value}{tpA.Summary.Value}_B_{dpB.Summary.Value}{tpB.Summary.Value}_{date}.bin";
-        CompiledOutputNamingRequirement.ValidateRuntimeLiteralFileName(automaticFileName, nameof(automaticFileName));
+        string automaticFileName = ResolveTemplate(output.FileNameTemplate, tokenValues);
+        OutputNamingTokenSummary[] tokens = [.. tokenValues.Select(static token => token.Summary)];
         string actualFileName = request.IsOutputFileNameOverride ? request.OutputFileName : automaticFileName;
-        var summary = new OutputNamingSummary(
+        OutputNamingSummary summary = new(
             "ab-code-v1",
             output.FileNameTemplate,
             automaticFileName,
@@ -67,29 +65,30 @@ internal static class AbCodeOutputNameResolver
             "utc",
             startedAtUtc,
             tokens);
-        CompositionIssue[] issues =
-        [
-            .. dpA.Summary.ParserId == "compiled-profile-dummy-dp;fill=0xFF"
-                ? new[] { new CompositionIssue("output-naming.dummy-dp",
-                    "Dummy DP: non-TP output regions are filled with 0xFF.",
-                    severity: CompositionIssueSeverity.Info) }
-                : [],
-            .. tokens.Where(static token => !token.IsKnown).Select(token => new CompositionIssue(
+        List<CompositionIssue> issues = [];
+        if (dpA.ParserId == "compiled-profile-dummy-dp;fill=0xFF")
+        {
+            issues.Add(new CompositionIssue(
+                "output-naming.dummy-dp",
+                "Dummy DP: non-TP output regions are filled with 0xFF.",
+                severity: CompositionIssueSeverity.Info));
+        }
+
+        issues.AddRange(tokens.Where(static token => !token.IsKnown).Select(token => new CompositionIssue(
                 "output-naming.metadata-unknown",
                 $"AB Code filename token '{token.TokenId}' could not be read from its accepted immutable input snapshot; '{token.Value}' was used.",
                 token.SourceAddressSpaceId,
-                CompositionIssueSeverity.Warning)),
-        ];
+                CompositionIssueSeverity.Warning)));
         return new OutputNameResolution(actualFileName, summary, issues);
     }
 
-    private static TokenResolution ReadDpToken(
+    private static OutputNameTokenValue ReadDpToken(
         CompositionRunRequest request,
         CompiledOutputNamingRequirement output,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string cmiRegionId,
-        string tokenId)
+        string bankId)
     {
         if (!request.CompiledComposition.V2Details.InputContract.SpaceBindings.Any(static binding =>
                 binding.AddressSpaceId == CompositionAddressSpaceIds.DpAbInput))
@@ -97,8 +96,8 @@ internal static class AbCodeOutputNameResolver
             ImageInitialization initialization = request.CompiledComposition.Plan.OutputInitialization;
             return initialization.Kind != ImageInitializationKind.Blank || initialization.FillByte != 0xFF
                 ? throw new InvalidOperationException("AB Dummy naming requires compiled blank 0xFF output initialization.")
-                : new TokenResolution(new OutputNamingTokenSummary(tokenId, "Dummy", true,
-                    null, null, "compiled-profile-dummy-dp;fill=0xFF"));
+                : new OutputNameTokenValue("dp", "Dummy",
+                    null, null, "compiled-profile-dummy-dp;fill=0xFF", bankId);
         }
         if (!TryGetAcceptedSnapshot(
                 request,
@@ -110,7 +109,8 @@ internal static class AbCodeOutputNameResolver
         {
             return UnknownToken(
                 output,
-                tokenId,
+                "dp",
+                bankId,
                 CompositionAddressSpaceIds.DpAbInput,
                 hash,
                 "cmi-reg16-18");
@@ -129,38 +129,39 @@ internal static class AbCodeOutputNameResolver
                 cmiRegionId,
                 snapshot);
         return version.IsKnown
-            ? KnownDpToken(tokenId, version, hash)
+            ? KnownDpToken(bankId, version, hash)
             : UnknownToken(
                 output,
-                tokenId,
+                "dp",
+                bankId,
                 CompositionAddressSpaceIds.DpAbInput,
                 hash,
                 "cmi-reg16-18");
     }
 
-    private static TokenResolution KnownDpToken(
-        string tokenId,
+    private static OutputNameTokenValue KnownDpToken(
+        string bankId,
         CompiledInputVersionObservation version,
         string? hash)
     {
         ushort trackerId = version.TrackerId ?? 0;
         byte register18 = (byte)((version.Minor!.Value << 4) | (trackerId >> 8));
-        return new TokenResolution(new OutputNamingTokenSummary(
-            tokenId,
+        return new OutputNameTokenValue(
+            "dp",
             FormattableString.Invariant($"D{version.Major!.Value:X2}{version.Minor!.Value:X2}"),
-            IsKnown: true,
             CompositionAddressSpaceIds.DpAbInput,
             hash,
-            FormattableString.Invariant($"profile-cmi-reg16-18;reg16=0x{(byte)trackerId:X2};reg17=0x{version.Major!.Value:X2};reg18=0x{register18:X2};jira={trackerId}")));
+            FormattableString.Invariant($"profile-cmi-reg16-18;reg16=0x{(byte)trackerId:X2};reg17=0x{version.Major!.Value:X2};reg18=0x{register18:X2};jira={trackerId}"),
+            bankId);
     }
 
-    private static TokenResolution ReadTpToken(
+    private static OutputNameTokenValue ReadTpToken(
         CompositionRunRequest request,
         CompiledOutputNamingRequirement output,
         IReadOnlyDictionary<string, byte[]> inputBytes,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
         string addressSpaceId,
-        string tokenId)
+        string bankId)
     {
         bool accepted = TryGetAcceptedSnapshot(
             request,
@@ -181,30 +182,32 @@ internal static class AbCodeOutputNameResolver
                 CompiledInputArtifactObservationService.DeclaredNvtEndFlag(request.CompiledComposition))
             : null;
         return version?.IsKnown == true
-            ? new TokenResolution(new OutputNamingTokenSummary(
-                tokenId,
+            ? new OutputNameTokenValue(
+                "tp",
                 FormattableString.Invariant($"T{version.Major:X2}{version.Minor:X2}"),
-                IsKnown: true,
                 addressSpaceId,
                 hash,
-                "fwconfig-backup"))
-            : UnknownToken(output, tokenId, addressSpaceId, hash, "fwconfig-backup");
+                "fwconfig-backup",
+                bankId)
+            : UnknownToken(output, "tp", bankId, addressSpaceId, hash, "fwconfig-backup");
     }
 
-    private static TokenResolution UnknownToken(
+    private static OutputNameTokenValue UnknownToken(
         CompiledOutputNamingRequirement output,
-        string tokenId,
+        string fieldId,
+        string bankId,
         string addressSpaceId,
         string? hash,
         string parserId)
     {
-        return new TokenResolution(new OutputNamingTokenSummary(
-            tokenId,
-            GetCompiledPlaceholder(output, tokenId),
-            IsKnown: false,
+        OutputNameTokenValue token = new(
+            fieldId,
+            Value: null,
             addressSpaceId,
             hash,
-            parserId));
+            parserId,
+            bankId);
+        return token with { MissingValue = GetCompiledPlaceholder(output, token.TokenId) };
     }
 
     private static string GetCompiledPlaceholder(
@@ -269,30 +272,5 @@ internal static class AbCodeOutputNameResolver
         snapshot = input;
         acceptedSnapshotSha256 = summary?.Sha256;
         return acceptedSnapshotSha256 is not null;
-    }
-
-    private sealed record TokenResolution(OutputNamingTokenSummary Summary);
-}
-
-/// <summary>Resolved runtime output name with optional naming provenance and typed diagnostics.</summary>
-internal sealed record OutputNameResolution(
-    string FileName,
-    OutputNamingSummary? Summary,
-    IReadOnlyList<CompositionIssue> Issues)
-{
-    internal OutputNameResolution WithExplicitOverride(CompiledComposition composition, string fileName)
-    {
-        CompositionRunRequest.ValidateRuntimeOutputName(composition, fileName, outputFileNameIsOverride: true);
-        return new OutputNameResolution(
-            fileName,
-            Summary is null ? null : new OutputNamingSummary(
-                Summary.RendererKind, Summary.Template, Summary.AutomaticFileName, fileName,
-                true, Summary.DateSource, Summary.ResolvedAtUtc, Summary.Tokens, Summary.Admission),
-            Issues);
-    }
-
-    internal static OutputNameResolution Static(string fileName)
-    {
-        return new OutputNameResolution(fileName, null, []);
     }
 }

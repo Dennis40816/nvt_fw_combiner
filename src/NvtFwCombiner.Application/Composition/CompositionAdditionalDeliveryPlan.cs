@@ -89,7 +89,7 @@ public static class CompositionAdditionalDeliveryPlanner
             static token => token.TokenId,
             static token => token.Value,
             StringComparer.Ordinal);
-        string fileName = delivery.FileNameTemplate;
+        Dictionary<string, string> required = new(StringComparer.Ordinal);
         foreach (string tokenId in delivery.RequiredTokenIds)
         {
             if (!tokens.TryGetValue(tokenId, out string? tokenValue) ||
@@ -99,11 +99,12 @@ public static class CompositionAdditionalDeliveryPlanner
                     $"Compiled delivery '{delivery.Kind}' requires output-naming token '{tokenId}'.");
             }
 
-            fileName = fileName.Replace($"{{{tokenId}}}", tokenValue, StringComparison.Ordinal);
+            required[tokenId] = tokenValue;
         }
 
-        return fileName.Contains('{') ||
-            fileName.Contains('}') ||
+        // Only the required tokens are supplied, so any other token in the template fails as before.
+        string? fileName = CompiledOutputNameResolver.ExpandTemplate(delivery.FileNameTemplate, required);
+        return fileName is null ||
             Path.GetFileName(fileName) != fileName ||
             fileName.IndexOfAny(['/', '\\', ':']) >= 0
                 ? throw new InvalidOperationException(

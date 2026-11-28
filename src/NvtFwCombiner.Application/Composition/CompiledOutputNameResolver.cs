@@ -1,12 +1,11 @@
-using System.Globalization;
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Application.Composition;
 
-/// <summary>Executes the one renderer selected by the compiled output-name contract.</summary>
-internal static class CompiledOutputNameResolver
+/// <summary>Resolves profile-owned output templates from accepted typed field values.</summary>
+internal static partial class CompiledOutputNameResolver
 {
     internal static OutputNameResolution Resolve(
         CompositionRunRequest request,
@@ -23,7 +22,7 @@ internal static class CompiledOutputNameResolver
             null or CompiledOutputNameRendererKind.Static =>
                 OutputNameResolution.Static(request.OutputFileName),
             CompiledOutputNameRendererKind.AbCodeV1 =>
-                AbCodeOutputNameResolver.Resolve(
+                ResolveBankFields(
                     request,
                     inputBytes,
                     inputSummaries,
@@ -102,59 +101,34 @@ internal static class CompiledOutputNameResolver
                 ]);
         }
 
-        string canonicalIcId = GetCanonicalIcIdentity(compiledIcId);
-        var issues = new List<CompositionIssue>();
-        var tokens = new List<OutputNamingTokenSummary>
-        {
-            new("ic", canonicalIcId, IsKnown: true, null, null, "compiled-profile"),
-        };
+        OutputNameTokenValue ic = OutputNameTokenValue.ForIc(compiledIcId);
+        List<CompositionIssue> issues = [];
+        List<OutputNameTokenValue> tokenValues =
+        [
+            ic,
+        ];
 
-        TokenResolution? dpVersion = null;
         if (output.RendererKind == CompiledOutputNameRendererKind.NormalFlashCodeV1)
         {
-            dpVersion = ResolveDpVersion(
+            OutputNameTokenValue dpVersion = ResolveDpVersion(
                 output,
                 acceptedInspection,
                 inputSummaries,
                 issues);
-            tokens.Add(dpVersion.Summary);
+            tokenValues.Add(dpVersion);
         }
 
-        TokenResolution tpVersion =
+        OutputNameTokenValue tpVersion =
             ResolveTpVersion(
                 output,
                 acceptedInspection,
                 inputSummaries,
                 issues,
                 ctrlRamVersionEdit);
-        tokens.Add(tpVersion.Summary);
-        string date = startedAtUtc.UtcDateTime.ToString(
-            "yyyyMMdd",
-            CultureInfo.InvariantCulture);
-        tokens.Add(new OutputNamingTokenSummary(
-            "date",
-            date,
-            IsKnown: true,
-            null,
-            null,
-            "utc-clock"));
-
-        string automaticFileName = output.RendererKind switch
-        {
-            CompiledOutputNameRendererKind.NormalFlashCodeV1 =>
-                $"{canonicalIcId}_FlashCode_D{dpVersion!.Summary.Value}T{tpVersion.Summary.Value}_{date}.bin",
-            CompiledOutputNameRendererKind.TpFirmwareV1 =>
-                $"{canonicalIcId}_TPFW_T{tpVersion.Summary.Value}_{date}.bin",
-            CompiledOutputNameRendererKind.Static or
-                CompiledOutputNameRendererKind.DeferredTokenTemplate or
-                CompiledOutputNameRendererKind.AbCodeV1 =>
-                    throw new InvalidOperationException(
-                        "Normal renderer changed during resolution."),
-            _ => throw new ArgumentOutOfRangeException(
-                nameof(output),
-                output.RendererKind,
-                "Unknown compiled output-name renderer."),
-        };
+        tokenValues.Add(tpVersion);
+        tokenValues.Add(OutputNameTokenValue.ForDate(startedAtUtc));
+        string automaticFileName = ResolveTemplate(output.FileNameTemplate, tokenValues);
+        List<OutputNamingTokenSummary> tokens = [.. tokenValues.Select(static token => token.Summary)];
         if (markUnverified)
         {
             automaticFileName = UnverifiedCandidateOutputName.Apply(automaticFileName);
@@ -195,7 +169,7 @@ internal static class CompiledOutputNameResolver
                 output.RendererKind,
                 "Unknown compiled output-name renderer."),
         };
-        var summary = new OutputNamingSummary(
+        OutputNamingSummary summary = new(
             rendererId,
             output.FileNameTemplate,
             automaticFileName,
@@ -214,15 +188,7 @@ internal static class CompiledOutputNameResolver
         return new OutputNameResolution(actualFileName, summary, issues);
     }
 
-    internal static string GetCanonicalIcIdentity(string compiledIcId)
-    {
-        CompiledOutputNamingRequirement.ValidateCanonicalIcIdentity(
-            compiledIcId,
-            nameof(compiledIcId));
-        return compiledIcId;
-    }
-
-    private static TokenResolution ResolveDpVersion(
+    private static OutputNameTokenValue ResolveDpVersion(
         CompiledOutputNamingRequirement output,
         AcceptedOutputNamingInspection? acceptedInspection,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
@@ -236,7 +202,7 @@ internal static class CompiledOutputNameResolver
                 CompiledOutputTokenSourceKind.DpcmiVersion);
         string? sourceSpaceId = null;
         string? sourceSha256 = null;
-        TokenResolution? known = acceptedInspection is not null &&
+        OutputNameTokenValue? known = acceptedInspection is not null &&
             acceptedInspection.TryGetOutputNamingSource(
                 requirement.MetadataBindingId!,
                 requirement.MetadataSpaceId!,
@@ -247,13 +213,12 @@ internal static class CompiledOutputNameResolver
                 acceptedInspection.Snapshot,
                 requirement.MetadataBindingId!,
                 out DpcmiMetadataFacts facts)
-            ? new TokenResolution(new OutputNamingTokenSummary(
+            ? new OutputNameTokenValue(
                 TokenId,
                 facts.VersionToken,
-                IsKnown: true,
                 sourceSpaceId,
                 sourceSha256,
-                "canonical-dpcmi"))
+                "canonical-dpcmi")
             : null;
         return known ?? ResolveMissingToken(
                 output,
@@ -264,7 +229,7 @@ internal static class CompiledOutputNameResolver
                 issues);
     }
 
-    private static TokenResolution ResolveTpVersion(
+    private static OutputNameTokenValue ResolveTpVersion(
         CompiledOutputNamingRequirement output,
         AcceptedOutputNamingInspection? acceptedInspection,
         IReadOnlyList<InputArtifactSummary> inputSummaries,
@@ -274,14 +239,13 @@ internal static class CompiledOutputNameResolver
         const string TokenId = "tp-version";
         if (ctrlRamVersionEdit is not null)
         {
-            return new TokenResolution(new OutputNamingTokenSummary(
+            return new OutputNameTokenValue(
                 TokenId,
                 FormattableString.Invariant(
                     $"{ctrlRamVersionEdit.FirmwareVersion:X2}{ctrlRamVersionEdit.FirmwareSubVersion:X2}"),
-                IsKnown: true,
                 SourceAddressSpaceId: null,
                 AcceptedSnapshotSha256: null,
-                "accepted-ctrlram-version-draft"));
+                "accepted-ctrlram-version-draft");
         }
 
         CompiledOutputTokenRequirement requirement =
@@ -291,7 +255,7 @@ internal static class CompiledOutputNameResolver
                 CompiledOutputTokenSourceKind.FirmwareConfigTpVersion);
         string? sourceSpaceId = null;
         string? sourceSha256 = null;
-        TokenResolution? known = acceptedInspection is not null &&
+        OutputNameTokenValue? known = acceptedInspection is not null &&
             acceptedInspection.TryGetOutputNamingSource(
                 requirement.MetadataBindingId!,
                 requirement.MetadataSpaceId!,
@@ -303,14 +267,13 @@ internal static class CompiledOutputNameResolver
                 requirement.MetadataBindingId!,
                 out FirmwareConfigGeneralParametersFacts facts) &&
             facts.IsTpFirmwareVersionComplementValid
-            ? new TokenResolution(new OutputNamingTokenSummary(
+            ? new OutputNameTokenValue(
                 TokenId,
                 FormattableString.Invariant(
                     $"{facts.TpFirmwareVersion:X2}{facts.TpFirmwareSubVersion:X2}"),
-                IsKnown: true,
                 sourceSpaceId,
                 sourceSha256,
-                "canonical-firmware-config-general-parameters"))
+                "canonical-firmware-config-general-parameters")
             : null;
         return known ?? ResolveMissingToken(
                 output,
@@ -321,7 +284,7 @@ internal static class CompiledOutputNameResolver
                 issues);
     }
 
-    private static TokenResolution ResolveMissingToken(
+    private static OutputNameTokenValue ResolveMissingToken(
         CompiledOutputNamingRequirement output,
         string tokenId,
         string? sourceSpaceId,
@@ -348,13 +311,13 @@ internal static class CompiledOutputNameResolver
             hasPlaceholder
                 ? CompositionIssueSeverity.Warning
                 : CompositionIssueSeverity.Error));
-        return new TokenResolution(new OutputNamingTokenSummary(
+        return new OutputNameTokenValue(
             tokenId,
-            value,
-            IsKnown: false,
+            Value: null,
             sourceSpaceId,
             sourceSha256,
-            parserId));
+            parserId,
+            MissingValue: value);
     }
 
     private static CompiledOutputTokenRequirement GetTokenRequirement(
@@ -372,6 +335,4 @@ internal static class CompiledOutputNameResolver
                 $"Compiled output token '{tokenId}' does not retain its typed metadata source.")
             : requirement;
     }
-
-    private sealed record TokenResolution(OutputNamingTokenSummary Summary);
 }
