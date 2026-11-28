@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Dennis Liu. All rights reserved.
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
@@ -10,7 +11,7 @@ using static NvtFwCombiner.Presentation.Avalonia.Views.OutputLayoutPartVisuals;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-/// <summary>An inline, independently usable CtrlRAM lane with exact geometry and persistent details.</summary>
+/// <summary>An inline CtrlRAM lane with exact geometry; host rows own the selected block details.</summary>
 public sealed class CtrlRamZoomBar : UserControl
 {
     /// <summary>Defines the immutable lane display snapshot supplied by the presentation adapter.</summary>
@@ -58,7 +59,6 @@ public sealed class CtrlRamZoomBar : UserControl
         var tiny = new WrapPanel { Name = "CtrlRamTinyTargets" };
         Resource(tiny, WrapPanel.ItemSpacingProperty, "NfcSpace8");
         Resource(tiny, WrapPanel.LineSpacingProperty, "NfcSpace4");
-        StackPanel details = Stack();
         StackPanel root = Stack();
         var addresses = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*") };
         TextBlock start = Text(string.Empty, "layoutPartAddress");
@@ -72,14 +72,13 @@ public sealed class CtrlRamZoomBar : UserControl
         root.Children.Add(new Border { Child = rail, Classes = { "layoutPartTrack" }, ClipToBounds = true });
         root.Children.Add(addresses);
         root.Children.Add(tiny);
-        root.Children.Add(details);
-        _parts = new(position, rail, tiny, details, start, end);
+        _parts = new(root, position, rail, tiny, start, end);
         Content = root;
         rail.SizeChanged += (_, _) => LayoutSlices();
         Rebuild();
     }
 
-    /// <summary>Gets or sets the already published lane display snapshot; null collapses this control.</summary>
+    /// <summary>Gets or sets the published lane snapshot; null collapses the inner content.</summary>
     public CtrlRamZoomData? Data { get => GetValue(DataProperty); set => SetValue(DataProperty, value); }
     /// <inheritdoc cref="SelectedIndexProperty" />
     public int SelectedIndex { get => GetValue(SelectedIndexProperty); set => SetValue(SelectedIndexProperty, value); }
@@ -98,17 +97,17 @@ public sealed class CtrlRamZoomBar : UserControl
         if (_parts is null) { return; }
         if (change.Property == DataProperty)
         {
-            SetCurrentValue(SelectedIndexProperty, -1);
             SetCurrentValue(HoveredIndexProperty, -1);
             Rebuild();
         }
         else if (change.Property == LabelsProperty) { RefreshText(); }
-        else if (change.Property == SelectedIndexProperty) { RefreshTargets(); RefreshDetails(); }
+        else if (change.Property == SelectedIndexProperty) { RefreshTargets(); }
         else if (change.Property == HoveredIndexProperty) { RefreshTargets(); }
         else if (change.Property == IsEffectivelyEnabledProperty || change.Property == IsVisibleProperty)
         {
             if (!IsEffectivelyEnabled || !IsEffectivelyVisible) { _hover.Execute(-1); }
             _select.NotifyCanExecuteChanged();
+            (_parts.Position.Command as IRelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 
@@ -122,9 +121,10 @@ public sealed class CtrlRamZoomBar : UserControl
     private void Rebuild()
     {
         if (_parts is not { } parts) { return; }
+        int focusedIndex = FocusedIndex();
         parts.Rail.Children.Clear();
         parts.Tiny.Children.Clear();
-        SetCurrentValue(IsVisibleProperty, Data is { Slices.Count: > 0 });
+        parts.Root.IsVisible = Data is { Slices.Count: > 0 };
         if (Data is { } data)
         {
             for (int index = 0; index < data.Slices.Count; index++)
@@ -157,6 +157,7 @@ public sealed class CtrlRamZoomBar : UserControl
         LayoutSlices();
         _select.NotifyCanExecuteChanged();
         (parts.Position.Command as IRelayCommand)?.NotifyCanExecuteChanged();
+        RestoreFocus(focusedIndex);
     }
 
     private Button Target(int index, Control content, string kind)
@@ -178,6 +179,7 @@ public sealed class CtrlRamZoomBar : UserControl
     private void LayoutSlices()
     {
         if (_parts is not { } parts || Data is not { } data) { return; }
+        int focusedIndex = FocusedIndex();
         double width = parts.Rail.Bounds.Width;
         double length = data.EndExclusive - data.Start;
         for (int index = 0; index < data.Slices.Count; index++)
@@ -204,9 +206,11 @@ public sealed class CtrlRamZoomBar : UserControl
             bool fits = label.DesiredSize.Width <= button.Width && button.Width >= 24;
             label.IsVisible = fits;
             button.Focusable = fits;
+            AutomationProperties.SetAccessibilityView(button, fits ? AccessibilityView.Control : AccessibilityView.Raw);
             parts.Tiny.Children[index].IsVisible = !fits;
         }
         parts.Tiny.IsVisible = parts.Tiny.Children.Any(static child => child.IsVisible);
+        RestoreFocus(focusedIndex);
     }
 
     private void RefreshText()
@@ -218,7 +222,6 @@ public sealed class CtrlRamZoomBar : UserControl
         parts.Start.Text = FormattableString.Invariant($"0x{data.Start:X5}");
         parts.End.Text = FormattableString.Invariant($"0x{data.EndExclusive - 1:X5}");
         RefreshTargets();
-        RefreshDetails();
     }
 
     private void RefreshTargets()
@@ -232,34 +235,25 @@ public sealed class CtrlRamZoomBar : UserControl
         }
     }
 
-    private void RefreshDetails()
-    {
-        if (_parts is not { } parts) { return; }
-        parts.Details.Children.Clear();
-        parts.Details.IsVisible = Data is { } data && SelectedIndex >= 0 && SelectedIndex < data.Slices.Count;
-        if (!parts.Details.IsVisible) { return; }
-        CtrlRamZoomSlice slice = Data!.Slices[SelectedIndex];
-        parts.Details.Children.Add(Detail(Texts.Target, $"{Data.AddressSpace} · {slice.RangeLabel}"));
-        parts.Details.Children.Add(Detail(Texts.Size, slice.SizeLabel));
-        parts.Details.Children.Add(Detail(Texts.Source, slice.SourceLabel));
-        parts.Details.Children.Add(Text(slice.StateLabel, "layoutPartBody"));
-        parts.Details.Children.Add(Text(slice.Detail, "layoutPartBody"));
-    }
-
     private bool CanSelect(int index)
     {
         return IsEffectivelyEnabled && (index == -1 || (Data is { } data && index >= 0 && index < data.Slices.Count));
     }
 
-    private static Grid Detail(string label, string value)
+    private int FocusedIndex()
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
-        Resource(row, Grid.ColumnSpacingProperty, "NfcSpace8");
-        row.Children.Add(Text(label));
-        TextBlock text = Text(value, "layoutPartBody");
-        Grid.SetColumn(text, 1);
-        row.Children.Add(text);
-        return row;
+        if (_parts is not { } parts) { return -1; }
+        Button? focused = parts.Rail.Children.Concat(parts.Tiny.Children).Cast<Button>()
+            .FirstOrDefault(static target => target.IsFocused);
+        return focused is null ? -1 : (int)focused.CommandParameter!;
+    }
+
+    private void RestoreFocus(int index)
+    {
+        if (index < 0 || _parts is not { } parts) { return; }
+        Button[] targets = NavigationTargets();
+        Button target = index < targets.Length ? targets[index] : parts.Position;
+        if (!target.IsFocused) { _ = target.Focus(NavigationMethod.Directional); }
     }
 
     private Button[] NavigationTargets()
@@ -276,7 +270,7 @@ public sealed class CtrlRamZoomBar : UserControl
         ArgumentNullException.ThrowIfNull(e);
         base.OnKeyDown(e);
         if (!IsEffectivelyEnabled || _parts is null) { return; }
-        if (e.Key == Key.Escape)
+        if (e.Key == Key.Escape && Data is { } data && SelectedIndex >= 0 && SelectedIndex < data.Slices.Count)
         {
             _select.Execute(-1);
             _hover.Execute(-1);
@@ -297,5 +291,5 @@ public sealed class CtrlRamZoomBar : UserControl
         }
     }
 
-    private sealed record Parts(Button Position, Canvas Rail, WrapPanel Tiny, StackPanel Details, TextBlock Start, TextBlock End);
+    private sealed record Parts(StackPanel Root, Button Position, Canvas Rail, WrapPanel Tiny, TextBlock Start, TextBlock End);
 }

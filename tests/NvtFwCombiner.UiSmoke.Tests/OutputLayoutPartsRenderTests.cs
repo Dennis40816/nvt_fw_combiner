@@ -10,7 +10,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Captures standalone CtrlRAM, bank and hint surfaces at 960 px with synthetic inputs.</summary>
 public sealed class OutputLayoutPartsRenderTests
 {
-    /// <summary>Both themes and languages retain the same anchors, inline details and unclipped tiny targets.</summary>
+    /// <summary>Both themes and languages retain the same anchors, selected slices and unclipped tiny targets.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(true, false)]

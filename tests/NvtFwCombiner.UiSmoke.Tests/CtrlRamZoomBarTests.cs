@@ -13,7 +13,7 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Protects the standalone CtrlRAM lane geometry, interaction and absent-data contract.</summary>
-public sealed class CtrlRamZoomBarTests
+public sealed partial class CtrlRamZoomBarTests
 {
     /// <summary>Address lengths, rather than legacy bar weights or label widths, determine physical geometry.</summary>
     [AvaloniaFact]
@@ -69,12 +69,12 @@ public sealed class CtrlRamZoomBarTests
         Assert.True(second.IsFocused);
         host.Press(Key.Space, PhysicalKey.Space);
         Assert.Equal(1, host.Zoom.SelectedIndex);
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "flash · 0x01001–0x01001");
+        Assert.Equal("0x01001–0x01001", host.Zoom.Data!.Slices[1].RangeLabel);
     }
 
-    /// <summary>The supplied Master position has a full lane underline and opens persistent local details.</summary>
+    /// <summary>The Master position keeps its name, range and underline and selects a block for the host.</summary>
     [AvaloniaFact]
-    public void MasterPositionRetainsItsNameRangeUnderlineAndDetails()
+    public void MasterPositionRetainsItsNameRangeUnderlineAndSelectsTheFirstBlock()
     {
         using var host = new OutputLayoutPartsTestHost(CtrlRamZoomDisplay.FromLane(OutputLayoutPartsTestHost.Lane()));
         Button position = host.Find<Button>("CtrlRamZoom.Position");
@@ -86,9 +86,8 @@ public sealed class CtrlRamZoomBarTests
         Assert.True(position.Focus());
         host.Press(Key.Enter, PhysicalKey.Enter);
         Assert.Equal(0, host.Zoom.SelectedIndex);
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "NF CtrlRAM");
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "0x100 (0.25 KiB)");
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Display details from synthetic input.");
+        Assert.Equal("NF CtrlRAM", host.Zoom.Data!.Slices[0].SourceLabel);
+        Assert.Equal("0x100 (0.25 KiB)", host.Zoom.Data.Slices[0].SizeLabel);
         Assert.DoesNotContain(host.Zoom.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Popup>(), p => p.IsOpen);
     }
 
@@ -114,7 +113,7 @@ public sealed class CtrlRamZoomBarTests
 
     /// <summary>Real keyboard navigation reaches every range and Escape returns to the position heading.</summary>
     [AvaloniaFact]
-    public void KeyboardMovesAcrossSlicesSelectsAndClearsDetails()
+    public void KeyboardMovesAcrossSlicesSelectsAndClearsSelection()
     {
         using var host = new OutputLayoutPartsTestHost(CtrlRamZoomDisplay.FromLane(OutputLayoutPartsTestHost.Lane()));
         Assert.True(host.Find<Button>("CtrlRamZoom.Slice.0").Focus());
@@ -138,7 +137,7 @@ public sealed class CtrlRamZoomBarTests
     public void MissingZoomDataLeavesTheNormalListAvailable()
     {
         using var host = new OutputLayoutPartsTestHost(null);
-        Assert.False(host.Zoom.IsVisible);
+        Assert.False(Assert.IsType<StackPanel>(host.Zoom.Content).IsVisible);
         Assert.True(host.Fallback.IsEffectivelyVisible);
         Assert.Equal(0, host.Zoom.DesiredSize.Height);
         host.Zoom.Data = CtrlRamZoomDisplay.FromLane(OutputLayoutPartsTestHost.Lane());
@@ -151,7 +150,7 @@ public sealed class CtrlRamZoomBarTests
         Assert.Empty(host.Rail.Children);
     }
 
-    /// <summary>Replacing a snapshot drops old targets, selection and hover rather than retaining stale details.</summary>
+    /// <summary>Replacing a snapshot drops old targets and hover while preserving the host selection.</summary>
     [AvaloniaFact]
     public void ReplacingDataClearsTheOldInteractionTargets()
     {
@@ -161,7 +160,7 @@ public sealed class CtrlRamZoomBarTests
         Button old = host.Find<Button>("CtrlRamZoom.Tiny.1");
         host.Zoom.Data = CtrlRamZoomDisplay.FromLane(OutputLayoutPartsTestHost.Lane());
         host.Layout();
-        Assert.Equal(-1, host.Zoom.SelectedIndex);
+        Assert.Equal(1, host.Zoom.SelectedIndex);
         Assert.Equal(-1, host.Zoom.HoveredIndex);
         Assert.Null(old.GetVisualParent());
         Assert.False(host.Find<Button>("CtrlRamZoom.Tiny.1").IsEffectivelyVisible);
@@ -177,9 +176,8 @@ public sealed class CtrlRamZoomBarTests
         Assert.True(selected.Focus());
         host.Zoom.Labels = ShellTextResources.For(ShellLanguage.ChineseTraditional);
         host.Layout();
-        Assert.Contains("CtrlRAM 放大", AutomationProperties.GetName(host.Find<Button>("CtrlRamZoom.Position")), StringComparison.Ordinal);
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "目標位址");
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "來源");
+        Assert.Contains(ShellTextResources.For(ShellLanguage.ChineseTraditional).MemoryCtrlRamDetailLabel,
+            AutomationProperties.GetName(host.Find<Button>("CtrlRamZoom.Position")), StringComparison.Ordinal);
         Assert.Equal(1, host.Zoom.SelectedIndex);
         Assert.True(selected.IsFocused);
     }
@@ -203,7 +201,7 @@ public sealed class CtrlRamZoomBarTests
     public void EmptySnapshotHasTheSameFallbackAsAnAbsentLane()
     {
         using var host = new OutputLayoutPartsTestHost(new(0, 1024, "Master", "flash", "0x00000–0x003FF", "1 KiB", []));
-        Assert.False(host.Zoom.IsVisible);
+        Assert.False(Assert.IsType<StackPanel>(host.Zoom.Content).IsVisible);
         Assert.True(host.Fallback.IsEffectivelyVisible);
         Assert.Empty(host.Rail.Children);
         Assert.Null(CtrlRamZoomDisplay.FromLane(null));
@@ -246,7 +244,7 @@ public sealed class CtrlRamZoomBarTests
 
     /// <summary>The host republishes localized lane facts instead of the control translating firmware labels.</summary>
     [AvaloniaFact]
-    public void RepublishedLaneRefreshesTheLocalizedPositionAndSourceDetails()
+    public void RepublishedLaneRefreshesTheLocalizedPositionAndSourceFacts()
     {
         using var host = new OutputLayoutPartsTestHost(CtrlRamZoomDisplay.FromLane(OutputLayoutPartsTestHost.Lane()));
         MemoryFocusLaneViewModel lane = OutputLayoutPartsTestHost.Lane(chinese: true);
@@ -256,6 +254,6 @@ public sealed class CtrlRamZoomBarTests
         host.Layout();
         Assert.Contains("主 IC", AutomationProperties.GetName(host.Find<Button>("CtrlRamZoom.Position")), StringComparison.Ordinal);
         Assert.Equal(lane.Ranges[1].AccessibleDetail, AutomationProperties.GetName(host.Find<Button>("CtrlRamZoom.Slice.1")));
-        Assert.Contains(host.Zoom.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "合成輸入的顯示細節。");
+        Assert.Equal("合成輸入的顯示細節。", host.Zoom.Data!.Slices[1].Detail);
     }
 }

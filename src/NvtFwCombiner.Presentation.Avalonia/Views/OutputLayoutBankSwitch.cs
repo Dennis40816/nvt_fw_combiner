@@ -49,7 +49,7 @@ public sealed class OutputLayoutBankSwitch : UserControl
         var root = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), Children = { track, subtitle } };
         Resource(root, Grid.ColumnSpacingProperty, "NfcSpace12");
         Grid.SetColumn(subtitle, 1);
-        _parts = new(a, b, subtitle);
+        _parts = new(root, a, b, subtitle);
         Content = root;
         AddHandler(KeyDownEvent, OnBankKeyDown, RoutingStrategies.Tunnel);
         Refresh();
@@ -79,7 +79,7 @@ public sealed class OutputLayoutBankSwitch : UserControl
     private void Refresh()
     {
         if (_parts is not { } parts) { return; }
-        SetCurrentValue(IsVisibleProperty, CanSwitchBanks);
+        parts.Root.IsVisible = CanSwitchBanks;
         parts.A.SetCurrentValue(ToggleButton.IsCheckedProperty, !IsViewingBankB);
         parts.B.SetCurrentValue(ToggleButton.IsCheckedProperty, IsViewingBankB);
         parts.Subtitle.Text = IsViewingBankB ? BankBLabel : BankALabel;
@@ -101,12 +101,7 @@ public sealed class OutputLayoutBankSwitch : UserControl
             _ = (next ? parts.B : parts.A).Focus(NavigationMethod.Directional);
             e.Handled = true;
         }
-        else if (e.Key == Key.Escape)
-        {
-            _ = (IsViewingBankB ? parts.B : parts.A).Focus(NavigationMethod.Directional);
-            e.Handled = true;
-        }
     }
 
-    private sealed record Parts(RadioButton A, RadioButton B, TextBlock Subtitle);
+    private sealed record Parts(Grid Root, RadioButton A, RadioButton B, TextBlock Subtitle);
 }

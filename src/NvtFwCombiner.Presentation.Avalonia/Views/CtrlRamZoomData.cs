@@ -1,4 +1,6 @@
 // Copyright (c) 2026 Dennis Liu. All rights reserved.
+using NvtFwCombiner.Presentation.Avalonia.ViewModels;
+
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
 /// <summary>An opaque immutable lane snapshot, public so Avalonia hosts can bind the zoom input.</summary>
@@ -19,6 +21,8 @@ public sealed class CtrlRamZoomData
         Slices = Array.AsReadOnly(slices.Select(static slice => slice with
         {
             Fills = Array.AsReadOnly(slice.Fills.ToArray()),
+            PreservationDetails = Array.AsReadOnly(slice.PreservationDetails.ToArray()),
+            ProcessingFacts = Array.AsReadOnly(slice.ProcessingFacts.ToArray()),
         }).ToArray());
         long cursor = start;
         foreach (CtrlRamZoomSlice slice in Slices)
@@ -43,6 +47,8 @@ public sealed class CtrlRamZoomData
 /// <summary>Literal display facts; the host supplies identity, text and theme resource keys.</summary>
 internal sealed record CtrlRamZoomSlice(long Start, long EndExclusive, string Label, string AccessibleName,
     string RangeLabel, string SizeLabel, string SourceLabel, string StateLabel, string Detail,
+    string SourceFieldLabel, string PreservationSummary, string DetailsLabel,
+    IReadOnlyList<DiffDlmPreservationDetailViewModel> PreservationDetails, IReadOnlyList<MemoryRegionFact> ProcessingFacts,
     IReadOnlyList<CtrlRamZoomFill> Fills);
 
 /// <summary>A physical fill part retaining its supplied half-open coordinates and kept pattern.</summary>

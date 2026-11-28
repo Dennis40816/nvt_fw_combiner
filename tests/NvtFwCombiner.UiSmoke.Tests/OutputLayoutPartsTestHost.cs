@@ -32,7 +32,7 @@ internal sealed class OutputLayoutPartsTestHost : IDisposable
         Hint = new SharedInputHintRow { Hint = text.FormatMemorySharedInputHint("NF / Normal"), Labels = text };
         Fallback = new TextBlock { Text = "Normal list", Name = "NormalListFallback" };
         FullOverview = new TextBlock { Text = "Full overview", Name = "FullOverviewFallback" };
-        _ = Fallback.Bind(Visual.IsVisibleProperty, new Binding("!IsVisible") { Source = Zoom });
+        _ = Fallback.Bind(Visual.IsVisibleProperty, new Binding("!IsVisible") { Source = Zoom.Content });
         _ = FullOverview.Bind(Visual.IsVisibleProperty, new Binding("!CanSwitchBanks") { Source = Banks });
         Window = new Window
         {

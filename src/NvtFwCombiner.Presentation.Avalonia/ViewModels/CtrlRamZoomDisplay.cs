@@ -11,7 +11,7 @@ internal static class CtrlRamZoomDisplay
     {
         return lane is null || lane.Ranges.Count == 0
             ? null
-            : new CtrlRamZoomData(lane.Start, lane.EndExclusive, lane.PositionLabel,
+            : new CtrlRamZoomData(lane.Start, lane.EndExclusive, lane.Title,
                 lane.Ranges[0].AddressSpaceId ?? string.Empty, lane.RangeLabel,
                 FormattableString.Invariant($"{(lane.EndExclusive - lane.Start) / 1024d:0.###} KiB"),
                 lane.Ranges.Select(Slice));
@@ -25,6 +25,8 @@ internal static class CtrlRamZoomDisplay
             ? ShellTextResources.GetMemoryFocusLabel(range.CtrlRamRegionRole) : range.DisplayTitle;
         return new(range.RangeStart!.Value, range.RangeEndExclusive!.Value, label, range.AccessibleDetail,
             range.AddressRangeLabel, range.SizeValue, range.SourceLabel, range.ChangeLabel, range.Detail,
+            range.SourceFieldLabel, range.PreservationSummary, range.DetailsLabel,
+            range.PreservationDetails, range.ProcessingFacts,
             Array.AsReadOnly(parts.Select(static part => new CtrlRamZoomFill(
                 part.RangeStart!.Value, part.RangeEndExclusive!.Value,
                 $"NfcMemory{part.FillRole}FillBrush", part.UsesKeptPattern)).ToArray()));

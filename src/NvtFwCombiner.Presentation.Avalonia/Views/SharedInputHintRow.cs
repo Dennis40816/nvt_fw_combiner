@@ -6,10 +6,10 @@ using static NvtFwCombiner.Presentation.Avalonia.Views.OutputLayoutPartVisuals;
 
 namespace NvtFwCombiner.Presentation.Avalonia.Views;
 
-/// <summary>A wrapping hint row; the host supplies actual shared-input text or an empty value.</summary>
+/// <summary>A wrapping row for shared-input text, excluding the legacy generic hover instruction.</summary>
 public sealed class SharedInputHintRow : UserControl
 {
-    /// <summary>Defines the already localized shared-input hint. Empty hides the row.</summary>
+    /// <summary>Defines the localized hint. Empty or generic hover instructions hide the inner row.</summary>
     public static readonly StyledProperty<string?> HintProperty =
         AvaloniaProperty.Register<SharedInputHintRow, string?>(nameof(Hint));
     /// <summary>Defines the shell or component resource bundle.</summary>
@@ -43,7 +43,10 @@ public sealed class SharedInputHintRow : UserControl
     private void Refresh()
     {
         _text.Text = Hint;
-        SetCurrentValue(IsVisibleProperty, !string.IsNullOrWhiteSpace(Hint));
-        Identify(this, "OutputLayout.SharedInputHint", $"{OutputLayoutPartsTextResources.From(Labels).SharedInput}: {Hint}");
+        _text.IsVisible = !string.IsNullOrWhiteSpace(Hint) &&
+            !StringComparer.Ordinal.Equals(Hint, ShellTextResources.For(ShellLanguage.English).MemoryFocusHint) &&
+            !StringComparer.Ordinal.Equals(Hint, ShellTextResources.For(ShellLanguage.ChineseTraditional).MemoryFocusHint);
+        Identify(this, "OutputLayout.SharedInputHint", _text.IsVisible
+            ? $"{OutputLayoutPartsTextResources.From(Labels).SharedInput}: {Hint}" : string.Empty);
     }
 }

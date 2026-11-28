@@ -15,7 +15,7 @@ using NvtFwCombiner.Presentation.Avalonia.Views;
 namespace NvtFwCombiner.UiSmoke.Tests;
 
 /// <summary>Protects bank viewport inputs, bidirectional selection and passive shared-input hints.</summary>
-public sealed class OutputLayoutPartsTests
+public sealed partial class OutputLayoutPartsTests
 {
     /// <summary>A bank keyboard action changes only the bound viewport and retains supplied per-bank states.</summary>
     [AvaloniaTheory]
@@ -68,7 +68,7 @@ public sealed class OutputLayoutPartsTests
         RadioButton b = host.Find<RadioButton>("OutputLayout.Bank.B");
         host.Banks.CanSwitchBanks = false;
         host.Layout();
-        Assert.False(host.Banks.IsVisible);
+        Assert.False(Assert.IsType<Grid>(host.Banks.Content).IsVisible);
         Assert.True(host.FullOverview.IsEffectivelyVisible);
         Assert.False(b.Command!.CanExecute(true));
         b.Command.Execute(true);
@@ -142,7 +142,7 @@ public sealed class OutputLayoutPartsTests
         using var host = new OutputLayoutPartsTestHost(null);
         host.Hint.Hint = hint;
         host.Layout();
-        Assert.False(host.Hint.IsVisible);
+        Assert.False(Assert.IsType<TextBlock>(host.Hint.Content).IsVisible);
         Assert.Equal(0, host.Hint.DesiredSize.Height);
     }
 
@@ -190,4 +190,7 @@ internal sealed partial class OutputLayoutPartsSelection : ObservableObject
 
     [ObservableProperty]
     public partial int Hovered { get; set; } = -1;
+
+    [ObservableProperty]
+    public partial bool ShowParts { get; set; } = true;
 }
