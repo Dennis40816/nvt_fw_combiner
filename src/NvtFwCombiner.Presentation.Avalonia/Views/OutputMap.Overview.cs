@@ -269,6 +269,19 @@ public sealed partial class OutputMap
         marker.Classes.Add(style);
         ToolTip.SetTip(marker, description);
         AutomationProperties.SetName(marker, description);
+        if (style is "outputMapVersion" or "outputMapCrcStorage")
+        {
+            // The visual stays above the writes; its tooltip target yields to every block hit target.
+            var target = new Border
+            {
+                Background = Brushes.Transparent,
+                Height = height,
+                DataContext = new Placement(address, address, 8, true),
+                ZIndex = -1,
+            };
+            ToolTip.SetTip(target, description);
+            lane.Children.Add(target);
+        }
         lane.Children.Add(marker);
     }
 
