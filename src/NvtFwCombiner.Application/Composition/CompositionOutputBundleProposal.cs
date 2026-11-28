@@ -107,12 +107,24 @@ internal static class CompositionOutputBundleProposer
         string expectedDate = naming.ResolvedAtUtc.UtcDateTime.ToString(
             "yyyyMMdd",
             CultureInfo.InvariantCulture);
-        return StringComparer.Ordinal.Equals(date, expectedDate)
-            ? $"{GetToken(naming, "ic")}_D{GetToken(naming, "dp-version")}" +
-                $"T{GetToken(naming, "tp-version")}_{date}"
-            : throw new InvalidOperationException(
+        if (!StringComparer.Ordinal.Equals(date, expectedDate))
+        {
+            throw new InvalidOperationException(
                 "Standard Merge bundle date must come from the accepted output-naming UTC instant.");
+        }
+
+        Dictionary<string, string> tokens = new(StringComparer.Ordinal)
+        {
+            ["ic"] = GetToken(naming, "ic"),
+            ["dp-version"] = GetToken(naming, "dp-version"),
+            ["tp-version"] = GetToken(naming, "tp-version"),
+            ["date"] = date,
+        };
+        return CompiledOutputNameResolver.ExpandTemplate(StandardMergeFolderTemplate, tokens) ??
+            throw new InvalidOperationException("Bundle naming tokens must be literal text.");
     }
+
+    private const string StandardMergeFolderTemplate = "{ic}_D{dp-version}T{tp-version}_{date}";
 
     private static string GetToken(OutputNamingSummary naming, string tokenId)
     {

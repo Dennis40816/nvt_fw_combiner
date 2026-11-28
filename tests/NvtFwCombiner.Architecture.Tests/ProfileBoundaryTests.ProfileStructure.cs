@@ -307,7 +307,7 @@ public sealed partial class ProfileBoundaryTests
     [Fact]
     public void AbExecutionReadsDeclaredCmiRegionsWithoutInformationalMetadataRouting()
     {
-        string outputNaming = ReadText("src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
+        string outputNaming = ReadText("src/NvtFwCombiner.Application/Composition/CompiledOutputNameResolver.BankFields.cs");
         string versionDecoder = ReadText(
             "src/NvtFwCombiner.Application/InputInspection/CompiledInputArtifactObservationService.cs");
         string inputProjection = ReadText(

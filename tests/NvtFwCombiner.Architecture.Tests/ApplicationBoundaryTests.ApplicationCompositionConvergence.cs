@@ -14,7 +14,7 @@ public sealed partial class ApplicationBoundaryTests
         string invocationProfile = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/ExternalCombinerInvocationProfile.cs");
         string abOutputName = ReadText(
-            "src/NvtFwCombiner.Application/Composition/AbCodeOutputNameResolver.cs");
+            "src/NvtFwCombiner.Application/Composition/CompiledOutputNameResolver.BankFields.cs");
         string toolRegistry = ReadText(
             "src/NvtFwCombiner.Application/ExternalTools/ExternalCombinerToolRegistry.cs");
         string processorResult = ReadText(
