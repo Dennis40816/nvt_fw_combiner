@@ -19,7 +19,8 @@ internal static class AuthoringInputSlotInspectionTestSupport
         bool observeAbVersion = false,
         bool includeExternalProcessor = false,
         bool tpMaximum = false,
-        MetadataPlanDefinition? metadataPlan = null)
+        MetadataPlanDefinition? metadataPlan = null,
+        IReadOnlyList<CompiledValidationRequirement>? validationRequirements = null)
     {
         bool replace = workflowId is ExperienceIds.DpReplace or ExperienceIds.CtrlRamReplace;
         InputOversizePolicy sourcePolicy = workflowId switch
@@ -100,7 +101,8 @@ internal static class AuthoringInputSlotInspectionTestSupport
             icNumberInputMode: replace
                 ? IcNumberInputMode.SingleSelector
                 : null,
-            validationRequirements: validationRequirement is null ? null : [validationRequirement],
+            validationRequirements: validationRequirements ??
+                (validationRequirement is null ? null : [validationRequirement]),
             mapId: mapId,
             inputRolesByAddressSpace: observeAbVersion
                 ? new Dictionary<string, string>(StringComparer.Ordinal)
