@@ -1,0 +1,128 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<Styles xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
+  <Style Selector="views|RecalculationConfirmModal TextBlock">
+    <Setter Property="LineHeight" Value="20.15" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.recalculationTitle">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize16}" />
+    <Setter Property="LineHeight" Value="24.8" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Border.modalSurface">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcRecalculationConfirmShadow}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Border.recalculationBadge">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="Padding" Value="9,1" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.recalculationBadgeText">
+    <Setter Property="LineHeight" Value="13.2" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.captionText">
+    <Setter Property="LineHeight" Value="17.05" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal ToggleButton.recalculationDisclosure">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Margin" Value="-8,0,0,0" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal ToggleButton.recalculationDisclosure TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal ToggleButton.recalculationDisclosure Path">
+    <Setter Property="Stroke" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="Stretch" Value="Uniform" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Border.recalculationDetails">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal StackPanel.recalculationSection">
+    <Setter Property="Margin" Value="14,8" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Border.recalculationDivider">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.recalculationSavedNote">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.recalculationLabel">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+    <Setter Property="Margin" Value="0,2" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.recalculationCell">
+    <Setter Property="Margin" Value="0,2" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Border.recalculationWarning">
+    <Setter Property="Background" Value="{DynamicResource NfcCautionSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcCautionBorderSoftBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+    <Setter Property="Padding" Value="10,6" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Path.recalculationWarningIcon">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Stretch" Value="Uniform" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="Stroke" Value="{DynamicResource NfcWarningTextMutedBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal TextBlock.recalculationWarningText">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.semanticAction">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="18,0" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.recalculationTextAction">
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Margin" Value="-8,0,0,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.recalculationTextAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceSubtleBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.recalculationTextAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentSurfaceBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.primary /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.primary TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource NfcSurfaceBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="views|RecalculationConfirmModal Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBorderStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <!-- The filled button needs a surface gap inside its focus border, which alone cannot be told from the fill.
+       The gap is inset because the button clips anything drawn outside its bounds. -->
+  <Style Selector="views|RecalculationConfirmModal Button.primary:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BoxShadow" Value="{DynamicResource NfcPrimaryFocusRingShadow}" />
+  </Style>
+</Styles>
