@@ -2,6 +2,7 @@ using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises report loading, review and history projections.</summary>
 public sealed partial class ReportReviewHistoryTests
 {
     /// <summary>Verifies reports stay behind an explicit action until opened.</summary>
@@ -136,7 +137,7 @@ public sealed partial class ReportReviewHistoryTests
         Assert.Equal("Report could not be loaded", historyEntry.Title);
         Assert.Equal("No output hash", historyEntry.OutputHash);
         Assert.True(viewModel.Reports.HasReportToast);
-        Assert.Equal("Report issue: Startup report", viewModel.Reports.ReportToastText);
+        Assert.Equal("An error report was created; open it for details." + Environment.NewLine + "Startup report", viewModel.Reports.ReportToastText);
         Assert.True(viewModel.Reports.LoadedReport.HasPrimaryIssue);
         Assert.Equal("Report load failed", viewModel.Reports.LoadedReport.OutcomeTitle);
         Assert.Equal("Start with this issue", viewModel.Reports.LoadedReport.NextStepTitle);

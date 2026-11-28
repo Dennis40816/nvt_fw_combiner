@@ -20,10 +20,10 @@ public sealed class DiagnosticsExportFailureGuidanceTests
 {
     /// <summary>Localized export failure guidance stays fully visible at the minimum window size.</summary>
     [AvaloniaTheory]
-    [InlineData(false, "Diagnostics could not be exported. Try again or choose another location.", false)]
-    [InlineData(true, "無法匯出診斷。請重試或改選儲存位置。", false)]
-    [InlineData(false, "Diagnostics could not be exported. Try again or choose another location.", true)]
-    [InlineData(true, "無法匯出診斷。請重試或改選儲存位置。", true)]
+    [InlineData(false, "System activity export failed; select Export to try another local location.", false)]
+    [InlineData(true, "系統活動匯出失敗，請按「匯出」改選其他本機位置。", false)]
+    [InlineData(false, "System activity export failed; select Export to try another local location.", true)]
+    [InlineData(true, "系統活動匯出失敗，請按「匯出」改選其他本機位置。", true)]
     public async Task ExportFailureStatusProvidesVisibleGuidanceAtMinimumWindowSize(
         bool traditionalChinese,
         string expectedStatus,
@@ -93,8 +93,7 @@ public sealed class DiagnosticsExportFailureGuidanceTests
             Grid activity = Assert.IsType<Grid>(modal.FindControl<Control>("SystemActivityRoot"));
             Assert.True(activity.IsVisible);
             TextBlock status = Assert.Single(activity.GetVisualDescendants().OfType<TextBlock>(),
-                block => block.Text == expectedStatus);
-            Assert.Contains("exportFailureStatus", status.Classes);
+                block => block.Text == expectedStatus && block.Classes.Contains("exportFailureStatus"));
             TextBlock notice = Assert.Single(activity.GetVisualDescendants().OfType<TextBlock>(),
                 block => block.Text == text.SessionActivityNotice);
             Button refresh = Assert.Single(activity.GetVisualDescendants().OfType<Button>(),

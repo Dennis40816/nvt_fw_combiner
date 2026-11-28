@@ -7,11 +7,12 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises Merge workflow selection, readiness and input state.</summary>
 public sealed partial class MergeWorkflowTests
 {
-    /// <summary>The unavailable AB readiness hint directs the user to declared routes without duplicating catalog facts.</summary>
+    /// <summary>The approved unavailable AB hint retains the selected IC and directs workflow selection.</summary>
     [Fact]
-    public void AbMergeUnavailableReadinessDirectsToDeclaredRoutes()
+    public void AbMergeUnavailableReadinessDirectsToWorkflowSelection()
     {
         MainWindowViewModel english = PresentationTestHost.CreateViewModel();
         MainWindowViewModel traditionalChinese = PresentationTestHost.CreateViewModel(ShellLanguage.ChineseTraditional);
@@ -19,8 +20,8 @@ public sealed partial class MergeWorkflowTests
         string englishHint = english.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
         string traditionalChineseHint = traditionalChinese.Text.GetAbMergeReadinessStatus("NT51917", false, 0, 0, 0, 0);
 
-        Assert.Contains("declared AB Code route", englishHint, StringComparison.Ordinal);
-        Assert.Contains("已宣告的 AB Code 路徑", traditionalChineseHint, StringComparison.Ordinal);
+        Assert.Equal("AB Code is unavailable for this IC; select another IC or workflow." + Environment.NewLine + "NT51917", englishHint);
+        Assert.Equal("此 IC 無法使用 AB Code，請選擇其他 IC 或工作流程。" + Environment.NewLine + "NT51917", traditionalChineseHint);
     }
 
     /// <summary>Verifies Normal Merge hides IC Number while preserving row layout space.</summary>
@@ -417,7 +418,7 @@ public sealed partial class MergeWorkflowTests
             static slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
         Assert.Equal(FirmwareInputInspectionSeverity.Blocking, dpSlot.InputInspectionSeverity);
         Assert.True(dpSlot.BlocksBuild);
-        Assert.StartsWith("Error:", dpSlot.InputInspectionStatus, StringComparison.Ordinal);
+        Assert.Equal("The selected BIN does not meet the input requirements; select a compatible BIN.", dpSlot.InputInspectionStatus);
 
         byte[] tpWithTail = CreateUiAbTpImage(
             0x81, 0x00, commonFwMajor: 1, commonFwMinor: 4,

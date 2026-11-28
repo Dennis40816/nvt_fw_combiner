@@ -12,10 +12,10 @@ public sealed class StandardMergeFeedbackTests
 {
     /// <summary>Focused client codes retain distinct bilingual zero/unreadable blocking feedback.</summary>
     [Theory]
-    [InlineData("firmware-config.chip-count-required", false, "was read as 0")]
-    [InlineData("firmware-config.chip-count-required", true, "讀到 0")]
-    [InlineData("firmware-config.chip-count-unreadable", false, "is unreadable")]
-    [InlineData("firmware-config.chip-count-unreadable", true, "讀不到")]
+    [InlineData("firmware-config.chip-count-required", false, "The TP firmware IC count is zero; select a BIN with a valid IC count.")]
+    [InlineData("firmware-config.chip-count-required", true, "TP 韌體的 IC 數量為零，請選擇 IC 數量有效的 BIN。")]
+    [InlineData("firmware-config.chip-count-unreadable", false, "The TP firmware IC count could not be read; select a BIN with valid firmware configuration.")]
+    [InlineData("firmware-config.chip-count-unreadable", true, "無法讀取 TP 韌體的 IC 數量，請選擇韌體設定有效的 BIN。")]
     public void TpChipCountErrorRetainsDistinctBlockingFeedback(string code, bool chinese, string expected)
     {
         AuthoringInputSlotStatus status = Status(code, AuthoringSlotLifecycle.Error);
@@ -24,7 +24,7 @@ public sealed class StandardMergeFeedbackTests
         Assert.Equal(code, status.InspectionIssueCode);
         Assert.True(slot.IsSemanticStateError);
         Assert.True(slot.BlocksBuild);
-        Assert.Contains(expected, slot.InputInspectionStatus, StringComparison.Ordinal);
+        Assert.Equal(expected, slot.InputInspectionStatus);
     }
 
     /// <summary>Uniform findings explain the declared range, possible intent, action and non-blocking impact.</summary>
@@ -62,17 +62,18 @@ public sealed class StandardMergeFeedbackTests
         Assert.Equal(new byte[] { 0xA5, 0xA5 }, status.AcceptedBytes!.Value.ToArray());
     }
 
-    /// <summary>Unrelated warnings retain the existing diagnostic fallback.</summary>
+    /// <summary>Unrelated warnings show the approved fallback and retain the code on the input card.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void UnknownWarningRetainsItsDiagnosticCode(bool chinese)
+    public void UnknownWarningKeepsApprovedSentenceAndDiagnosticCode(bool chinese)
     {
         ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         string detail = text.GetInputSlotInspectionStatus(Status("OTHER_WARNING", AuthoringSlotLifecycle.Warning));
         Assert.Equal(chinese
-            ? "警告：profile 內容檢查 OTHER_WARNING；Build 前請確認。"
-            : "Warning: profile content check OTHER_WARNING; review before Build.", detail);
+            ? "所選 BIN 有警告，請在 Build 前查看其輸入狀態。"
+            : "The selected BIN has a warning; review its input status before Build.", detail);
+        Assert.Equal("OTHER_WARNING", Slot(Status("OTHER_WARNING", AuthoringSlotLifecycle.Warning), chinese).IssueCard!.DiagnosticCode);
     }
 
     /// <summary>A code alone never changes terminal severity or invents non-blocking treatment.</summary>

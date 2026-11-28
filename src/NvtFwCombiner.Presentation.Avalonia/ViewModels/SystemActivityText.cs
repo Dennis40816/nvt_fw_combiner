@@ -64,11 +64,11 @@ internal static class SystemActivityText
             SystemActivityCodes.BuildStarted => Pick(text, "Build started", "Build 已開始"),
             SystemActivityCodes.PreviewCompleted => Pick(text, "Preview completed", "預覽已完成"),
             SystemActivityCodes.BuildCompleted => Pick(text, "Build completed", "Build 已完成"),
-            SystemActivityCodes.PreviewFailed => Pick(text, "Preview needs attention", "預覽需要處理"),
-            SystemActivityCodes.BuildFailed => Pick(text, "Build failed", "Build 失敗"),
+            SystemActivityCodes.PreviewFailed => Pick(text, "Preview needs attention; check Run reports for details.", "Preview 需要確認，請到「執行報告」查看詳細內容。"),
+            SystemActivityCodes.BuildFailed => Pick(text, "Build failed; check Run reports for details.", "Build 失敗，請到「執行報告」查看詳細內容。"),
             SystemActivityCodes.DiagnosticsRefreshRequested => Pick(text, "Refresh requested", "已要求重新整理"),
             SystemActivityCodes.DiagnosticsExported => Pick(text, "Activity exported", "活動紀錄已匯出"),
-            SystemActivityCodes.DiagnosticsExportFailed => Pick(text, "Activity export failed", "活動紀錄匯出失敗"),
+            SystemActivityCodes.DiagnosticsExportFailed => text.DiagnosticsExportFailedLabel,
             _ => activity.Code,
         };
     }

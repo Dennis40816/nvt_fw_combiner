@@ -229,7 +229,7 @@ internal sealed partial class ReportReviewViewModel
                     "Select at least one region-specific CtrlRAM BIN in an available replacement slot, then run Build again.",
                     "請至少在可用的 replacement slot 選擇一個區域專用 CtrlRAM BIN，再重新建立。"),
             _ => issue.Title == "DP_NONSTANDARD_SIZE_WARNING" ? issue.Detail
-                : ShellTextResources.For(language).GetInputIssueHelp(issue.Title, issue.Severity)?.Detail
+                : InputIssueAdvice.SuggestedAction(language, issue.Title, issue.Severity)
                 ?? T(language, "Fix the reported issue, then run Build again.", "修正回報問題後再重新建立。"),
         };
     }

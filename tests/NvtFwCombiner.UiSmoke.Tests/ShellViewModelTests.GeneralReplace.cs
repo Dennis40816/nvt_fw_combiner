@@ -5,6 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises General Replace authoring, readiness and mapping state.</summary>
 public sealed partial class GeneralWorkflowTests
 {
     /// <summary>Verifies General Replace authors base BIN and explicit range rows as separate UI state.</summary>
@@ -25,7 +26,7 @@ public sealed partial class GeneralWorkflowTests
         Assert.Contains("explicit profile-approved", viewModel.Replace.SelectedReplaceModeDescription, StringComparison.Ordinal);
         Assert.False(viewModel.Replace.PreviewReplaceCommand.CanExecute(null));
         Assert.Equal(
-            "Build blocked: base BIN and at least one explicit replacement mapping are required.",
+            "General Replace is not ready; check the base BIN, mappings, and Build status.",
             viewModel.Replace.ReplaceReadinessStatus);
         GeneralReplaceMappingViewModel initial = Assert.Single(viewModel.Replace.GeneralReplaceMappings);
         Assert.False(initial.CanSelectFile);

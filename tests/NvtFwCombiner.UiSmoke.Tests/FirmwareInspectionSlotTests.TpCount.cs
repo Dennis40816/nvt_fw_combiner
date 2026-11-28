@@ -4,6 +4,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises typed TP count errors through Standard Merge input cards.</summary>
 public sealed partial class FirmwareInspectionSlotTests
 {
     /// <summary>The standard page shows the individual TP failure and recovers without AB peer admission.</summary>
@@ -26,10 +27,10 @@ public sealed partial class FirmwareInspectionSlotTests
         FirmwareSlotViewModel slot = model.Merge.MergeSlots.Single(static item => item.SlotId == CompositionSlotIds.MergeTp);
         Assert.True(slot.BlocksBuild);
         Assert.False(model.Merge.CanBuildMerge);
-        Assert.Contains(zero ? "0" : "unreadable", slot.InputInspectionStatus, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(zero ? "The TP firmware IC count is zero; select a BIN with a valid IC count." : "The TP firmware IC count could not be read; select a BIN with valid firmware configuration.", slot.InputInspectionStatus);
         Assert.DoesNotContain("AB_TP_TOPOLOGY_MISMATCH", slot.InputInspectionStatus, StringComparison.Ordinal);
         model.SelectedLanguage = "Traditional Chinese";
-        Assert.Contains(zero ? "讀到 0" : "讀不到", slot.InputInspectionStatus, StringComparison.Ordinal);
+        Assert.Equal(zero ? "TP 韌體的 IC 數量為零，請選擇 IC 數量有效的 BIN。" : "無法讀取 TP 韌體的 IC 數量，請選擇韌體設定有效的 BIN。", slot.InputInspectionStatus);
         await model.WorkflowSession.SetSlotFileAsync(CompositionSlotIds.MergeTp, workspace.Write("fixed.bin", good), TestContext.Current.CancellationToken);
         Assert.False(slot.BlocksBuild);
         Assert.True(model.Merge.CanBuildMerge);

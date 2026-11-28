@@ -12,6 +12,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises Message Center diagnostics and typed Build availability.</summary>
 public sealed partial class ShellNavigationSystemTests
 {
     /// <summary>A diagnostics picker from a closed and reopened Message Center cannot export.</summary>
@@ -236,7 +237,8 @@ public sealed partial class ShellNavigationSystemTests
         Assert.Equal(1, viewModel.MessageCenter.ActiveBadgeCount);
         Assert.NotNull(viewModel.MessageCenter.GlobalBuildBlocker);
         Assert.Empty(viewModel.Reports.ReportHistoryEntries);
-        Assert.Contains("Build is disabled", viewModel.MergeBuildBlockerText, StringComparison.Ordinal);
+        Assert.Contains("The capability catalog is unavailable, blocking Build;", viewModel.MergeBuildBlockerText,
+            StringComparison.Ordinal);
 
         viewModel.MessageCenter.OpenCommand.Execute(null);
         viewModel.MessageCenter.ShowRunReportsCommand.Execute(null);
@@ -347,7 +349,7 @@ public sealed partial class ShellNavigationSystemTests
             activity.ContextId == "NT51927");
     }
 
-    /// <summary>Blocker navigation selects the exact localized System Information surface.</summary>
+    /// <summary>Build and catalog projections use approved localized instructions without changing availability.</summary>
     [Fact]
     public async Task BuildBlockerAndDiagnosticsUseLocalizedUiProjections()
     {
@@ -377,15 +379,17 @@ public sealed partial class ShellNavigationSystemTests
         Assert.True(viewModel.MessageCenter.IsSystemInformationSelected);
         Assert.Equal("無法使用", viewModel.MessageCenter.CatalogSummary);
         MessageCenterDiagnosticItem item = Assert.Single(viewModel.MessageCenter.ActiveDiagnostics);
-        Assert.Contains("已停用 Build", item.Message, StringComparison.Ordinal);
-        Assert.Contains("重新載入", item.Action, StringComparison.Ordinal);
+        Assert.Equal("功能目錄無法使用而阻擋 Build，請在訊息中心的「系統活動」按「重新整理」。", item.Message);
+        Assert.Empty(item.Action);
+        Assert.Equal(SystemDiagnosticSeverity.Blocking, item.Severity);
         Assert.Contains("1 個目前診斷", viewModel.MessageCenter.MessageCenterAccessibleName,
             StringComparison.Ordinal);
 
         await viewModel.MessageCenter.RefreshCommand.ExecuteAsync(null);
 
-        Assert.Contains("必要輸入", viewModel.MergeBuildBlockerText, StringComparison.Ordinal);
-        Assert.Contains("請載入必要輸入", viewModel.MergeBuildBlockerText, StringComparison.Ordinal);
+        Assert.Contains("Build 所需條件尚未就緒，請確認工作流程選擇及必要輸入。", viewModel.MergeBuildBlockerText,
+            StringComparison.Ordinal);
+        Assert.False(viewModel.Merge.CanBuildMerge);
 
         var changed = new List<string?>();
         viewModel.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
@@ -394,7 +398,8 @@ public sealed partial class ShellNavigationSystemTests
 
         Assert.Contains(nameof(MainWindowViewModel.MergeBuildBlockerText), changed);
         Assert.Contains(nameof(MainWindowViewModel.ReplaceBuildBlockerText), changed);
-        Assert.Contains("必要輸入", viewModel.MergeBuildBlockerText, StringComparison.Ordinal);
+        Assert.Contains("Build 所需條件尚未就緒，請確認工作流程選擇及必要輸入。", viewModel.MergeBuildBlockerText,
+            StringComparison.Ordinal);
     }
 
     /// <summary>Only a changed publication token requests structured-session rebinding.</summary>

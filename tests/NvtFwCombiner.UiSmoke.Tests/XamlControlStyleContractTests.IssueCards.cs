@@ -16,6 +16,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises input and Build issue cards through the real controls.</summary>
 public sealed partial class XamlControlStyleContractTests
 {
     /// <summary>The whole disabled Build target shares the input explanation in the approved status hierarchy and disappears after correction.</summary>
@@ -45,7 +46,8 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Equal("Build status", viewModel.MergeBuildBlockerCard.Caption);
         Assert.Equal("Build blocked", viewModel.MergeBuildBlockerCard.Subject);
         Assert.False(viewModel.MergeBuildBlockerCard.HasAdditionalBlockers);
-        Assert.Contains("≥ 256 KiB", viewModel.MergeBuildBlockerCard.Summary, StringComparison.Ordinal);
+        Assert.Equal("The selected BIN is too short; select a complete, compatible BIN.", viewModel.MergeBuildBlockerCard.Summary);
+        Assert.Contains("≥ 256 KiB", viewModel.MergeBuildBlockerCard.Action, StringComparison.Ordinal);
         window.Show();
         window.WindowState = WindowState.Normal;
         window.Width = 1710;
@@ -310,7 +312,7 @@ public sealed partial class XamlControlStyleContractTests
             }
             Assert.True(Y(caption) < Y(subject) && Y(subject) < Y(impact));
             Assert.InRange(Y(reason) - Y(impact), 30, 40);
-            Assert.InRange(Y(action) - Y(reason), 30, 40);
+            Assert.InRange(Y(action) - (Y(reason) + reason.Bounds.Height), 8, 24);
             Assert.True(Y(diagnostic) > Y(action) + 24);
             Assert.Equal(3, card.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>()
                 .Count(item => item.Classes.Contains("icDetailRowIcon") && item.IsEffectivelyVisible));
