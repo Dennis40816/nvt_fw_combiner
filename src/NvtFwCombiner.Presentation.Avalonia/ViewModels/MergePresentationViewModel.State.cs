@@ -125,17 +125,9 @@ internal sealed partial class MergePresentationViewModel
 
     public ObservableCollection<CapabilityTopologyChoice> AbMergeTopologyChoices { get; } = [];
 
-    public ObservableCollection<MemoryMapRowViewModel> MergeMemoryRows { get; } = [];
-
-    public ResettableObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageSegments { get; } = [];
-
-    public ObservableCollection<MemoryCoverageSegmentViewModel> MergeCoverageRows { get; } = [];
+    public OutputLayoutPresentationViewModel OutputLayout { get; } = new();
 
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
-
-    public string MergeMemoryRangeLabel { get; private set; } = string.Empty;
-    public string MergeStartAddress => MemoryCoverageBarProjection.OuterAddresses(MergeCoverageSegments).Start;
-    public string MergeEndAddress => MemoryCoverageBarProjection.OuterAddresses(MergeCoverageSegments).End;
 
     public string SelectedMergeMode
     {
@@ -144,13 +136,11 @@ internal sealed partial class MergePresentationViewModel
     }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputLength { get; set; } = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(MergeMemoryRangeLabel))]
     [NotifyPropertyChangedFor(nameof(MergeReadinessStatus))]
     [NotifyPropertyChangedFor(nameof(CanBuildMerge))]
     public partial string GeneralMergeOutputFillByte { get; set; } = string.Empty;
@@ -194,11 +184,6 @@ internal sealed partial class MergePresentationViewModel
             : session?.ExactCapability?.CompiledComposition.V2Details
                 .OutputNamingRequirement.FileNameTemplate ?? fallback;
     }
-
-    public string MergeMemorySummary => Text.GetMergeMemorySummary(
-        SelectedMergeMode,
-        IsStandardMergeSupported,
-        GeneralMergeMappings.Any(mapping => mapping.HasFile));
 
     public string StandardMergeSupportSummary => Text.GetStandardMergeSupportSummary(
         SelectedIc,
@@ -436,7 +421,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(AbMergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        PublishMergeMemoryContext();
         OnPropertyChanged(nameof(CanBuildMerge));
     }
 

@@ -98,29 +98,22 @@ public sealed class AbDummyDpControlTests
                 Assert.InRange(Math.Abs(cardBounds.Right - dummyCardBounds.Right), 0, 0.5);
             }
             Assert.DoesNotContain(shell.Merge.AbMergeSlots, slot => slot.SlotId == CompositionAddressSpaceIds.DpAbInput);
-            MemoryCoverageSegmentViewModel blank = Assert.Single(shell.Merge.MergeCoverageSegments,
+            MemoryCoverageSegmentViewModel blank = Assert.Single(shell.Merge.OutputLayout.Current.CoverageSegments,
                 segment => segment.RangeStart == 0 && segment.RangeEndExclusive == 0x7000);
-            Assert.Equal(NvtFwCombiner.Application.MemoryLayout.MemoryContentRole.General, blank.ContentRole);
+            Assert.Equal(Application.MemoryLayout.MemoryContentRole.General, blank.ContentRole);
             Assert.Equal(chinese ? "資料" : "Data", blank.DisplayTitle);
             Assert.Equal("0xFF", blank.SourceLabel);
             Assert.Equal(chinese ? "初始化" : "Initialization", blank.SourceFieldLabel);
             Assert.False(blank.UsesKeptPattern);
             CtrlRamSelectorLayoutTests.AssertMergePanelAlignment(window);
-            // Source facts belong to the hover card, not a permanently expanded detail list.
-            Assert.DoesNotContain(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
-            MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(), control => control.IsEffectivelyVisible);
-            rail.BringIntoView();
-            rail.ReducedMotion = true;
+            OutputLayoutPanel panel = Assert.Single(window.GetVisualDescendants().OfType<OutputLayoutPanel>(), static control => control.IsEffectivelyVisible);
+            MergeOutputLayoutTestHost.Open(window, panel, blank);
             Render();
-            Border blankCell = Assert.Single(rail.GetVisualDescendants().OfType<Border>(), border =>
-                border.Classes.Contains("memoryCoverageBarSegment") && ReferenceEquals(border.DataContext, blank));
-            window.MouseMove(Bounds(blankCell).Center, RawInputModifiers.None);
-            Render();
-            Border hoverCard = Assert.Single(window.GetVisualDescendants().OfType<Border>(), border => border.Name == "MemorySliceCard");
-            Assert.Same(blank, hoverCard.DataContext);
-            Assert.Contains(hoverCard.GetVisualDescendants().OfType<TextBlock>(),
+            Control details = OutputLayoutPanelTestHost.Body(MergeOutputLayoutTestHost.RowFor(panel, blank));
+            Assert.Contains(details.GetVisualDescendants().OfType<TextBlock>(),
                 block => block.IsEffectivelyVisible && block.Text == (chinese ? "初始化" : "Initialization"));
-            Assert.Contains(hoverCard.GetVisualDescendants().OfType<TextBlock>(), block => block.IsEffectivelyVisible && block.Text == "0xFF");
+            Assert.Contains(details.GetVisualDescendants().OfType<TextBlock>(), block => block.IsEffectivelyVisible && block.Text == "0xFF");
+            Assert.Same(shell.Merge.OutputLayout.Current.Panel, panel.Model);
             Assert.DoesNotContain(window.GetVisualDescendants().OfType<TextBlock>(),
                 block => block.Text == "Output range uses bytes from Reserved.");
             Save("enabled");

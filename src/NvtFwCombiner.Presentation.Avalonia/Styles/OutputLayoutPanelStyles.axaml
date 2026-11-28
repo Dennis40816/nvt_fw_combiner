@@ -1,0 +1,58 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Border.outputLayoutFrame">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryPanelBorderBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+  </Style>
+  <Style Selector="TextBlock.outputLayoutTitle">
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize16}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.outputLayoutIssues, TextBlock.outputLayoutBadge.warning">
+    <Setter Property="Foreground" Value="{DynamicResource NfcWarningAccentStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.outputLayoutIssues.error, TextBlock.outputLayoutBadge.error">
+    <Setter Property="Foreground" Value="{DynamicResource NfcCriticalBorderBrush}" />
+  </Style>
+  <Style Selector="Border.outputLayoutPin">
+    <Setter Property="MinWidth" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryPanelSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcPillCornerRadius}" />
+  </Style>
+  <Style Selector="Border.outputLayoutPin.active">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+  </Style>
+  <Style Selector="Border.outputLayoutRow.active">
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryInteractionSurfaceBrush}" />
+  </Style>
+  <Style Selector="Border.outputLayoutBlock">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="Border.outputLayoutBlock.active">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentStrongBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.outputLayoutDetail">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcAccentBrush}" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+  </Style>
+  <Style Selector="Path.outputLayoutChevron">
+    <Setter Property="Stroke" Value="{DynamicResource NfcMemoryTextSecondaryBrush}" />
+    <Setter Property="StrokeThickness" Value="1.6" />
+  </Style>
+  <Style Selector="TextBlock.outputLayoutBadge">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.outputLayoutDivider">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource NfcMemoryDividerBrush}" />
+  </Style>
+</Styles>

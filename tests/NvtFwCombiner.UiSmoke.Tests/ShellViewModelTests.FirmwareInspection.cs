@@ -263,7 +263,7 @@ public sealed partial class FirmwareInspectionSlotTests
         MainWindowViewModel viewModel = CreateInspectionViewModel((_, _, _, _) => DpInspection("0101"));
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
-        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.OutputLayout.Current.RangeLabel);
         FirmwareSlotViewModel dpSlot = viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp");
         Assert.Equal(FirmwareSlotSemanticState.Error, dpSlot.SemanticState);
         object acceptedProjection = Assert.IsType<FirmwareInspectionSnapshot>(
@@ -277,13 +277,13 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
         await CurrentInspection(viewModel).ActiveTask;
 
-        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.OutputLayout.Current.RangeLabel);
         Assert.NotSame(acceptedProjection, dpSlot.CurrentInspectionProjection);
         Assert.Equal(FirmwareSlotSemanticState.Error, dpSlot.SemanticState);
 
         await viewModel.WorkflowSession.SetSlotFileAsync("merge-dp", dpPath, TestContext.Current.CancellationToken);
 
-        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.OutputLayout.Current.RangeLabel);
         Assert.Equal(FirmwareSlotSemanticState.Error, dpSlot.SemanticState);
         Assert.NotSame(acceptedProjection, dpSlot.CurrentInspectionProjection);
     }

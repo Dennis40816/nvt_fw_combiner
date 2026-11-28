@@ -78,16 +78,16 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         viewModel.ShowMergeCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = icId;
 
-        MemoryMapRowViewModel initialRow = Assert.Single(viewModel.Merge.MergeMemoryRows);
+        MemoryMapRowViewModel initialRow = Assert.Single(viewModel.Merge.OutputLayout.Current.Rows);
         Assert.Equal("Not available", initialRow.RangeLabel);
         Assert.Equal("Browse", initialRow.ActionLabel);
         Assert.Equal("No output -> Waiting for DP BIN", initialRow.FlowLabel);
-        Assert.Equal("Waiting for DP BIN", viewModel.Merge.MergeMemoryRangeLabel);
-        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.MergeCoverageSegments);
+        Assert.Equal("Waiting for DP BIN", viewModel.Merge.OutputLayout.Current.RangeLabel);
+        MemoryCoverageSegmentViewModel pendingSegment = Assert.Single(viewModel.Merge.OutputLayout.Current.CoverageSegments);
         Assert.Equal("Not available", pendingSegment.RangeLabel);
         Assert.Equal("Waiting for DP BIN", pendingSegment.SourceLabel);
         Assert.Contains("DP BIN", pendingSegment.Detail, StringComparison.Ordinal);
-        Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
+        Assert.All(viewModel.Merge.OutputLayout.Current.CoverageSegments, segment =>
         {
             Assert.NotEqual("Preserved", segment.ChangeLabel);
             Assert.DoesNotContain("CopyRange", segment.CompactDetail, StringComparison.Ordinal);
@@ -112,11 +112,11 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
 
         Assert.Equal(
             $"0x00000-0x{capacity - 1:X5} (len 0x{capacity:X})",
-            viewModel.Merge.MergeMemoryRangeLabel);
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "DP BIN");
-        Assert.Contains(viewModel.Merge.MergeMemoryRows, row => row.AfterSource == "TP BIN");
+            viewModel.Merge.OutputLayout.Current.RangeLabel);
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, row => row.AfterSource == "DP BIN");
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.Rows, row => row.AfterSource == "TP BIN");
         Assert.Collection(
-            viewModel.Merge.MergeCoverageSegments,
+            viewModel.Merge.OutputLayout.Current.CoverageSegments,
             segment => AssertCoverageSegment(
                 segment,
                 "DP BIN",
@@ -141,11 +141,11 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
                 $"0x38000-0x{capacity - 1:X5} (len 0x{capacity - 0x38000:X})",
                 MemoryCoverageFillRole.Dp,
                 "Output range will be copied from DP BIN."));
-        Assert.DoesNotContain(viewModel.Merge.MergeCoverageSegments, segment => segment.IsChanged);
-        MemoryMapRowViewModel protectedPlan = Assert.Single(viewModel.Merge.MergeMemoryRows, row => row.RangeLabel.StartsWith("0x37000-0x37FFF", StringComparison.Ordinal));
+        Assert.DoesNotContain(viewModel.Merge.OutputLayout.Current.CoverageSegments, segment => segment.IsChanged);
+        MemoryMapRowViewModel protectedPlan = Assert.Single(viewModel.Merge.OutputLayout.Current.Rows, row => row.RangeLabel.StartsWith("0x37000-0x37FFF", StringComparison.Ordinal));
         Assert.Equal("Initialization: 0x00", protectedPlan.BeforeSource);
         Assert.Equal("DP BIN", protectedPlan.AfterSource);
-        Assert.Contains(viewModel.Merge.MergeCoverageSegments, segment =>
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.CoverageSegments, segment =>
             segment.ChangeLabel == "Will write");
     }
 
@@ -159,16 +159,16 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
         viewModel.SetSlotFile(
             "merge-dp",
             workspace.Write("dp-40000.bin", new byte[0x40000]));
-        string[] ranges = [.. viewModel.Merge.MergeCoverageSegments.Select(static segment => segment.RangeLabel)];
+        string[] ranges = [.. viewModel.Merge.OutputLayout.Current.CoverageSegments.Select(static segment => segment.RangeLabel)];
         MemoryCoverageFillRole[] fillRoles =
-            [.. viewModel.Merge.MergeCoverageSegments.Select(static segment => segment.FillRole)];
+            [.. viewModel.Merge.OutputLayout.Current.CoverageSegments.Select(static segment => segment.FillRole)];
 
         viewModel.SelectedLanguage = "Traditional Chinese";
 
-        Assert.Equal(ranges, viewModel.Merge.MergeCoverageSegments.Select(static segment => segment.RangeLabel));
-        Assert.Equal(fillRoles, viewModel.Merge.MergeCoverageSegments.Select(static segment => segment.FillRole));
+        Assert.Equal(ranges, viewModel.Merge.OutputLayout.Current.CoverageSegments.Select(static segment => segment.RangeLabel));
+        Assert.Equal(fillRoles, viewModel.Merge.OutputLayout.Current.CoverageSegments.Select(static segment => segment.FillRole));
         Assert.Collection(
-            viewModel.Merge.MergeCoverageSegments,
+            viewModel.Merge.OutputLayout.Current.CoverageSegments,
             segment => AssertCoverageSegment(
                 segment,
                 "DP BIN",
@@ -193,19 +193,19 @@ public sealed partial class ReplaceSurfaceCompatibilityTests
                 "0x38000-0x3FFFF (len 0x8000)",
                 MemoryCoverageFillRole.Dp,
                 "輸出範圍將由 DP BIN 複製。"));
-        Assert.All(viewModel.Merge.MergeCoverageSegments, segment =>
+        Assert.All(viewModel.Merge.OutputLayout.Current.CoverageSegments, segment =>
         {
             Assert.DoesNotContain("Compiled operation", segment.Detail, StringComparison.Ordinal);
             Assert.DoesNotContain("Sequence", segment.Detail, StringComparison.Ordinal);
             Assert.DoesNotContain("Reason:", segment.Detail, StringComparison.Ordinal);
         });
         Assert.Contains(
-            viewModel.Merge.MergeCoverageSegments,
+            viewModel.Merge.OutputLayout.Current.CoverageSegments,
             segment => segment.Detail.Contains("編譯操作", StringComparison.Ordinal) &&
                 segment.Detail.Contains("順序", StringComparison.Ordinal) &&
                 !segment.Detail.Contains("Reason:", StringComparison.Ordinal));
-        Assert.DoesNotContain(viewModel.Merge.MergeCoverageSegments, segment => segment.IsChanged);
-        Assert.Contains(viewModel.Merge.MergeCoverageSegments, segment =>
+        Assert.DoesNotContain(viewModel.Merge.OutputLayout.Current.CoverageSegments, segment => segment.IsChanged);
+        Assert.Contains(viewModel.Merge.OutputLayout.Current.CoverageSegments, segment =>
             segment.ChangeLabel == "將寫入");
 
         var chinese = ShellTextResources.For(ShellLanguage.ChineseTraditional);

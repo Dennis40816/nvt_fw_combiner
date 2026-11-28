@@ -292,8 +292,25 @@
             IsVisible="{Binding IsMergeVisible}">
           <ContentControl.ContentTemplate>
             <DataTemplate DataType="vm:MergePresentationViewModel">
-              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
-          <StackPanel Spacing="{DynamicResource NfcSpace16}">
+              <Border Container.Name="MergeWorkspace" Container.Sizing="Width">
+                <Border.Styles>
+                  <Style Selector="views|OutputLayoutPanel.mergeOutput">
+                    <Setter Property="Grid.Row" Value="1" />
+                    <Setter Property="Grid.Column" Value="1" />
+                  </Style>
+                  <ContainerQuery Name="MergeWorkspace" Query="max-width:1000">
+                    <Style Selector=":is(Control).mergeInput">
+                      <Setter Property="Grid.ColumnSpan" Value="2" />
+                    </Style>
+                    <Style Selector="views|OutputLayoutPanel.mergeOutput">
+                      <Setter Property="Grid.Row" Value="2" />
+                      <Setter Property="Grid.Column" Value="0" />
+                      <Setter Property="Grid.ColumnSpan" Value="2" />
+                    </Style>
+                  </ContainerQuery>
+                </Border.Styles>
+              <Grid ColumnDefinitions="1.15*,430" ColumnSpacing="{DynamicResource NfcWorkspaceColumnSpacing}" RowDefinitions="Auto,Auto,Auto" RowSpacing="{DynamicResource NfcSpace16}">
+          <StackPanel Classes="mergeInput" Spacing="{DynamicResource NfcSpace16}">
             <Grid
                 x:Name="MergePageHeader"
                 ColumnDefinitions="*,Auto"
@@ -325,17 +342,18 @@
           </StackPanel>
 
           <ContentControl
+              Classes="mergeInput"
               Grid.Row="1"
               Content="{Binding}"
               ContentTemplate="{StaticResource MergeModeContentTemplate}" />
 
-          <ContentControl
-              Grid.Row="1"
-              Grid.Column="1"
+          <views:OutputLayoutPanel
+              Classes="mergeOutput"
               VerticalAlignment="Top"
-              Content="{Binding}"
-              ContentTemplate="{StaticResource MergeOutputLayoutPanelTemplate}" />
+              Model="{Binding OutputLayout.Current.Panel}"
+              ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
               </Grid>
+              </Border>
             </DataTemplate>
           </ContentControl.ContentTemplate>
         </ContentControl>

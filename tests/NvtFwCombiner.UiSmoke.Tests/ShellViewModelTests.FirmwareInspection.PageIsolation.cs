@@ -51,7 +51,7 @@ public sealed partial class FirmwareInspectionSlotTests
         viewModel.Merge.SelectedMergeMode = ExperienceIds.AbMerge;
         viewModel.WorkflowSession.SelectedIc = "NT51950";
         viewModel.WorkflowSession.SelectedNumber = IcNumberSelectionTokens.Cascade;
-        MemoryMapRowViewModel retainedMemoryRow = viewModel.Merge.MergeMemoryRows.First();
+        MemoryMapRowViewModel retainedMemoryRow = viewModel.Merge.OutputLayout.Current.Rows[0];
         string retainedOutputName = viewModel.Merge.MergeOutputFileName;
 
         OpenReplace(viewModel, ExperienceIds.CtrlRamReplace);
@@ -62,14 +62,14 @@ public sealed partial class FirmwareInspectionSlotTests
 
         Assert.Equal(@"C:\hidden-merge.bin", viewModel.Merge.MergeDpSlot.FilePath);
         Assert.Equal("Merge", Assert.Single(viewModel.Merge.MergeDpSlot.FirmwareFacts).Value);
-        Assert.Contains(retainedMemoryRow, viewModel.Merge.MergeMemoryRows);
+        Assert.Contains(retainedMemoryRow, viewModel.Merge.OutputLayout.Current.Rows);
         Assert.Equal(retainedOutputName, viewModel.Merge.MergeOutputFileName);
 
         viewModel.ShowMergeCommand.Execute(null);
 
         Assert.Equal("NT51950", viewModel.WorkflowSession.SelectedIc);
         Assert.Equal(IcNumberSelectionTokens.Cascade, viewModel.WorkflowSession.SelectedNumber);
-        Assert.Contains(retainedMemoryRow, viewModel.Merge.MergeMemoryRows);
+        Assert.Contains(retainedMemoryRow, viewModel.Merge.OutputLayout.Current.Rows);
     }
 
     /// <summary>A hidden Replace mode change cannot cancel or invalidate the active Merge inspection.</summary>
@@ -507,7 +507,7 @@ public sealed partial class FirmwareInspectionSlotTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.IcChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
 

@@ -162,7 +162,7 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReplaceOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("MergeOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:OutputLayoutPanel", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoveragePlainSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageRegionCardTemplate", sharedTemplates, StringComparison.Ordinal);
@@ -213,10 +213,8 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("Text=\"{Binding Text.ExplicitMappingsTitle}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Model=\"{Binding OutputLayout.Current.Panel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("<views:MemoryCoverageBar", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("ShowLegend=\"True\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);
@@ -351,6 +349,8 @@ public sealed partial class PresentationBoundaryTests
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Execution.cs");
         string mergeMemory = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.Memory.cs");
+        string outputLayout = ReadText(
+            "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputLayoutPresentationViewModel.cs");
         string mergeState = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/ViewModels/MergePresentationViewModel.State.cs");
         string replaceMemory = ReadText(
@@ -378,7 +378,8 @@ public sealed partial class PresentationBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetNumberSelectionChoices", workflowContext, StringComparison.Ordinal);
         Assert.DoesNotContain("public partial IReadOnlyList<string> NumberChoices", viewModel, StringComparison.Ordinal);
-        Assert.Contains("UiCompositionRunner.GetMemoryDisplay", mergeMemory, StringComparison.Ordinal);
+        Assert.Contains("OutputLayout.Publish", mergeMemory, StringComparison.Ordinal);
+        Assert.Contains("UiCompositionRunner.GetMemoryDisplay", outputLayout, StringComparison.Ordinal);
         Assert.DoesNotContain("GetStandardMergeMemoryDisplay", mergeMemory, StringComparison.Ordinal);
         Assert.Contains("GetSelectedReplaceMemoryDisplay", replaceMemory, StringComparison.Ordinal);
         Assert.Contains("UiCompositionRunner.GetMemoryDisplay", replaceMemory, StringComparison.Ordinal);

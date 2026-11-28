@@ -313,10 +313,6 @@ public sealed partial class XamlControlStyleContractTests
             "ShowLegend=\"True\"",
             ExtractDataTemplate(workflowTemplates, "ReplaceOutputLayoutPanelTemplate"),
             StringComparison.Ordinal);
-        Assert.DoesNotContain(
-            "MaxHeight=\"320\"",
-            ExtractDataTemplate(sharedTemplates, "MergeOutputLayoutPanelTemplate"),
-            StringComparison.Ordinal);
         XElement slotGroupTemplate = Assert.Single(XDocument.Parse(sharedTemplates).Descendants(),
             element => element.Name.LocalName == "DataTemplate" &&
                 element.Attributes().Any(attribute => attribute.Name.LocalName == "Key" && attribute.Value == "FirmwareSlotGroupTemplate"));

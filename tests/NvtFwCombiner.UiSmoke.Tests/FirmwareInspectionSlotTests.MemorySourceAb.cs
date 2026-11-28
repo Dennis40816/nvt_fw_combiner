@@ -15,9 +15,9 @@ public sealed partial class FirmwareInspectionSlotTests
         MainWindowViewModel vm = PrepareAbSameTpViewModel();
         string dpPath = workspace.Write("dp.bin", new byte[0x80000]);
         await vm.WorkflowSession.SetSlotFileAsync(CompositionAddressSpaceIds.DpAbInput, dpPath, TestContext.Current.CancellationToken);
-        Assert.Contains(vm.Merge.MergeCoverageSegments, segment => segment.SourceLabel == "DP AB");
-        Assert.DoesNotContain(vm.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.CustomerInformation);
-        Assert.All(vm.Merge.MergeCoverageSegments, segment =>
+        Assert.Contains(vm.Merge.OutputLayout.Current.CoverageSegments, segment => segment.SourceLabel == "DP AB");
+        Assert.DoesNotContain(vm.Merge.OutputLayout.Current.CoverageSegments, segment => segment.ContentRole == MemoryContentRole.CustomerInformation);
+        Assert.All(vm.Merge.OutputLayout.Current.CoverageSegments, segment =>
         {
             Assert.Equal(segment.SourceLabel, segment.DisplayTitle);
             Assert.False(segment.HasSourceCaption);

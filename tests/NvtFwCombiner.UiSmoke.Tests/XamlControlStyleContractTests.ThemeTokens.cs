@@ -224,7 +224,7 @@ public sealed partial class XamlControlStyleContractTests
                  {
                      ("MainWindow.axaml", 3, 0, 2),
                      ("Resources/MainWindowWorkflowTemplates.axaml", 9, 5, 0),
-                     ("Resources/MainWindowSharedTemplates.axaml", 1, 0, 0),
+                     ("Resources/MainWindowSharedTemplates.axaml", 0, 0, 0),
                  })
         {
             var document = XDocument.Parse(ReadPresentationFile(path));
@@ -247,7 +247,7 @@ public sealed partial class XamlControlStyleContractTests
             XElement[] workspaceCallers = [.. document.Descendants().Where(element =>
                 (string?)element.Attribute("ColumnSpacing") == "{DynamicResource NfcWorkspaceColumnSpacing}")];
             Assert.Equal(columns, workspaceCallers.Length);
-            Assert.All(workspaceCallers, static element =>
+            Assert.All(workspaceCallers.Where(static element => (string?)element.Attribute("Classes") != "mergeLayout"), static element =>
             {
                 Assert.Equal("Grid", element.Name.LocalName);
                 Assert.Equal("1.15*,430", (string?)element.Attribute("ColumnDefinitions"));

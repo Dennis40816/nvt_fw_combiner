@@ -21,7 +21,7 @@ public sealed partial class FirmwareInspectionSlotTests
             ArtifactClassification = CreateArtifactClassification(CompiledFirmwareArtifactKind.FlashCode),
             StandardEventBufferFormatVersion = 0x80,
         };
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        var text = ShellTextResources.For(ShellLanguage.English);
         var dp = new FirmwareSlotViewModel("dp", "DP", "Display input", FirmwareSlotKind.Dp);
         var tp = new FirmwareSlotViewModel("tp", "TP", "Touch input", FirmwareSlotKind.Tp);
         var reference = new FirmwareSlotViewModel("base", "Base", "Reference input", FirmwareSlotKind.Base);
@@ -544,7 +544,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(
             "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             viewModel.Merge.StandardMergeOutputFileName);
-        Assert.Equal("Waiting for TP BIN", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("Waiting for TP BIN", viewModel.Merge.OutputLayout.Current.RangeLabel);
 
         mutateDuringRefresh = true;
         await viewModel.WorkflowSession.RefreshSelectedMergeFirmwareInspectionsAsync(
@@ -553,7 +553,7 @@ public sealed partial class FirmwareInspectionSlotTests
         Assert.Equal(
             "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin",
             viewModel.Merge.StandardMergeOutputFileName);
-        Assert.Equal("DP BIN needs attention", viewModel.Merge.MergeMemoryRangeLabel);
+        Assert.Equal("DP BIN needs attention", viewModel.Merge.OutputLayout.Current.RangeLabel);
         Assert.Equal(
             FirmwareSlotSemanticState.Error,
             viewModel.Merge.MergeSlots.Single(slot => slot.SlotId == "merge-dp").SemanticState);
