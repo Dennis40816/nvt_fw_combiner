@@ -1,8 +1,11 @@
 """Compare the repository test-data copy with the pinned nvt-testdata mirror.
 
 The mirror named by NFC_TESTDATA_ROOT must hold the same relative files with the
-same SHA-256 as the repository copy. Only the pin file is excluded, because it
-lives only in this repository and names the mirror commit.
+same SHA-256 as the repository copy. The pin file is excluded on both sides,
+because it lives only in this repository and names the mirror commit. The mirror
+root also holds the entries in FOREIGN_MIRROR_ENTRIES, which are not repository
+test data. They are skipped on the mirror side only, and the repository copy may
+not use their names.
 """
 
 from __future__ import annotations
@@ -29,6 +32,15 @@ FULL_COMMIT = re.compile(r"[0-9a-f]{40}")
 REPOSITORY_NAME = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 ROOT_NAME = re.compile(r"[A-Za-z0-9_.-]+")
 REPORT_LIMIT = 20
+
+# Root entries of the nvt-testdata mirror root that are not repository test data.
+# Each entry is one file or one whole directory, named exactly. Keep this list short.
+FOREIGN_MIRROR_ENTRIES: tuple[tuple[PurePosixPath, str], ...] = (
+    (PurePosixPath(".gitattributes"), "Keeps the mirror bytes binary in nvt-testdata. Permanent."),
+    (PurePosixPath("docs"), "Older nfc/docs copy. Delete this entry after the nvt-testdata cleanup."),
+    (PurePosixPath("testdata"), "Older nfc/testdata copy. Delete this entry after the nvt-testdata cleanup."),
+)
+FOREIGN_MIRROR_PATHS = frozenset(path for path, _ in FOREIGN_MIRROR_ENTRIES)
 
 
 def repository_copy(repository_root: Path = REPOSITORY_ROOT) -> Path:
@@ -64,23 +76,42 @@ def configured_mirror_root() -> Path:
     return resolve_testdata_root()
 
 
-def tree_hashes(root: Path, excluded: frozenset[PurePosixPath] = frozenset()) -> dict[PurePosixPath, str]:
-    """Hash every regular file below root by its relative POSIX path."""
+def tree_hashes(
+    root: Path,
+    excluded: frozenset[PurePosixPath] = frozenset(),
+    excluded_trees: frozenset[PurePosixPath] = frozenset(),
+) -> dict[PurePosixPath, str]:
+    """Hash every regular file below root by its relative POSIX path.
+
+    `excluded` names single files. `excluded_trees` names files or directories
+    that are skipped together with everything below them.
+    """
     hashes: dict[PurePosixPath, str] = {}
     for path in sorted(root.rglob("*")):
         relative = PurePosixPath(path.relative_to(root).as_posix())
         if path.is_symlink():
             raise ValueError(f"symbolic links are not allowed in test data: {relative}")
-        if not path.is_file() or relative in excluded:
+        if not path.is_file() or relative in excluded or in_trees(relative, excluded_trees):
             continue
         hashes[relative] = hashlib.sha256(path.read_bytes()).hexdigest()
     return hashes
 
 
+def in_trees(relative: PurePosixPath, trees: frozenset[PurePosixPath]) -> bool:
+    """Return whether relative is one of trees or lies below one of them."""
+    return relative in trees or any(parent in trees for parent in relative.parents)
+
+
 def compare_trees(repository: Path, mirror: Path) -> dict[str, list[str]]:
     """Return missing, extra and changed relative paths of the mirror."""
     expected = tree_hashes(repository, frozenset({PIN_FILE}))
-    actual = tree_hashes(mirror, frozenset({PIN_FILE}))
+    reserved = sorted(str(path) for path in expected if in_trees(path, FOREIGN_MIRROR_PATHS))
+    if reserved:
+        raise ValueError(
+            "the repository test data uses a name reserved for a foreign mirror entry: "
+            + ", ".join(reserved[:REPORT_LIMIT])
+        )
+    actual = tree_hashes(mirror, frozenset({PIN_FILE}), FOREIGN_MIRROR_PATHS)
     return {
         "missing": sorted(str(path) for path in expected.keys() - actual.keys()),
         "extra": sorted(str(path) for path in actual.keys() - expected.keys()),

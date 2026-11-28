@@ -92,6 +92,60 @@ def test_pin_file_is_excluded_on_both_sides(monkeypatch, trees, capsys):
     assert status == 0
 
 
+def test_foreign_mirror_entries_are_skipped_on_the_mirror_side(monkeypatch, trees, capsys):
+    repository_root, _, mirror = trees
+    write(mirror / ".gitattributes", b"* -text -diff\n")
+    write(mirror / "docs" / "references" / "note.md", b"older copy\n")
+    write(mirror / "testdata" / "golden" / "case" / "input.dat", bytes(range(16)))
+    status, output = run(monkeypatch, repository_root, mirror, capsys)
+    assert status == 0
+    assert "(2 files)" in output.out
+
+
+def test_foreign_mirror_entries_are_exact_root_names(monkeypatch, trees, capsys):
+    repository_root, _, mirror = trees
+    write(mirror / "golden" / "docs" / "note.md", b"x")
+    write(mirror / "docs-old" / "note.md", b"x")
+    write(mirror / "golden" / ".gitattributes", b"x")
+    status, output = run(monkeypatch, repository_root, mirror, capsys)
+    assert status == 1
+    assert "extra: 3" in output.err
+    assert "docs-old/note.md" in output.err
+    assert "golden/docs/note.md" in output.err
+    assert "golden/.gitattributes" in output.err
+
+
+def test_foreign_mirror_entries_do_not_hide_missing_or_changed_files(monkeypatch, trees, capsys):
+    repository_root, _, mirror = trees
+    write(mirror / "testdata" / "README.md", b"synthetic\n")
+    (mirror / "README.md").unlink()
+    write(mirror / "golden" / "case" / "input.dat", bytes(range(1, 17)))
+    status, output = run(monkeypatch, repository_root, mirror, capsys)
+    assert status == 1
+    assert "missing: 1\n  README.md" in output.err
+    assert "changed: 1\n  golden/case/input.dat" in output.err
+
+
+@pytest.mark.parametrize("name", [".gitattributes", "docs/note.md", "testdata/golden/input.dat"])
+def test_repository_copy_may_not_use_a_foreign_entry_name(monkeypatch, trees, name):
+    repository_root, repository, mirror = trees
+    write(repository / name, b"x")
+    write(mirror / name, b"x")
+    monkeypatch.setenv("NFC_TESTDATA_ROOT", str(mirror))
+    with pytest.raises(ValueError, match="reserved for a foreign mirror entry"):
+        MODULE.check_mirror(repository_root)
+
+
+def test_foreign_mirror_entries_are_documented():
+    names = [str(path) for path, _ in MODULE.FOREIGN_MIRROR_ENTRIES]
+    assert names == [".gitattributes", "docs", "testdata"]
+    notes = dict((str(path), note) for path, note in MODULE.FOREIGN_MIRROR_ENTRIES)
+    assert "Permanent" in notes[".gitattributes"]
+    for name in ("docs", "testdata"):
+        assert "after the nvt-testdata cleanup" in notes[name]
+    assert all(len(path.parts) == 1 for path, _ in MODULE.FOREIGN_MIRROR_ENTRIES)
+
+
 def test_unset_root_fails_instead_of_comparing_the_copy(monkeypatch, trees):
     repository_root, _, _ = trees
     monkeypatch.delenv("NFC_TESTDATA_ROOT", raising=False)
