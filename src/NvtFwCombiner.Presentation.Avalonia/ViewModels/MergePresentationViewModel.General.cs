@@ -22,6 +22,9 @@ internal sealed partial class MergePresentationViewModel
     private string _preparedGeneralMergeDefaultLength = string.Empty;
     private string _preparedGeneralMergeDefaultFillByte = string.Empty;
 
+    /// <summary>Gets the current General decision for shared page and layout issue rendering.</summary>
+    internal GeneralAuthoringAdmissionResult? GeneralMergeAdmission => IsGeneralMergeModeSelected ? _generalMergeAdmission : null;
+
     internal void RefreshGeneralMergeDefaults(string icId, bool isAuthorable)
     {
         RefreshGeneralMergeDefaultsCore(icId, isAuthorable, publishChanges: true);

@@ -1,11 +1,12 @@
 // Copyright (c) 2026 Dennis Liu. All rights reserved.
 using CommunityToolkit.Mvvm.ComponentModel;
 using NvtFwCombiner.Application.Authoring;
+using NvtFwCombiner.Application.Capabilities;
 using NvtFwCombiner.Application.MemoryLayout;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
 
-/// <summary>Publishes the legacy display and output map together from one memory-layout revision.</summary>
+/// <summary>Publishes the panel and supporting display facts together from one memory-layout revision.</summary>
 internal sealed class OutputLayoutPresentationViewModel : ObservableObject
 {
     // Publication is serialized by MergePresentationViewModel's _memoryProjectionGate.
@@ -21,35 +22,88 @@ internal sealed class OutputLayoutPresentationViewModel : ObservableObject
         IEnumerable<FirmwareSlotViewModel> slots,
         MemoryPendingPrerequisite fallbackPrerequisite,
         GeneralAuthoringAdmissionResult? admission = null,
-        IReadOnlyList<string>? requiredAddressSpaces = null)
+        IReadOnlyList<string>? requiredAddressSpaces = null,
+        string summaryText = "",
+        CapabilityActionAvailability? availability = null)
     {
+        FirmwareSlotViewModel[] currentSlots = [.. slots];
         string rangeLabel;
         IReadOnlyList<MemoryMapRowViewModel> rows;
         IReadOnlyList<MemoryCoverageSegmentViewModel> coverageSegments;
         OutputMapModel? map = null;
-        if (authoring?.ExactCapability is { } capability)
+        OutputLayoutNotice? notice = null;
+        string capacityLabel = string.Empty;
+        try
         {
-            (rangeLabel, rows, coverageSegments) = UiCompositionRunner.GetMemoryDisplay(
-                services, authoring, text, out _, out MemoryLayoutSnapshot layout, admission);
-            map = OutputMapProjection.Create(layout, authoring, capability.CompiledComposition.Plan.OutputSpaceId, text);
+            if (authoring?.ExactCapability is { } capability)
+            {
+                (rangeLabel, rows, coverageSegments) = UiCompositionRunner.GetMemoryDisplay(
+                    services, authoring, text, out _, out MemoryLayoutSnapshot layout, admission);
+                map = OutputMapProjection.Create(layout, authoring, capability.CompiledComposition.Plan.OutputSpaceId, text);
+                capacityLabel = FormattableString.Invariant($"{layout.Capacity / 1024d:0.###} KiB");
+            }
+            else
+            {
+                (rangeLabel, rows, coverageSegments) = UiCompositionRunner.GetPendingMemoryDisplay(
+                    text, currentSlots, fallbackPrerequisite, out MemoryLayoutPendingDisplay pending, authoring, requiredAddressSpaces);
+                notice = new(pending.Readiness == MemoryLayoutReadiness.Blocked
+                    ? OutputLayoutNoticeKind.Blocked : OutputLayoutNoticeKind.Waiting,
+                    rangeLabel, rows[0].Detail);
+            }
         }
-        else
+        catch (MemoryLayoutDisplayProjectionException)
         {
-            (rangeLabel, rows, coverageSegments) = UiCompositionRunner.GetPendingMemoryDisplay(
-                text, slots, fallbackPrerequisite, authoring, requiredAddressSpaces);
+            // A display failure drops only derived preview state; Build keeps its existing admission owner.
+            rangeLabel = string.Empty;
+            rows = [];
+            coverageSegments = [];
+            map = null;
+            notice = new(OutputLayoutNoticeKind.Unavailable, text.MemoryLayoutUnavailableTitle, text.MemoryLayoutUnavailableDetail);
+        }
+
+        if (notice?.Kind != OutputLayoutNoticeKind.Unavailable && admission is { IsAdmitted: false } &&
+            availability is not null && !coverageSegments.Any(static segment => segment.FillRole == MemoryCoverageFillRole.Conflict))
+        {
+            // Rejected drafts can retain an accepted session whose availability has no blockers.
+            IssueCardViewModel blocker = IssueCardViewModel.FromBuildAvailability(availability, currentSlots, text, false, string.Empty, admission);
+            notice = new(OutputLayoutNoticeKind.Blocked, blocker.Subject,
+                string.Join(" ", new[] { blocker.Summary, blocker.DiagnosticCode }.Where(static value => !string.IsNullOrWhiteSpace(value))));
         }
 
         // Logical items assign the interaction shared by the rail and legend before either can bind it.
         IReadOnlyList<MemoryCoverageLogicalItemViewModel> logicalItems =
             ReplaceRegionGroupBuilder.CreateLogicalItems(coverageSegments, text);
+        IReadOnlyList<MemoryCoverageSegmentViewModel> coverageRows =
+            Array.AsReadOnly([.. logicalItems.SelectMany(static item => item.Ranges)]);
+        (string start, string end) = MemoryCoverageBarProjection.OuterAddresses(coverageSegments);
+        int slotErrors = currentSlots.Count(static slot => slot.IsSemanticStateError);
+        var panel = new OutputLayoutPanelModel(coverageSegments, capacityLabel, rangeLabel, start, end,
+            coverageRows, currentSlots.Length > 0 ? currentSlots.Count(static slot => slot.IsInputInspectionWarning)
+                : CountDiagnostics(coverageSegments, MemoryDiagnosticSeverity.Warning),
+            admission is { Issues.Count: > 0 } ? admission.Issues.Count : slotErrors > 0 ? slotErrors
+                : CountDiagnostics(coverageSegments, MemoryDiagnosticSeverity.Error),
+            notice, text: text,
+            rowOptions: coverageSegments.Where(static segment => segment.FillRole == MemoryCoverageFillRole.Conflict)
+                .Select(static segment => new OutputLayoutRowOptions(OutputLayoutRowIdentity.For(segment),
+                    OutputLayoutGroupKind.Write)),
+            summaryText: summaryText,
+            inputErrors: currentSlots.Where(static slot => slot.IsSemanticStateError)
+                .Select(static slot => slot.SemanticStateAutomationText));
         var publication = new OutputLayoutPublication(
             rangeLabel,
             Array.AsReadOnly([.. rows]),
             Array.AsReadOnly([.. coverageSegments]),
-            Array.AsReadOnly([.. logicalItems.SelectMany(static item => item.Ranges)]),
+            coverageRows,
             map,
-            authoring?.AuthoringRevision);
+            authoring?.AuthoringRevision,
+            panel);
         _ = SetProperty(ref _current, publication, nameof(Current));
+    }
+
+    private static int CountDiagnostics(IEnumerable<MemoryCoverageSegmentViewModel> segments, MemoryDiagnosticSeverity severity)
+    {
+        return segments.Where(segment => segment.DiagnosticSeverity == severity)
+            .DistinctBy(static segment => segment.SourceSlotId ?? segment.LogicalCoverageGroupId, StringComparer.Ordinal).Count();
     }
 }
 
@@ -60,7 +114,8 @@ internal sealed record OutputLayoutPublication(
     IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments,
     IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageRows,
     OutputMapModel? Map,
-    AuthoringRevision? Revision)
+    AuthoringRevision? Revision,
+    OutputLayoutPanelModel? Panel = null)
 {
     public string StartAddress => MemoryCoverageBarProjection.OuterAddresses(CoverageSegments).Start;
 

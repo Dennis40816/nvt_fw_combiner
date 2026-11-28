@@ -2,7 +2,6 @@ using System.Collections.Specialized;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Markup.Xaml.Styling;
@@ -113,7 +112,7 @@ public sealed class MemoryCoveragePublicationTests
         Assert.Same(publications[^1], viewModel.Merge.OutputLayout.Current);
         Assert.NotNull(publications[^1].Map);
         Assert.True(
-            viewModel.Merge.MergeCoverageSegments.Count > 2,
+            viewModel.Merge.OutputLayout.Current.CoverageSegments.Count > 2,
             "The fixture must keep enough segments that per-item Add fan-out would be detected.");
 
         publications.Clear();
@@ -125,42 +124,23 @@ public sealed class MemoryCoveragePublicationTests
         Assert.NotNull(publications[0].Map);
     }
 
-    /// <summary>The production template keeps the same rail and follows the child's publication through legacy bindings.</summary>
+    /// <summary>The production Merge page follows atomic panel publications without retaining legacy map controls.</summary>
     [AvaloniaFact]
-    public void MergeTemplateFollowsAtomicPublicationThroughExistingBindings()
+    public async Task MergePageFollowsAtomicPanelPublication()
     {
-        MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
-        shell.ShowMergeCommand.Execute(null);
-        var content = new ContentControl { Content = shell.Merge };
-        var window = new Window { Width = 420, Height = 640, Content = content, DataContext = shell };
-        var uri = new Uri("avares://NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowSharedTemplates.axaml");
-        window.Resources.MergedDictionaries.Add(new ResourceInclude(uri) { Source = uri });
-        content.ContentTemplate = Assert.IsType<IDataTemplate>(window.FindResource("MergeOutputLayoutPanelTemplate"), exactMatch: false);
-        window.Show();
-        try
-        {
-            Render();
-            MemoryCoverageBar bar = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>());
-            Assert.Empty(window.GetVisualDescendants().OfType<OutputMap>());
-            Assert.True(bar.ShowLegend);
-            Assert.Same(shell.Merge.OutputLayout.Current.CoverageSegments, bar.ItemsSource);
-
-            shell.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
-            shell.SelectedLanguage = "Traditional Chinese";
-            Render();
-
-            Assert.Same(bar, Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>()));
-            Assert.Same(shell.Merge.OutputLayout.Current.CoverageSegments, bar.ItemsSource);
-            Assert.Equal("等待來源對應", Assert.Single(shell.Merge.MergeCoverageSegments).SourceLabel);
-            Assert.Equal(shell.Merge.OutputLayout.Current.StartAddress, bar.StartAddress);
-            Assert.Equal(shell.Merge.OutputLayout.Current.EndAddress, bar.EndAddress);
-            Assert.NotEmpty(Assert.Single(shell.Merge.MergeMemoryRows).Detail);
-            Assert.Null(shell.Merge.OutputLayout.Current.Map);
-        }
-        finally
-        {
-            window.Close();
-        }
+        using var workspace = TempWorkspace.Create("merge-panel-publication");
+        await using MergeOutputLayoutTestHost host = await MergeOutputLayoutTestHost.CreateAsync(workspace);
+        OutputLayoutPanel panel = host.Panel;
+        Assert.Same(host.Shell.Merge.OutputLayout.Current.Panel, panel.Model);
+        host.Shell.Merge.SelectedMergeMode = ExperienceIds.GeneralMerge;
+        host.Shell.SelectedLanguage = "Traditional Chinese";
+        host.Render();
+        Assert.Same(panel, host.Panel);
+        Assert.Same(host.Shell.Merge.OutputLayout.Current.Panel, panel.Model);
+        Assert.Equal("等待來源對應", host.Model.Notice!.Title);
+        Assert.Equal(Assert.Single(host.Shell.Merge.OutputLayout.Current.Rows).Detail, host.Model.Notice.Reason);
+        Assert.DoesNotContain(host.Window.GetVisualDescendants().OfType<MemoryCoverageBar>(), static bar => bar.IsEffectivelyVisible);
+        Assert.Null(host.Shell.Merge.OutputLayout.Current.Map);
     }
 
     /// <summary>One <see cref="ResettableObservableCollection{T}.ReplaceAll"/> rebuilds the rail's

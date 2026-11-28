@@ -37,7 +37,6 @@ public sealed partial class XamlControlStyleContractTests
         Assert.Contains("Property=\"BorderThickness\" Value=\"0\"", barSegment, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderBrush", barSegment, StringComparison.Ordinal);
         Assert.DoesNotContain("BorderThickness", linkedSegment, StringComparison.Ordinal);
-        AssertUsesSharedCoverageBar(templates, "{Binding MergeCoverageSegments}", plain: true);
         AssertUsesSharedCoverageBar(workflowTemplates, "{Binding ReplaceCoverageSegments}", plain: false);
         Assert.DoesNotContain("NfcMemoryAddressTextBrush", linkedSegment, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageTooltipTemplate", templates, StringComparison.Ordinal);
@@ -174,13 +173,10 @@ public sealed partial class XamlControlStyleContractTests
 
     /// <summary>The reference-aligned explorer outlines active segments without expanding their track geometry.</summary>
     [AvaloniaTheory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task ProductionMemoryCoverageSelectionKeepsExactTrackGeometry(
-        bool useDarkTheme,
-        bool useReplace)
+        bool useDarkTheme)
     {
         ThemeVariant theme = useDarkTheme ? ThemeVariant.Dark : ThemeVariant.Light;
         MainWindowViewModel viewModel = await Task.Run(
@@ -189,14 +185,7 @@ public sealed partial class XamlControlStyleContractTests
         // This checks exact resting geometry; animated lift is covered separately by
         // LiftKeepsLabelScaleUnchangedDuringAndAfterAnimation through real production styles.
         viewModel.IsReducedMotionEnabled = true;
-        if (useReplace)
-        {
-            viewModel.ShowReplaceCommand.Execute(null);
-        }
-        else
-        {
-            viewModel.ShowMergeCommand.Execute(null);
-        }
+        viewModel.ShowReplaceCommand.Execute(null);
         viewModel.WorkflowSession.SelectedIc = "NT51929";
         var sharedResources = new ResourceInclude(ProductionSharedTemplatesUri)
         {
@@ -206,16 +195,16 @@ public sealed partial class XamlControlStyleContractTests
         {
             Source = ProductionWorkflowTemplatesUri,
         };
-        ResourceInclude templateResources = useReplace ? workflowResources : sharedResources;
+        ResourceInclude templateResources = workflowResources;
         Assert.True(templateResources.TryGetResource(
-            useReplace ? "ReplaceOutputLayoutPanelTemplate" : "MergeOutputLayoutPanelTemplate",
+            "ReplaceOutputLayoutPanelTemplate",
             theme,
             out object? templateResource));
         IDataTemplate template = Assert.IsType<IDataTemplate>(templateResource, exactMatch: false);
         var panel = new ContentControl
         {
             Width = 430,
-            Content = useReplace ? viewModel.Replace : viewModel.Merge,
+            Content = viewModel.Replace,
             ContentTemplate = template,
         };
         var host = new Window
@@ -227,10 +216,7 @@ public sealed partial class XamlControlStyleContractTests
             Content = panel,
         };
         host.Resources.MergedDictionaries.Add(sharedResources);
-        if (useReplace)
-        {
-            host.Resources.MergedDictionaries.Add(workflowResources);
-        }
+        host.Resources.MergedDictionaries.Add(workflowResources);
         host.Styles.Add(new StyleInclude(ProductionMainWindowStylesUri)
         {
             Source = ProductionMainWindowStylesUri,
@@ -261,9 +247,7 @@ public sealed partial class XamlControlStyleContractTests
             Assert.True(Avalonia.Application.Current!.TryGetResource("NfcMemoryTrackBrush", theme, out object? expectedTrackSurface));
             Assert.Equal(Assert.IsType<SolidColorBrush>(expectedTrackSurface).Color,
                 Assert.IsType<ISolidColorBrush>(track.Background, exactMatch: false).Color);
-            MemoryCoverageSegmentViewModel active = useReplace
-                ? viewModel.Replace.ReplaceCoverageSegments[0]
-                : viewModel.Merge.MergeCoverageSegments[0];
+            MemoryCoverageSegmentViewModel active = viewModel.Replace.ReplaceCoverageSegments[0];
             var pointerOwner = new object();
             active.Interaction.SetPointerActive(pointerOwner, true);
             Dispatcher.UIThread.RunJobs();

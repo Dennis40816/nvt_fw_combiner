@@ -37,7 +37,10 @@ internal sealed record OutputLayoutPanelRow(int FirstPin, IReadOnlyList<MemoryCo
     {
         return segment.IsSelectedForWrite ? OutputLayoutGroupKind.Write :
         segment.Disposition == MemoryWorkflowDisposition.Kept ? OutputLayoutGroupKind.Kept :
-        segment.Disposition == MemoryWorkflowDisposition.Blank ? OutputLayoutGroupKind.NotWritten : null;
+        segment.Disposition == MemoryWorkflowDisposition.Blank ||
+        (segment.Disposition == MemoryWorkflowDisposition.Resolved && segment.ContentRole is
+            MemoryContentRole.Unmapped or MemoryContentRole.CustomerInformation or MemoryContentRole.Reserved)
+            ? OutputLayoutGroupKind.NotWritten : null;
     }
 }
 
@@ -56,7 +59,8 @@ internal sealed class OutputLayoutPanelModel
         int warningCount = 0, int errorCount = 0, OutputLayoutNotice? notice = null,
         MemoryWorkflowDisposition writeDisposition = MemoryWorkflowDisposition.WillWrite,
         ShellTextResources? text = null, string? sharedInputHint = null,
-        IEnumerable<OutputLayoutRowOptions>? rowOptions = null)
+        IEnumerable<OutputLayoutRowOptions>? rowOptions = null,
+        string summaryText = "", bool canRequestIssue = false, IEnumerable<string>? inputErrors = null)
     {
         ArgumentNullException.ThrowIfNull(segments);
         ArgumentOutOfRangeException.ThrowIfNegative(warningCount);
@@ -77,6 +81,10 @@ internal sealed class OutputLayoutPanelModel
         Notice = notice;
         WriteDisposition = writeDisposition;
         SharedInputHint = sharedInputHint;
+        SummaryText = summaryText;
+        CanRequestIssue = canRequestIssue;
+        InputErrors = Array.AsReadOnly((inputErrors ?? []).ToArray());
+        Text = text ?? ShellTextResources.For(ShellLanguage.English);
         _rowOptions = (rowOptions ?? []).ToDictionary(static option => option.Identity);
         foreach (OutputLayoutRowOptions option in _rowOptions.Values)
         {
@@ -86,7 +94,7 @@ internal sealed class OutputLayoutPanelModel
                 throw new ArgumentOutOfRangeException(nameof(rowOptions));
             }
         }
-        Rows = CreateRows(text ?? ShellTextResources.For(ShellLanguage.English));
+        Rows = CreateRows(Text);
     }
 
     private System.Collections.ObjectModel.ReadOnlyCollection<OutputLayoutPanelRow> CreateRows(ShellTextResources text)
@@ -129,6 +137,11 @@ internal sealed class OutputLayoutPanelModel
     public OutputLayoutNotice? Notice { get; }
     public MemoryWorkflowDisposition WriteDisposition { get; }
     public string? SharedInputHint { get; }
+    public string SummaryText { get; }
+    public bool CanRequestIssue { get; }
+    /// <summary>Existing localized slot diagnostics from the same publication as the error count.</summary>
+    public IReadOnlyList<string> InputErrors { get; }
+    public ShellTextResources Text { get; }
 
     private OutputLayoutGroupKind? GroupFor(MemoryCoverageSegmentViewModel segment)
     {

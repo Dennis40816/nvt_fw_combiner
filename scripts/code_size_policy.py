@@ -33,12 +33,12 @@ HOTSPOT_LINES: dict[str, int] = {
     "NvtFwCombiner.Application.VersionManagement.VersionManagementExperience": 2_441,
     "NvtFwCombiner.Infrastructure.VersionManagement.WindowsStablePathCustody": 2_007,
     "NvtFwCombiner.Presentation.Avalonia.MainWindow": 2_004,
-    "NvtFwCombiner.Presentation.Avalonia.ViewModels.MergePresentationViewModel": 2_142,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.MergePresentationViewModel": 2_124,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReplacePresentationViewModel": 2_256,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.ReportReviewViewModel": 2_625,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.ShellTextResources": 3_212,
     "NvtFwCombiner.Presentation.Avalonia.ViewModels.SettingsViewModel": 2_191,
-    "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_833,
+    "NvtFwCombiner.Presentation.Avalonia.ViewModels.WorkflowSessionPresentationViewModel": 2_831,
     "NvtFwCombiner.Profiles.V2.V2CompositionPlanCompiler": 3_819,
 }
 HOTSPOT_ENTRY_LINES = 2_000

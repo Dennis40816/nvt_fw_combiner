@@ -28,7 +28,7 @@ public sealed partial class ShellNavigationSystemTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.IcChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
         var changes = new List<string?>();
@@ -73,7 +73,7 @@ public sealed partial class ShellNavigationSystemTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.IcChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
 
@@ -110,7 +110,7 @@ public sealed partial class ShellNavigationSystemTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.IcChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
         Assert.Contains("NT51929", selector.Items.Cast<string>());
@@ -144,14 +144,14 @@ public sealed partial class ShellNavigationSystemTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.IcChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedIc") { Mode = BindingMode.TwoWay });
         var modeSelector = new ComboBox { DataContext = viewModel.Merge };
         _ = modeSelector.Bind(
             ItemsControl.ItemsSourceProperty,
             new Binding(nameof(MergePresentationViewModel.MergeModeChoices)));
         _ = modeSelector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding(nameof(MergePresentationViewModel.SelectedMergeMode))
             {
                 Mode = BindingMode.TwoWay,
@@ -292,8 +292,7 @@ public sealed partial class ShellNavigationSystemTests
             propertyName == nameof(MergePresentationViewModel.IsNormalMergeModeSelected)));
         Assert.Equal(1, mergeChanges.Count(propertyName =>
             propertyName == nameof(MergePresentationViewModel.MergeOutputFileName)));
-        Assert.Equal(1, mergeChanges.Count(propertyName =>
-            propertyName == nameof(MergePresentationViewModel.MergeMemorySummary)));
+        Assert.NotEmpty(viewModel.Merge.OutputLayout.Current.Panel!.SummaryText);
     }
 
     /// <summary>An inactive retained AB context is reconciled without borrowing or replacing the active Replace context.</summary>
@@ -469,7 +468,7 @@ public sealed partial class ShellNavigationSystemTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.NumberSelectionChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedNumberChoice") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(
@@ -507,7 +506,7 @@ public sealed partial class ShellNavigationSystemTests
             ItemsControl.ItemsSourceProperty,
             new Binding("WorkflowSession.NumberSelectionChoices"));
         _ = selector.Bind(
-            ComboBox.SelectedItemProperty,
+            Avalonia.Controls.Primitives.SelectingItemsControl.SelectedItemProperty,
             new Binding("WorkflowSession.SelectedNumberChoice") { Mode = BindingMode.TwoWay });
         Dispatcher.UIThread.RunJobs();
 
@@ -703,7 +702,7 @@ public sealed partial class ShellNavigationSystemTests
         internal CanonicalCapabilityPolicySnapshot Load()
         {
             CanonicalCapabilityPolicySnapshot policy =
-                NvtFwCombiner.Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load();
+                Infrastructure.Capabilities.BuiltInCanonicalCapabilityPolicy.Load();
             CanonicalCapabilityPolicyRoute[] routes =
             [
                 .. policy.Routes.Select(route => IsDisabledRoute(route)

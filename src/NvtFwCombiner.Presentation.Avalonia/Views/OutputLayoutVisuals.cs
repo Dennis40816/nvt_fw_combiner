@@ -62,6 +62,16 @@ internal static class OutputLayoutVisuals
 
     internal static Control Fill(OutputLayoutPanel owner, MemoryCoverageSegmentViewModel segment)
     {
+        if (OutputLayoutPanelRow.GroupFor(segment) == OutputLayoutGroupKind.NotWritten)
+        {
+            return new Border
+            {
+                Classes = { "memoryCoverageFill" },
+                DataContext = segment,
+                IsHitTestVisible = false,
+            };
+        }
+
         var template = (IDataTemplate)owner.FindResource("MemoryCoverageSegmentBarTemplate")!;
         Control fill = template.Build(segment)!;
         fill.DataContext = segment;

@@ -25,6 +25,7 @@
           <TextBlock Name="LayoutCapacity" Grid.Column="1" Classes="captionText" VerticalAlignment="Center" />
         </Grid>
         <TextBlock Name="LayoutIssues" Classes="outputLayoutIssues" TextWrapping="Wrap" />
+        <StackPanel Name="LayoutInputErrors" Spacing="{DynamicResource NfcSpace8}" />
         <StackPanel Name="LayoutNotice" Spacing="{DynamicResource NfcSpace8}" />
         <StackPanel Name="LayoutMap" Spacing="{DynamicResource NfcSpace4}">
           <Canvas Name="LayoutPins" Height="22" />
@@ -37,6 +38,12 @@
           </Grid>
         </StackPanel>
         <StackPanel Name="LayoutGroups" Spacing="{DynamicResource NfcSpace12}" />
+        <Expander Name="LayoutContext" Classes="inlineDisclosure">
+          <StackPanel Spacing="{DynamicResource NfcSpace8}">
+            <TextBlock Name="LayoutSummary" Classes="captionText" TextWrapping="Wrap" />
+            <TextBlock Name="LayoutRange" Classes="technicalValue" TextWrapping="Wrap" />
+          </StackPanel>
+        </Expander>
         <TextBlock Name="LayoutSharedHint" Classes="captionText" TextWrapping="Wrap" />
       </StackPanel>
     </Grid>

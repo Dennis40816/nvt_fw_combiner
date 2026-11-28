@@ -42,7 +42,7 @@ internal sealed class OutputLayoutPanelPresenter
         Rebuild();
     }
 
-    private OutputLayoutPanelText Text => new((_owner.Labels as ShellTextResources) ?? ShellTextResources.For(ShellLanguage.English));
+    private OutputLayoutPanelText Text => new((_owner.Labels as ShellTextResources) ?? _owner.Model?.Text ?? ShellTextResources.For(ShellLanguage.English));
     private T Find<T>(string name) where T : Control
     {
         return _owner.FindControl<T>(name)!;
@@ -73,9 +73,25 @@ internal sealed class OutputLayoutPanelPresenter
         issues.Text = Text.Issues(model?.WarningCount ?? 0, model?.ErrorCount ?? 0);
         issues.IsVisible = model is { WarningCount: > 0 } or { ErrorCount: > 0 };
         issues.Classes.Set("error", model is { ErrorCount: > 0 });
+        StackPanel inputErrors = Find<StackPanel>("LayoutInputErrors");
+        inputErrors.Children.Clear();
+        foreach (string reason in model?.InputErrors ?? [])
+        {
+            inputErrors.Children.Add(OutputLayoutVisuals.Text(reason, "captionText"));
+        }
+        inputErrors.IsVisible = inputErrors.Children.Count > 0;
         TextBlock hint = Find<TextBlock>("LayoutSharedHint");
         hint.Text = model?.SharedInputHint;
         hint.IsVisible = !string.IsNullOrEmpty(hint.Text);
+        TextBlock summary = Find<TextBlock>("LayoutSummary");
+        summary.Text = model?.SummaryText;
+        summary.IsVisible = !string.IsNullOrEmpty(summary.Text);
+        TextBlock range = Find<TextBlock>("LayoutRange");
+        range.Text = model?.RangeLabel;
+        range.IsVisible = model is { Notice: null } && !string.IsNullOrEmpty(range.Text);
+        Expander context = Find<Expander>("LayoutContext");
+        context.Header = Text.Shell.MemoryProcessingDetailsLabel;
+        context.IsVisible = summary.IsVisible || range.IsVisible;
         BuildNotice(model?.Notice);
         Find<StackPanel>("LayoutMap").IsVisible = model is { Notice: null, Segments.Count: > 0 };
         if (model is { Notice: null }) { BuildGroups(model, previous, groups); BuildMap(model); }
@@ -198,6 +214,7 @@ internal sealed class OutputLayoutPanelPresenter
             $"{Text.SmallBlocks(row.Members.Count)}. {string.Join(". ", row.Members.Select(static member => member.AccessibleDetail))}";
         var disclosure = new OutputLayoutDisclosure(highlight, body, $"{row.PinLabel}. {accessible}",
             $"OutputLayout.Row.{row.PinLabel}", previous.GetValueOrDefault(key).Expanded);
+        disclosure.Header.DataContext = row;
         disclosure.Header.Tag = new FocusAnchor(key, null, "row");
         var entry = new Entry(key, row, disclosure, technical, highlight);
         _entries.Add(key, entry);
@@ -226,15 +243,21 @@ internal sealed class OutputLayoutPanelPresenter
             if (model.RangeFor(segment) is null) { continue; }
             // Supporting regions such as headers keep their place on the scale but stay blank, as on the old rail.
             if (!segment.IsPrimaryContent) { _bar.Children.Add(new Border { DataContext = segment, Height = 34 }); continue; }
-            var content = new Panel { Children = { OutputLayoutVisuals.Fill(_owner, segment) } };
-            TextBlock label = OutputLayoutVisuals.Text(segment.DisplayTitle, "bodyEmphasisText");
-            label.TextWrapping = TextWrapping.NoWrap;
-            label.TextTrimming = TextTrimming.CharacterEllipsis;
-            label.HorizontalAlignment = HorizontalAlignment.Center;
-            label.VerticalAlignment = VerticalAlignment.Center;
-            OutputLayoutVisuals.Resource(label, TextBlock.ForegroundProperty,
-                segment.FillRole is MemoryCoverageFillRole.Neutral or MemoryCoverageFillRole.Kept ? "NfcTextStrongBrush" : "NfcSurfaceBrush");
-            content.Children.Add(label);
+            Panel content = new()
+            {
+                Children = { OutputLayoutVisuals.Fill(_owner, segment) },
+            };
+            if (OutputLayoutPanelRow.GroupFor(segment) != OutputLayoutGroupKind.NotWritten)
+            {
+                TextBlock label = OutputLayoutVisuals.Text(segment.DisplayTitle, "bodyEmphasisText");
+                label.TextWrapping = TextWrapping.NoWrap;
+                label.TextTrimming = TextTrimming.CharacterEllipsis;
+                label.HorizontalAlignment = HorizontalAlignment.Center;
+                label.VerticalAlignment = VerticalAlignment.Center;
+                OutputLayoutVisuals.Resource(label, TextBlock.ForegroundProperty,
+                    segment.FillRole is MemoryCoverageFillRole.Neutral or MemoryCoverageFillRole.Kept ? "NfcTextStrongBrush" : "NfcSurfaceBrush");
+                content.Children.Add(label);
+            }
             var block = new Border
             {
                 Classes = { "outputLayoutBlock", "memoryCoverageLinkedRow" },
@@ -401,11 +424,11 @@ internal sealed class OutputLayoutPanelPresenter
         Entry? entry = _entries.Values.FirstOrDefault(item => item.Disclosure.Owns(focused));
         OutputLayoutDisclosure? disclosure = entry?.Technical?.Owns(focused) == true ? entry.Technical : entry?.Disclosure;
         disclosure ??= _groups.Values.FirstOrDefault(group => ReferenceEquals(group.Header, focused));
-        if (e.Key is Key.Enter or Key.Space && disclosure is not null)
+        if ((e.Key is Key.Enter or Key.Space) && disclosure is not null)
         {
             disclosure.Toggle.Execute(null); e.Handled = true;
         }
-        else if (e.Key is Key.Right or Key.Left or Key.Escape && disclosure is not null)
+        else if ((e.Key is Key.Right or Key.Left or Key.Escape) && disclosure is not null)
         {
             bool expand = e.Key == Key.Right;
             if (disclosure.IsExpanded != expand)
