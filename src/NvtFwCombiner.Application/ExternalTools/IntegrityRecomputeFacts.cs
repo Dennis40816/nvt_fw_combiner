@@ -47,6 +47,9 @@ public sealed record IntegrityRecomputeCommand(
 /// <summary>One user segment that overlaps one declared integrity storage location.</summary>
 public sealed record IntegrityStorageHit(IntegrityStorageLocation Location, ByteRange UserSegment, ByteRange Overlap);
 
+/// <summary>One user segment that overlaps one range the declared recompute route rewrites.</summary>
+public sealed record IntegrityWriteRangeHit(IntegrityRecomputeWriteRange Range, ByteRange UserSegment, ByteRange Overlap);
+
 /// <summary>
 /// Read-only facts for the recompute confirmation. Storage locations and write ranges come from the existing
 /// postbuild owner, <see cref="LegacyCombinerPostbuildPlanCompiler"/>. Coverage and algorithm names are not
@@ -176,5 +179,32 @@ public sealed class IntegrityRecomputeFacts
             }
         }
         return MemoryLayoutFactSet<IntegrityStorageHit>.Known(hits);
+    }
+
+    /// <summary>
+    /// Lists each user segment that overlaps a range the recompute route rewrites. The route rewrites these
+    /// bytes, for example the header, even where no integrity value is stored. When the write ranges are
+    /// unavailable, the result is unavailable with the same reason, never an empty known list.
+    /// </summary>
+    public MemoryLayoutFactSet<IntegrityWriteRangeHit> FindWriteRangeHits(IEnumerable<ByteRange> userSegments)
+    {
+        ArgumentNullException.ThrowIfNull(userSegments);
+        if (WriteRanges.Status == MemoryLayoutFactStatus.Unavailable)
+        {
+            return MemoryLayoutFactSet<IntegrityWriteRangeHit>.Unavailable(WriteRanges.UnavailableReason);
+        }
+
+        List<IntegrityWriteRangeHit> hits = [];
+        foreach (ByteRange segment in userSegments)
+        {
+            foreach (IntegrityRecomputeWriteRange range in WriteRanges.Values)
+            {
+                if (segment.Intersect(range.Range) is { } overlap)
+                {
+                    hits.Add(new IntegrityWriteRangeHit(range, segment, overlap));
+                }
+            }
+        }
+        return MemoryLayoutFactSet<IntegrityWriteRangeHit>.Known(hits);
     }
 }

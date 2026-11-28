@@ -183,6 +183,76 @@ public sealed class IntegrityRecomputeFactsTests
         Assert.Equal(MemoryLayoutFactUnavailableReason.OutputLocationNotResolved, hits.UnavailableReason);
     }
 
+    /// <summary>A segment inside a rewritten range but outside every storage location is a write hit only.</summary>
+    [Fact]
+    public void WriteRangeHitsIncludeRewrittenBytesOutsideTheStorageLocations()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = AllPlans().First(candidate =>
+            WriteOnlyByte(IntegrityRecomputeFacts.FromPostbuild(candidate, CapacityFor(candidate))) is not null);
+        IntegrityRecomputeFacts facts = IntegrityRecomputeFacts.FromPostbuild(plan, CapacityFor(plan));
+        long address = WriteOnlyByte(facts)!.Value;
+        ByteRange segment = new(address, 1);
+
+        MemoryLayoutFactSet<IntegrityWriteRangeHit> writeHits = facts.FindWriteRangeHits([segment]);
+        MemoryLayoutFactSet<IntegrityStorageHit> storageHits = facts.FindStorageHits([segment]);
+
+        Assert.Equal(MemoryLayoutFactStatus.KnownWithValues, writeHits.Status);
+        Assert.All(writeHits.Values, hit =>
+        {
+            Assert.Equal(segment, hit.UserSegment);
+            Assert.Equal(segment, hit.Overlap);
+            Assert.True(hit.Range.Range.Contains(address));
+        });
+        Assert.NotEqual(MemoryLayoutFactStatus.KnownWithValues, storageHits.Status);
+    }
+
+    /// <summary>A segment that overlaps a storage location is also a write hit, because writes contain storage.</summary>
+    [Fact]
+    public void StorageHitIsAlsoAWriteRangeHit()
+    {
+        LegacyCombinerPostbuildCommandPlan plan = Nt51926Cascade();
+        IntegrityRecomputeFacts facts = IntegrityRecomputeFacts.FromPostbuild(plan, CapacityFor(plan));
+        ByteRange segment = facts.StorageLocations.Values[0].StorageRange;
+
+        Assert.Equal(MemoryLayoutFactStatus.KnownWithValues, facts.FindStorageHits([segment]).Status);
+        Assert.Equal(MemoryLayoutFactStatus.KnownWithValues, facts.FindWriteRangeHits([segment]).Status);
+    }
+
+    /// <summary>Unavailable write ranges give unavailable write hits, and untouched ranges give known-empty hits.</summary>
+    [Fact]
+    public void WriteRangeHitsKeepTheUnavailableAndEmptyStates()
+    {
+        MemoryLayoutFactSet<IntegrityWriteRangeHit> unknown =
+            IntegrityRecomputeFacts.Unknown(null).FindWriteRangeHits([new ByteRange(0, Capacity)]);
+        MemoryLayoutFactSet<IntegrityWriteRangeHit> noRule =
+            IntegrityRecomputeFacts.NoRecomputeRule(null).FindWriteRangeHits([new ByteRange(0, Capacity)]);
+        LegacyCombinerPostbuildCommandPlan plan = Nt51926Cascade();
+        long capacity = CapacityFor(plan);
+        IntegrityRecomputeFacts facts = IntegrityRecomputeFacts.FromPostbuild(plan, capacity);
+        long free = Enumerable.Range(0, (int)capacity)
+            .Select(static offset => (long)offset)
+            .First(offset => !facts.WriteRanges.Values.Any(range => range.Range.Contains(offset)));
+
+        Assert.Equal(MemoryLayoutFactUnavailableReason.OutputLocationNotResolved, unknown.UnavailableReason);
+        Assert.Equal(MemoryLayoutFactUnavailableReason.NotDeclared, noRule.UnavailableReason);
+        Assert.Equal(MemoryLayoutFactStatus.KnownEmpty, facts.FindWriteRangeHits([new ByteRange(free, 1)]).Status);
+    }
+
+    private static long? WriteOnlyByte(IntegrityRecomputeFacts facts)
+    {
+        foreach (IntegrityRecomputeWriteRange range in facts.WriteRanges.Values)
+        {
+            for (long address = range.Range.Start; address < range.Range.EndExclusive; address++)
+            {
+                if (!facts.StorageLocations.Values.Any(location => location.StorageRange.Contains(address)))
+                {
+                    return address;
+                }
+            }
+        }
+        return null;
+    }
+
     private static LegacyCombinerPostbuildCommandPlan Nt51926Cascade()
     {
         return LegacyCombinerPostbuildCatalog.Nt51926.ResolvePlan(
