@@ -145,21 +145,17 @@ public sealed partial class ProfileBoundaryTests
         Assert.DoesNotContain("private static void AddNtBasedHeaderIntegrityRanges", normalize, StringComparison.Ordinal);
     }
 
-    /// <summary>Locks one final full staging read while preserving selective short-output normalization.</summary>
+    /// <summary>Only the host imports a complete image; the protocol adapter preserves selective short-tail normalization.</summary>
     [Fact]
     public void LegacyPostbuildPipelineReadsTheCompleteFirmwareOnlyAtFinalImport()
     {
-        string processor = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.cs");
-        string staging = ReadText(
-            "src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerPostbuildProcessor.Staging.cs");
+        string host = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/StagedExternalProcessorHost.cs");
+        string processor = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerProcessorAdapter.Postbuild.cs");
+        string staging = ReadText("src/NvtFwCombiner.Infrastructure/ExternalTools/LegacyCombinerProcessorAdapter.PostbuildStaging.cs");
 
-        string pipelineSource = processor + staging;
-        Assert.Equal(
-            1,
-            pipelineSource.Split("File.ReadAllBytesAsync(firmwarePath", StringSplitOptions.None).Length - 1);
-        Assert.DoesNotContain("File.ReadAllBytes(firmwarePath", pipelineSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("File.ReadAllBytesAsync(firmwarePath", staging, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(host, "File.ReadAllBytesAsync(session.OutputPath"));
+        Assert.DoesNotContain("File.ReadAllBytes", processor, StringComparison.Ordinal);
+        Assert.DoesNotContain("File.ReadAllBytes", staging, StringComparison.Ordinal);
         Assert.Contains("if (!command.RetainShortOutputTail)", staging, StringComparison.Ordinal);
         Assert.Contains("expectedLength - minimumLength", staging, StringComparison.Ordinal);
         Assert.Contains("ReadExactlyAsync(tailBytes", staging, StringComparison.Ordinal);

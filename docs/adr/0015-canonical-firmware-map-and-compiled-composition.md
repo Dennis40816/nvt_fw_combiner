@@ -505,7 +505,8 @@ movement is disclosed as relocation and never counted as deletion.
 Required external-tool compatibility is not confused with the retired host
 architecture. Distinct legacy Combiner.exe wire/argv/staging protocols may keep
 distinct adapters, but every compiled operation enters one `IExternalProcessor`
-route and `ExternalProcessorRouter` selects exactly one adapter. Profiles owns
+route and the staged external processor host selects exactly one adapter
+(`ExternalProcessorRouter` was folded into that host in g.2). Profiles owns
 the compiled command plan; runtime `LegacyCombinerPostbuildPlanner` and
 IC/workflow plan reconstruction are removed. Staging, process execution,
 before/after diff, range enforcement, assertions, cleanup, and audit behavior

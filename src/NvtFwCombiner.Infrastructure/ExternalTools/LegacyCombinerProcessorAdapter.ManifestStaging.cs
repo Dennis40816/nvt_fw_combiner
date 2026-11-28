@@ -1,17 +1,19 @@
+// Copyright (c) 2026 Dennis Liu. All rights reserved.
+
 using NvtFwCombiner.Application.ExternalTools;
 using NvtFwCombiner.Contracts.ExternalTools;
 using NvtFwCombiner.Domain.Composition;
 
 namespace NvtFwCombiner.Infrastructure.ExternalTools;
 
-public sealed partial class ExternalCombinerProcessor
+internal sealed partial class LegacyCombinerProcessorAdapter
 {
-    private static async ValueTask<IReadOnlyDictionary<string, string>> MaterializeStagedArtifactsAsync(
+    private static async ValueTask<Dictionary<string, string>> MaterializeStagedArtifactsAsync(
         ExternalProcessorRequest request,
         string runDirectory,
         CancellationToken cancellationToken)
     {
-        var artifactPaths = new Dictionary<string, string>(StringComparer.Ordinal);
+        Dictionary<string, string> artifactPaths = new(StringComparer.Ordinal);
         foreach (ExternalProcessorStagedArtifact artifact in request.StagedArtifacts)
         {
             string path = Path.Combine(runDirectory, $"artifact-{artifact.ArtifactId}.bin");
@@ -32,8 +34,8 @@ public sealed partial class ExternalCombinerProcessor
         out IReadOnlyList<string>? expandedArguments,
         out CompositionIssue? issue)
     {
-        var usedArtifactIds = new HashSet<string>(StringComparer.Ordinal);
-        var expanded = new List<string>();
+        HashSet<string> usedArtifactIds = new(StringComparer.Ordinal);
+        List<string> expanded = [];
         foreach (string template in arguments)
         {
             string argument = template
@@ -119,7 +121,7 @@ public sealed partial class ExternalCombinerProcessor
 
     private static async ValueTask<CompositionIssue?> VerifyStagedArtifactsUnchangedAsync(
         IReadOnlyList<ExternalProcessorStagedArtifact> stagedArtifacts,
-        IReadOnlyDictionary<string, string> stagedArtifactPaths,
+        Dictionary<string, string> stagedArtifactPaths,
         CancellationToken cancellationToken)
     {
         foreach (ExternalProcessorStagedArtifact artifact in stagedArtifacts)

@@ -619,20 +619,13 @@ internal sealed class ExternalProcessorEnvironmentLoader :
             new LocalFileStore(),
             Path.Combine(stagingRoot, "runtime-deployments"));
         return new(
-            new ExternalProcessorRouter(
-                new LegacyCombinerPostbuildProcessor(
-                    registry,
-                    toolRoot,
-                    stagingRoot,
-                    runner,
-                    deployment),
-                new ExternalCombinerProcessor(
-                    registry,
-                    toolRoot,
-                    stagingRoot,
-                    runner,
-                    ExternalCombinerInvocationCatalog.All,
-                    deployment)),
+            new StagedExternalProcessorHost(
+                registry,
+                toolRoot,
+                stagingRoot,
+                runner,
+                [new LegacyCombinerProcessorAdapter(ExternalCombinerInvocationCatalog.All)],
+                deployment),
             readiness,
             manifests.Count,
             runtimeTools.AsReadOnly(),
