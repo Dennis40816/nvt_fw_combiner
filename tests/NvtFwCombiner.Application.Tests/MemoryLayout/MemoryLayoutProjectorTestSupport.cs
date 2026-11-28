@@ -1,5 +1,6 @@
 using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
+using NvtFwCombiner.Application.MemoryLayout;
 using NvtFwCombiner.Application.Metadata;
 using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Domain.Firmware;
@@ -12,6 +13,61 @@ internal static class MemoryLayoutProjectorTestSupport
 {
     internal const long Capacity = 16;
     internal static readonly ResolutionToken Token = new("catalog-1");
+
+    internal static void AssertOutputWriteInvariants(MemoryLayoutSnapshot layout, CompositionPlan plan)
+    {
+        Assert.NotEqual(MemoryLayoutFactStatus.Unavailable, layout.OutputWrites.Status);
+        ByteRange output = new(0, layout.Capacity);
+        Assert.All(layout.OutputWrites.Values, write =>
+        {
+            Assert.Equal(layout.AddressSpaceId, write.OutputRange.AddressSpaceId);
+            Assert.True(output.Contains(write.OutputRange.Range));
+            Assert.Contains(plan.OrderedOperations, step => step.OperationId == write.OperationId);
+        });
+        foreach (MemoryLayoutOutputWrite left in layout.OutputWrites.Values)
+        {
+            foreach (MemoryLayoutOutputWrite right in layout.OutputWrites.Values.Where(right =>
+                right.OperationId != left.OperationId && right.OutputRange.Range.Overlaps(left.OutputRange.Range)))
+            {
+                CompositionOperation first = plan.OrderedOperations.First(step => step.OperationId == left.OperationId);
+                CompositionOperation second = plan.OrderedOperations.First(step => step.OperationId == right.OperationId);
+                ByteRange intersection = left.OutputRange.Range.Intersect(right.OutputRange.Range)!.Value;
+                CompositionOperation later = first.Sequence > second.Sequence ? first : second;
+                Assert.True(later.OverlapPolicy is OverlapPolicy.ReplaceExisting or OverlapPolicy.AllowDeclared ||
+                    PlacementAllowsOverlap(plan, first.TargetSpaceId, first.TargetRange, first.Sequence, intersection) ||
+                    PlacementAllowsOverlap(plan, second.TargetSpaceId, second.TargetRange, second.Sequence, intersection),
+                    $"Output writes '{first.OperationId}' and '{second.OperationId}' overlap without a declared overlap policy.");
+            }
+        }
+    }
+
+    private static bool PlacementAllowsOverlap(CompositionPlan plan, string spaceId, ByteRange range,
+        int sequence, ByteRange outputIntersection)
+    {
+        foreach (CompositionOperation copy in plan.OrderedOperations.Where(operation =>
+            operation.Sequence > sequence && operation.SourceSpaceId == spaceId &&
+            operation.Kind is CompositionOperationKind.CopyRange or CompositionOperationKind.ReplaceRange))
+        {
+            if (copy.SourceRange is not { } read || range.Intersect(read) is not { } slice)
+            {
+                continue;
+            }
+            ByteRange placed = new(checked(copy.TargetRange.Start + slice.Start - read.Start), slice.Length);
+            if (copy.TargetSpaceId == plan.OutputSpaceId)
+            {
+                if (placed.Contains(outputIntersection) &&
+                    copy.OverlapPolicy is OverlapPolicy.ReplaceExisting or OverlapPolicy.AllowDeclared)
+                {
+                    return true;
+                }
+            }
+            else if (PlacementAllowsOverlap(plan, copy.TargetSpaceId, placed, copy.Sequence, outputIntersection))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     internal static ProjectionFixture CreateFixture(
         CompositionKind kind,

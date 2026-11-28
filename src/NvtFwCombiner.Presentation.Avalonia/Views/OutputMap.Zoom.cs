@@ -77,6 +77,7 @@ public sealed partial class OutputMap
         caption.Classes.Add("outputMapZoomCaption");
         parts.ZoomContent.Children.Add(caption);
         Canvas regions = Lane("OutputMap.ZoomRegions", 18);
+        regions.Margin = new Thickness(2, 0);
         BuildRegions(regions, viewport, "ZoomRegion");
         parts.ZoomContent.Children.Add(regions);
         BuildBar(output, viewport, "ZoomBlock");

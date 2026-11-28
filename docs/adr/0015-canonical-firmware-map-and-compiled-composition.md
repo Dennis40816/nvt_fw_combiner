@@ -147,6 +147,37 @@ extent. These planned facts do not claim execution or observed byte changes.
 Domain/Profile operation and issue semantics, output bytes, and existing
 snapshot members remain unchanged; no migration seam is introduced.
 
+The 2026-11-28 NFC 1.3.0 amendment adds `MemoryLayoutSnapshot.OutputWrites`
+as an immutable `MemoryLayoutFactSet<MemoryLayoutOutputWrite>`. Each entry
+joins to a content step by `OperationId` and carries a half-open range in the
+snapshot's output address space, an input slot and corresponding source slice
+when it copies a bound input, and the containing bank locator's identity when
+one exists. A copy of an input-cloned work image retains that input binding
+on every slice that no earlier step wrote into the clone (copy, fill, patch,
+transform or processor); those written slices are followed under their
+earlier operations' identities. Thus a copy can contain both content-carrying
+and transport slices, while scalar edits and processors remain separate
+source-less declarations. A clone of a space that is not a bound input, for
+example a clone of a clone, makes the collection unavailable with
+`OutputLocationNotResolved`.
+
+Application follows ordered compiled copy/replace source-to-target range
+correspondences, including multiple hops, partial placements and replication.
+It reuses the resolved authoring input bindings and existing bank locators.
+Bank reference seed copies and pure mutable-buffer transport copies are used
+only to locate content writes and are omitted from this collection; `Steps`
+keeps every original operation. A later write that reuses scratch bytes before
+they are published ends the earlier placement chain for those bytes; the
+earlier write stays known and those bytes count as consumed, not unresolved. Scalar and processor
+overlays retain their declared coordinate geometry, without asserting that
+earlier source bytes survive. Each content declaration must have a complete
+proven output placement or the entire collection is unavailable with
+`OutputLocationNotResolved`; no overlay uses `CompiledPlanNotResolved`.
+Direct content writes keep their output coordinates. Processors contribute
+only `DeclaredWriteRanges`, never their staging extent. These are planned
+write declarations, not final byte ownership or execution evidence. Profiles,
+firmware bytes, overlap policy, operation order and Presentation are unchanged.
+
 `CompiledRegionAccessContract` owns effective authoring prohibitions and the
 same target-write predicate used by the profile compiler. A prohibited byte
 range is one that no legal authoring target can cover, including default

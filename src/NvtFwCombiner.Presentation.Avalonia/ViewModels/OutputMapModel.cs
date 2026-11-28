@@ -20,6 +20,20 @@ internal sealed class OutputMapModel
         Blocks = Array.AsReadOnly(blocks?.ToArray() ?? []);
         Sources = Array.AsReadOnly(sources?.ToArray() ?? []);
         CrcAnnotations = Array.AsReadOnly(crcAnnotations?.ToArray() ?? []);
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OutputMapRegion region in Regions)
+        {
+            if (!keys.Add(region.Key)) { throw new ArgumentException("Region keys must be unique.", nameof(regions)); }
+        }
+        foreach (OutputMapBlock block in Blocks)
+        {
+            if (!keys.Add(block.Key)) { throw new ArgumentException("Block and region keys must be unique.", nameof(blocks)); }
+        }
+        keys.Clear();
+        foreach (OutputMapSource source in Sources)
+        {
+            if (!keys.Add(source.Key)) { throw new ArgumentException("Source keys must be unique.", nameof(sources)); }
+        }
         Version = version;
         Highlight = highlight;
     }

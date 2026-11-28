@@ -111,10 +111,7 @@ public static partial class MemoryLayoutProjector
             {
                 continue;
             }
-            var wholeBank = new ByteRange(0, bank.OutputRange.Length);
-            if (operation.OperationId == $"{bank.BankId}/seed" &&
-                operation.Kind == CompositionOperationKind.CopyRange && operation.SourceSpaceId == bank.Reference.ArtifactId &&
-                operation.SourceRange == wholeBank && operation.TargetRange == wholeBank)
+            if (IsBankSeed(operation, bank))
             {
                 continue;
             }
@@ -127,5 +124,13 @@ public static partial class MemoryLayoutProjector
             projected.Add(new(operation, ranges));
         }
         return [.. projected];
+    }
+
+    internal static bool IsBankSeed(CompositionOperation operation, CompiledReferenceBank bank)
+    {
+        ByteRange wholeBank = new(0, bank.OutputRange.Length);
+        return operation.OperationId == $"{bank.BankId}/seed" &&
+            operation.Kind == CompositionOperationKind.CopyRange && operation.SourceSpaceId == bank.Reference.ArtifactId &&
+            operation.TargetSpaceId == bank.WorkspaceId && operation.SourceRange == wholeBank && operation.TargetRange == wholeBank;
     }
 }
