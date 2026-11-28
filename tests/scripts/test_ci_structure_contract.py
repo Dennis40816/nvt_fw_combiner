@@ -83,7 +83,7 @@ class CiStructureContractTests(unittest.TestCase):
                     if str(step.get("uses", "")).startswith("actions/checkout@")
                 ]
 
-                self.assertEqual(6, len(checkout_steps))
+                self.assertEqual(7, len(checkout_steps))
                 for step in checkout_steps:
                     checkout_with = step["with"]
                     self.assertEqual(expected_ref, checkout_with["ref"])
@@ -130,6 +130,31 @@ class CiStructureContractTests(unittest.TestCase):
                     script.index("if ($ancestryStatus -ne 0)"),
                 )
 
+    def test_composite_action_uses_must_be_pinned_to_a_full_sha(self) -> None:
+        action = self.root / ".github/actions/example/action.yml"
+        action.parent.mkdir(parents=True)
+        pinned = (
+            "runs:\n  using: composite\n  steps:\n"
+            "    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0\n"
+            "    - uses: ./.github/actions/other\n"
+        )
+        action.write_text(pinned, encoding="utf-8")
+        with patch.object(repository_validator, "ROOT", self.root):
+            errors: list[str] = []
+            repository_validator.validate_action_pins(errors)
+            self.assertEqual([], errors)
+
+            action.write_text(pinned + "    - uses: actions/setup-python@v6\n", encoding="utf-8")
+            errors = []
+            repository_validator.validate_action_pins(errors)
+        self.assertEqual(
+            [
+                "third-party action is not pinned to a full SHA in "
+                ".github/actions/example/action.yml:6: actions/setup-python@v6"
+            ],
+            [error.replace("\\", "/") for error in errors],
+        )
+
     def test_ci_workflow_validator_rejects_every_non_windows_topology(self) -> None:
         expected_jobs = {
             "structure",
@@ -138,6 +163,7 @@ class CiStructureContractTests(unittest.TestCase):
             "dotnet-build",
             "dotnet-test",
             "dotnet",
+            "testdata-mirror",
         }
 
         def workflow_text(overrides: dict[str, object] | None = None) -> str:

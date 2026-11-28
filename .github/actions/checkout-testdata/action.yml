@@ -1,0 +1,56 @@
+name: Checkout pinned nvt-testdata
+description: Check out the nvt-testdata commit pinned in testdata/nvt-testdata.json and export NFC_TESTDATA_ROOT
+inputs:
+  deploy-key:
+    description: Read-only deploy key for the pinned nvt-testdata repository
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Require the nvt-testdata deploy key
+      shell: pwsh
+      env:
+        NFC_TESTDATA_DEPLOY_KEY: ${{ inputs.deploy-key }}
+      run: |
+        if ([string]::IsNullOrWhiteSpace($env:NFC_TESTDATA_DEPLOY_KEY)) {
+          throw 'The nvt-testdata deploy key is empty. This run cannot read the pinned test data.'
+        }
+    - name: Read the pinned nvt-testdata commit
+      id: pin
+      shell: pwsh
+      run: |
+        python scripts/testdata_mirror_check.py pin --output $env:GITHUB_OUTPUT
+        if ($LASTEXITCODE -ne 0) { throw 'The nvt-testdata pin file is invalid.' }
+    # The mirror is compared byte for byte, so the runner must not convert line endings.
+    - name: Keep nvt-testdata bytes unconverted
+      shell: pwsh
+      run: |
+        git config --global core.autocrlf false
+        if ($LASTEXITCODE -ne 0) { throw 'Cannot disable line-ending conversion.' }
+    - name: Checkout pinned nvt-testdata
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        repository: ${{ steps.pin.outputs.repository }}
+        ref: ${{ steps.pin.outputs.commit }}
+        ssh-key: ${{ inputs.deploy-key }}
+        path: nvt-testdata
+        persist-credentials: false
+    - name: Verify the checked-out commit and export NFC_TESTDATA_ROOT
+      shell: pwsh
+      env:
+        NFC_TESTDATA_PIN_COMMIT: ${{ steps.pin.outputs.commit }}
+        NFC_TESTDATA_PIN_ROOT: ${{ steps.pin.outputs.root }}
+      run: |
+        $checkout = Join-Path $env:GITHUB_WORKSPACE 'nvt-testdata'
+        $actualHead = & git -C $checkout rev-parse --verify HEAD
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to resolve the nvt-testdata HEAD.' }
+        if ($actualHead.Trim() -cne $env:NFC_TESTDATA_PIN_COMMIT) {
+          throw 'The nvt-testdata HEAD does not match the pinned commit.'
+        }
+        $root = Join-Path $checkout $env:NFC_TESTDATA_PIN_ROOT
+        if (-not (Test-Path -LiteralPath $root -PathType Container)) {
+          throw "The pinned nvt-testdata commit has no '$env:NFC_TESTDATA_PIN_ROOT' directory."
+        }
+        $root = (Resolve-Path -LiteralPath $root).Path
+        "NFC_TESTDATA_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        Write-Host "NFC_TESTDATA_ROOT names the pinned nvt-testdata commit $env:NFC_TESTDATA_PIN_COMMIT."

@@ -1381,6 +1381,7 @@ def _validate_windows_only_ci_topology(path: Path, errors: list[str]) -> None:
         "dotnet-build",
         "dotnet-test",
         "dotnet",
+        "testdata-mirror",
     }
     try:
         workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -1444,11 +1445,20 @@ def validate_ci_dotnet_verifier_contract(verifier: str, errors: list[str]) -> No
         )
 
 
-def validate_workflows(errors: list[str]) -> None:
+def validate_action_pins(errors: list[str]) -> None:
+    """Require full-SHA pins in workflows, workflow templates and composite actions."""
     for base in (ROOT / ".github/workflows", ROOT / "docs/ci/workflow-templates"):
         if base.is_dir():
             for path in sorted(base.glob("*.yml")):
                 validate_action_pins_in(path, errors)
+    actions = ROOT / ".github/actions"
+    if actions.is_dir():
+        for path in sorted(actions.rglob("action.yml")):
+            validate_action_pins_in(path, errors)
+
+
+def validate_workflows(errors: list[str]) -> None:
+    validate_action_pins(errors)
     _validate_windows_only_ci_topology(ROOT / ".github/workflows/ci.yml", errors)
     _validate_windows_only_ci_topology(
         ROOT / "docs/ci/workflow-templates/ci.yml", errors

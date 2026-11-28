@@ -16,8 +16,7 @@ public sealed class Nt51950Nt51951DpReplaceSyntheticOracleTests
     [Fact]
     public void HistoricalHashesAndDeclaredRangesRemainImmutable()
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromRepositoryRoot(
-            "testdata",
+        using var document = JsonDocument.Parse(File.ReadAllText(RepositoryPaths.FromTestData(
             "public-synthetic",
             "dp-replace",
             "nt51950-nt51951-dp-replace-oracle-v1.json")));
