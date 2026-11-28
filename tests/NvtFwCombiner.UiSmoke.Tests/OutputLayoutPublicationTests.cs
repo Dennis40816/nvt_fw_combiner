@@ -75,12 +75,20 @@ public sealed class OutputLayoutPublicationTests
         var child = new OutputLayoutPresentationViewModel();
         PublishGeneral(child, services, accepted, ShellLanguage.English);
         Assert.NotNull(child.Current.Map);
+        OutputLayoutPanelModel acceptedPanel = Assert.IsType<OutputLayoutPanelModel>(child.Current.Panel);
 
         PublishGeneral(child, services, null, ShellLanguage.English);
 
         OutputLayoutPublication pending = child.Current;
         Assert.Null(pending.Map);
         Assert.Null(pending.Revision);
+        Assert.NotSame(acceptedPanel, pending.Panel);
+        Assert.Equal(OutputLayoutNoticeKind.Waiting, pending.Panel!.Notice!.Kind);
+        Assert.All(pending.Panel.Segments, static segment =>
+        {
+            Assert.Null(segment.RangeStart);
+            Assert.Null(segment.RangeEndExclusive);
+        });
         Assert.Equal("Waiting for source mapping", pending.RangeLabel);
         MemoryCoverageSegmentViewModel coverage = Assert.Single(pending.CoverageSegments);
         Assert.Null(coverage.RangeStart);
@@ -96,7 +104,7 @@ public sealed class OutputLayoutPublicationTests
     [InlineData(true)]
     public void BlockedPublicationRetainsTheLegacyError(bool chinese)
     {
-        ShellTextResources text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
+        var text = ShellTextResources.For(chinese ? ShellLanguage.ChineseTraditional : ShellLanguage.English);
         var slot = new FirmwareSlotViewModel("dp", "DP BIN", "DP input", FirmwareSlotKind.Dp,
             addressSpaceId: "dp-input")
         { FilePath = "dp.bin" };
@@ -145,7 +153,7 @@ public sealed class OutputLayoutPublicationTests
         Assert.NotSame(english, chinese);
         Assert.Equal(english.Revision, chinese.Revision);
         Assert.Equal(englishMap.OutputLength, Assert.IsType<OutputMapModel>(chinese.Map).OutputLength);
-        Assert.Contains("保留值", shell.Merge.MergeMemorySummary, StringComparison.Ordinal);
+        Assert.Contains("保留值", shell.Merge.OutputLayout.Current.Panel!.SummaryText, StringComparison.Ordinal);
         Assert.NotEqual(english.CoverageSegments[0].Detail, chinese.CoverageSegments[0].Detail);
 
         shell.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
@@ -163,54 +171,44 @@ public sealed class OutputLayoutPublicationTests
         Assert.Same(mapping, shell.Merge.GeneralMergeMappings[0]);
     }
 
-    /// <summary>A context publication without a new layout still raises the summary, once.</summary>
+    /// <summary>Unchanged context notification does not create or replace a panel publication.</summary>
     [AvaloniaFact]
-    public void ContextPublicationWithoutANewLayoutRaisesTheSummary()
+    public void ContextNotificationKeepsTheCurrentPanelPublication()
     {
         MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         shell.ShowMergeCommand.Execute(null);
         OutputLayoutPublication current = shell.Merge.OutputLayout.Current;
-        List<string?> changes = [];
-        shell.Merge.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
-
         shell.Merge.PublishAcceptedModeContext();
-
-        _ = Assert.Single(changes, static name => name == nameof(MergePresentationViewModel.MergeMemorySummary));
         Assert.Same(current, shell.Merge.OutputLayout.Current);
+        Assert.Same(current.Panel, shell.Merge.OutputLayout.Current.Panel);
     }
 
-    /// <summary>A map refresh raises every display property that the existing panel binds, each once.</summary>
+    /// <summary>A map refresh replaces the complete panel input exactly once.</summary>
     [AvaloniaFact]
-    public void MapRefreshRaisesEveryDisplayPropertyOnce()
+    public void MapRefreshPublishesOnePanelModel()
     {
         MainWindowViewModel shell = PresentationTestHost.CreateViewModel();
         shell.ShowMergeCommand.Execute(null);
-        List<string?> changes = [];
-        shell.Merge.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
-        string[] displayed =
-        [
-            nameof(MergePresentationViewModel.MergeMemoryRangeLabel),
-            nameof(MergePresentationViewModel.MergeMemoryRows),
-            nameof(MergePresentationViewModel.MergeCoverageSegments),
-            nameof(MergePresentationViewModel.MergeCoverageRows),
-            nameof(MergePresentationViewModel.MergeStartAddress),
-            nameof(MergePresentationViewModel.MergeEndAddress),
-            nameof(MergePresentationViewModel.MergeMemorySummary),
-        ];
-
-        shell.Merge.RefreshMergeMemoryMapState();
-
-        Assert.All(displayed, name =>
+        List<OutputLayoutPublication> observed = [];
+        shell.Merge.OutputLayout.PropertyChanged += (_, args) =>
         {
-            _ = Assert.Single(changes, changed => changed == name);
-        });
+            Assert.Equal(nameof(OutputLayoutPresentationViewModel.Current), args.PropertyName);
+            observed.Add(shell.Merge.OutputLayout.Current);
+        };
+        shell.Merge.RefreshMergeMemoryMapState();
+        OutputLayoutPublication publication = Assert.Single(observed);
+        Assert.Same(publication, shell.Merge.OutputLayout.Current);
+        Assert.NotNull(publication.Panel);
+        Assert.Equal(publication.CoverageSegments, publication.Panel.Segments);
+        Assert.Equal(publication.CoverageRows, publication.Panel.CoverageRows);
+        Assert.Equal(publication.RangeLabel, publication.Panel.RangeLabel);
     }
 
     /// <summary>An accepted scratch-space layout keeps legacy ownership and initialization when the adapter returns null.</summary>
     [Fact]
     public void AdapterNullKeepsTheCompleteLegacyDisplay()
     {
-        CompositionHostServices host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
+        var host = CompositionHostServices.Create(IsolatedLocalState.CreateDirectory());
         byte[] tp = new byte[0x40000];
         tp[0x36001] = 0xFF;
         tp[0x36017] = 1;
@@ -223,7 +221,7 @@ public sealed class OutputLayoutPublicationTests
         Assert.True(prepared.Succeeded, string.Join(" | ", prepared.Issues.Select(static issue => issue.Message)));
         PresentationCompositionServices services = PresentationTestHost.CreateServices("1.3.0", host, static authoring => authoring).Composition;
         var child = new OutputLayoutPresentationViewModel();
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        var text = ShellTextResources.For(ShellLanguage.English);
 
         child.Publish(services, prepared.Snapshot, text, [], MemoryPendingPrerequisite.DpBin);
 

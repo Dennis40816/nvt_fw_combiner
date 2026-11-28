@@ -127,17 +127,7 @@ internal sealed partial class MergePresentationViewModel
 
     public OutputLayoutPresentationViewModel OutputLayout { get; } = new();
 
-    public IReadOnlyList<MemoryMapRowViewModel> MergeMemoryRows => OutputLayout.Current.Rows;
-
-    public IReadOnlyList<MemoryCoverageSegmentViewModel> MergeCoverageSegments => OutputLayout.Current.CoverageSegments;
-
-    public IReadOnlyList<MemoryCoverageSegmentViewModel> MergeCoverageRows => OutputLayout.Current.CoverageRows;
-
     public ObservableCollection<GeneralMergeMappingViewModel> GeneralMergeMappings { get; } = [];
-
-    public string MergeMemoryRangeLabel => OutputLayout.Current.RangeLabel;
-    public string MergeStartAddress => OutputLayout.Current.StartAddress;
-    public string MergeEndAddress => OutputLayout.Current.EndAddress;
 
     public string SelectedMergeMode
     {
@@ -194,11 +184,6 @@ internal sealed partial class MergePresentationViewModel
             : session?.ExactCapability?.CompiledComposition.V2Details
                 .OutputNamingRequirement.FileNameTemplate ?? fallback;
     }
-
-    public string MergeMemorySummary => Text.GetMergeMemorySummary(
-        SelectedMergeMode,
-        IsStandardMergeSupported,
-        GeneralMergeMappings.Any(static mapping => mapping.HasFile));
 
     public string StandardMergeSupportSummary => Text.GetStandardMergeSupportSummary(
         SelectedIc,
@@ -436,8 +421,6 @@ internal sealed partial class MergePresentationViewModel
         OnPropertyChanged(nameof(MergeOutputFileName));
         OnPropertyChanged(nameof(AbMergeOutputFileName));
         OnPropertyChanged(nameof(MergeReadinessStatus));
-        // A mode switch without an IC publishes the context but no new layout.
-        OnPropertyChanged(nameof(MergeMemorySummary));
         OnPropertyChanged(nameof(CanBuildMerge));
     }
 

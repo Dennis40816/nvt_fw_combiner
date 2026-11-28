@@ -32,6 +32,9 @@ public sealed partial class PresentationBoundaryTests
         string pageTemplates = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowPageTemplates.axaml");
         string workflowTemplates = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowWorkflowTemplates.axaml");
+        string outputLayoutPanel = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/OutputLayoutPanel.axaml");
+        string outputLayoutPresenter = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Views/OutputLayoutPanelPresenter.cs");
+        string outputLayoutText = ReadText("src/NvtFwCombiner.Presentation.Avalonia/ViewModels/OutputLayoutPanelText.cs");
         string shellPanels = ReadText("src/NvtFwCombiner.Presentation.Avalonia/Resources/MainWindowShellPanels.axaml");
         string workflowContextSetupModal = ReadText(
             "src/NvtFwCombiner.Presentation.Avalonia/Views/WorkflowContextSetupModal.axaml");
@@ -146,7 +149,10 @@ public sealed partial class PresentationBoundaryTests
             shellStyles,
             StringComparison.Ordinal);
         Assert.Contains("ColumnDefinitions=\"1.15*,430\"", shell, StringComparison.Ordinal);
-        Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding Text.OutputLayoutTitle}\"", workflowTemplates, StringComparison.Ordinal);
+        Assert.Contains("Name=\"LayoutTitle\"", outputLayoutPanel, StringComparison.Ordinal);
+        Assert.Contains("Find<TextBlock>(\"LayoutTitle\").Text = Text.Title;", outputLayoutPresenter, StringComparison.Ordinal);
+        Assert.Contains("internal string Title => Pick(\"Output layout\", \"輸出配置\");", outputLayoutText, StringComparison.Ordinal);
         Assert.DoesNotContain("IsEnabled=\"False\"", pageTemplates, StringComparison.Ordinal);
         Assert.Contains("LoadReportJsonButton_OnClick", shell, StringComparison.Ordinal);
         Assert.Contains("SaveReportButton_OnClick", reportModal, StringComparison.Ordinal);
@@ -162,7 +168,7 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("Text=\"{Binding Text.TargetsLabel}\"", shell, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding ShowReplaceSelectionCommand}\"", shell, StringComparison.Ordinal);
         Assert.Contains("ReplaceOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
-        Assert.Contains("MergeOutputLayoutPanelTemplate", shell, StringComparison.Ordinal);
+        Assert.Contains("<views:OutputLayoutPanel", shell, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoveragePlainSegmentBarTemplate", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("MemoryCoverageRegionCardTemplate", sharedTemplates, StringComparison.Ordinal);
@@ -213,10 +219,8 @@ public sealed partial class PresentationBoundaryTests
         Assert.Contains("Text=\"{Binding Text.ExplicitMappingsTitle}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ReplaceBaseSlot", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding GeneralReplaceMappings}\"", workflowTemplates, StringComparison.Ordinal);
-        Assert.Contains("ItemsSource=\"{Binding MergeCoverageSegments}\"", sharedTemplates, StringComparison.Ordinal);
+        Assert.Contains("Model=\"{Binding OutputLayout.Current.Panel}\"", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("DataContext=\"{Binding CoverageDetails}\"", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("<views:MemoryCoverageBar", sharedTemplates, StringComparison.Ordinal);
-        Assert.Contains("ShowLegend=\"True\"", sharedTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlots}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.Contains("ItemsSource=\"{Binding ReplaceSlotGroups}\"", workflowTemplates, StringComparison.Ordinal);
         Assert.DoesNotContain("ItemsSource=\"{Binding ReplaceBaseCoverageItems}\"", workflowTemplates, StringComparison.Ordinal);

@@ -15,10 +15,10 @@ using static NvtFwCombiner.UiSmoke.Tests.ReportControlTestHost;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
-/// <summary>The production rail exposes the shared, display-only small-slice explorer.</summary>
+/// <summary>Production workflows retain their display facts through their current layout controls.</summary>
 public sealed class MemoryCoverageExplorerTests
 {
-    /// <summary>Both workflows mount the same explorer without replacing their supporting rows.</summary>
+    /// <summary>Merge uses in-place details and Replace keeps the shared explorer and supporting rows.</summary>
     [AvaloniaTheory]
     [InlineData(false, false)]
     [InlineData(true, false)]
@@ -26,6 +26,15 @@ public sealed class MemoryCoverageExplorerTests
     [InlineData(true, true)]
     public async Task ProductionMapsExposeSharedSliceExplorer(bool replace, bool darkChinese)
     {
+        if (!replace)
+        {
+            using var mergeWorkspace = TempWorkspace.Create("merge-explorer");
+            await using MergeOutputLayoutTestHost host = await MergeOutputLayoutTestHost.CreateAsync(mergeWorkspace, dark: darkChinese, chinese: darkChinese);
+            await host.LoadStandardAsync();
+            Assert.NotEmpty(host.Model.Rows);
+            host.AssertDetails(host.Model.Rows.First(static row => row.Group == OutputLayoutGroupKind.Write).Members[0]);
+            return;
+        }
         using var workspace = TempWorkspace.Create("memory-explorer");
         PresentationHostServices services = await CreateServicesAsync(workspace);
         using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled, services, ShellPreferenceSnapshot.Default);

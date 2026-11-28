@@ -16,7 +16,7 @@ public sealed class MemoryCoverageStatePublicationTests
     [Fact]
     public void LogicalItemConstructionKeepsExistingStates()
     {
-        ShellTextResources text = ShellTextResources.For(ShellLanguage.English);
+        var text = ShellTextResources.For(ShellLanguage.English);
         MemoryCoverageSegmentViewModel first = Slice(0x100, 0x200, text);
         MemoryCoverageSegmentViewModel second = Slice(0x200, 0x300, text);
         MemoryCoverageSegmentViewModel apart = Slice(0x400, 0x500, text);
@@ -39,7 +39,7 @@ public sealed class MemoryCoverageStatePublicationTests
         MainWindowViewModel shell = CreateShell(workspace);
         JsonElement fixture = CanonicalGoldenTestData.LoadDirectCase("ctrlram-replace", "nt51950-fw200-single-auto-prj-676-20260717");
         List<(MemoryCoverageSegmentViewModel Slice, MemoryCoverageInteractionState State)> published = Watch(shell.Replace.ReplaceCoverageSegments);
-        UiLaunchOptions options = UiLaunchOptions.Parse(["--workflow", "ctrlram-replace", "--ic", "NT51950", "--ic-num", "single",
+        var options = UiLaunchOptions.Parse(["--workflow", "ctrlram-replace", "--ic", "NT51950", "--ic-num", "single",
             "--base", PathFor(fixture, "expected-output"), "--ctrlram", "replace-ctrlram-nf=" + PathFor(fixture, "postbuild-nf-ctrlram")]);
         await MainWindow.ApplyCtrlRamLaunchAsync(shell, options.CtrlRam!, TestContext.Current.CancellationToken);
         Assert.Contains(shell.Replace.ReplaceCoverageSegments, static slice => slice.ContentRole == MemoryContentRole.CtrlRam);
@@ -58,7 +58,7 @@ public sealed class MemoryCoverageStatePublicationTests
         await MainWindow.ApplyAbMergeLaunchAsync(shell, new AbMergeLaunchRequest("NT51929", "single",
             PathFor(golden, "dp-ab-input"), PathFor(golden, "tp-a-input"), PathFor(golden, "tp-b-input")),
             TestContext.Current.CancellationToken);
-        Assert.NotEmpty(shell.Merge.MergeCoverageRows);
+        Assert.NotEmpty(shell.Merge.OutputLayout.Current.CoverageRows);
         AssertStatesKept(published);
     }
 
@@ -107,7 +107,7 @@ public sealed class MemoryCoverageStatePublicationTests
 
     private static MainWindowViewModel CreateShell(TempWorkspace workspace)
     {
-        CompositionHostServices host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
+        var host = CompositionHostServices.Create(new ExternalProcessorEnvironmentLoader(),
             loadPolicy: null, localStateDirectory: IsolatedLocalState.CreateDirectory(), configurationPath: workspace.PathFor("format.json"));
         PresentationHostServices services = PresentationTestHost.CreateServices("ui-smoke", host, static authoring => authoring);
         return PresentationTestHost.PublishCanonicalCatalog(services, ShellViewModelFactory.Create(services, ShellLanguage.English));

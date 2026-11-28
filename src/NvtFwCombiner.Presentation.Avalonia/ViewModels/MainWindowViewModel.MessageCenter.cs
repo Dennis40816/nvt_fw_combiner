@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 using System.ComponentModel;
 
@@ -8,11 +9,11 @@ internal sealed partial class MainWindowViewModel
     public MessageCenterViewModel MessageCenter { get; }
 
     public bool HasMergeBuildBlocker => !Merge.CanBuildMerge &&
-        (MessageCenter.IsGlobalBuildBlocked || Merge.PrimaryBuildBlocker is not null);
+        (MessageCenter.IsGlobalBuildBlocked || Merge.GeneralMergeAdmission is { IsAdmitted: false } || Merge.PrimaryBuildBlocker is not null);
 
     public string MergeBuildBlockerText => HasMergeBuildBlocker ? MergeBuildBlockerCard.AutomationText : string.Empty;
 
-    public IssueCardViewModel MergeBuildBlockerCard => CreateBuildBlockerCard(Merge.BuildAvailability, Merge.MergeSlots);
+    public IssueCardViewModel MergeBuildBlockerCard => CreateBuildBlockerCard(Merge.BuildAvailability, Merge.MergeSlots, Merge.GeneralMergeAdmission);
 
     public bool HasReplaceBuildBlocker => !Replace.CanBuildReplace &&
         (MessageCenter.IsGlobalBuildBlocked || Replace.PrimaryBuildBlocker is not null);
@@ -21,10 +22,10 @@ internal sealed partial class MainWindowViewModel
 
     public IssueCardViewModel ReplaceBuildBlockerCard => CreateBuildBlockerCard(Replace.BuildAvailability, Replace.ReplaceSlots);
 
-    private IssueCardViewModel CreateBuildBlockerCard(CapabilityActionAvailability availability, IEnumerable<FirmwareSlotViewModel> slots)
+    private IssueCardViewModel CreateBuildBlockerCard(CapabilityActionAvailability availability, IEnumerable<FirmwareSlotViewModel> slots,
+        GeneralAuthoringAdmissionResult? admission = null)
     {
-        return IssueCardViewModel.FromBuildAvailability(availability, slots, Text,
-            MessageCenter.IsGlobalBuildBlocked, MessageCenter.GlobalBuildBlockerText);
+        return IssueCardViewModel.FromBuildAvailability(availability, slots, Text, MessageCenter.IsGlobalBuildBlocked, MessageCenter.GlobalBuildBlockerText, admission);
     }
 
     private bool IsGlobalBuildBlocked()

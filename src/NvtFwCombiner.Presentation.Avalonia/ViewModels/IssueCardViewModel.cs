@@ -1,3 +1,4 @@
+using NvtFwCombiner.Application.Authoring;
 using NvtFwCombiner.Application.Capabilities;
 
 namespace NvtFwCombiner.Presentation.Avalonia.ViewModels;
@@ -17,8 +18,17 @@ internal sealed record IssueCardViewModel(
 {
     public static IssueCardViewModel FromBuildAvailability(
         CapabilityActionAvailability availability, IEnumerable<FirmwareSlotViewModel> slots,
-        ShellTextResources text, bool globalBlocked, string globalBlockerText)
+        ShellTextResources text, bool globalBlocked, string globalBlockerText,
+        GeneralAuthoringAdmissionResult? admission = null)
     {
+        if (!globalBlocked && admission is { IsAdmitted: false, Issues.Count: > 0 })
+        {
+            return new IssueCardViewModel(text.BuildIssueCaption, text.BuildBlockedTitle,
+                string.Join(Environment.NewLine, admission.Issues.Select(static issue => issue.Message)),
+                string.Empty, string.Empty, IsError: true, DiagnosticCode: admission.Issues[0].Code,
+                IsBuildStatus: true);
+        }
+
         CapabilityActionBlocker? blocker = availability.PrimaryBlocker;
         // Application owns the order and count; Presentation enriches only the exact inspected slot.
         IssueCardViewModel? input = globalBlocked ? null : FindInputCard(blocker, slots);

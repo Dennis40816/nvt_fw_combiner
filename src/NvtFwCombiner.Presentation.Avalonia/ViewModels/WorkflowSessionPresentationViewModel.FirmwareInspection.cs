@@ -459,9 +459,7 @@ internal sealed partial class WorkflowSessionPresentationViewModel
 
         }
 
-        if (request.Items.Any(static item =>
-                item.SlotId == CompositionSlotIds.MergeDp ||
-                item.AbMergeAddressSpaceId is not null))
+        if (request.Context.IsMerge)
         {
             _merge.RefreshMergeMemoryMapState();
         }

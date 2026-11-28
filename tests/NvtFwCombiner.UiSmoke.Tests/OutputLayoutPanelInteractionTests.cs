@@ -88,7 +88,7 @@ public sealed class OutputLayoutPanelInteractionTests
     public void CollapsingFromInsideARowFocusesTheRow(Key key, PhysicalKey physicalKey)
     {
         using var host = new OutputLayoutPanelTestHost(new([
-            OutputLayoutPanelTestHost.Slice(0, 100, "DP", severity: MemoryDiagnosticSeverity.Warning, slot: "dp")], warningCount: 1));
+            OutputLayoutPanelTestHost.Slice(0, 100, "DP", severity: MemoryDiagnosticSeverity.Warning, slot: "dp")], warningCount: 1, canRequestIssue: true));
         host.Click(host.Row("1"));
         Assert.True(host.Find<Button>("OutputLayout.ShowIssue").Focus(NavigationMethod.Tab));
         host.Key(key, physicalKey);
@@ -189,7 +189,7 @@ public sealed class OutputLayoutPanelInteractionTests
     public void WarningActionRaisesHostNavigationWithTheOriginalSegment()
     {
         MemoryCoverageSegmentViewModel segment = OutputLayoutPanelTestHost.Slice(0, 100, "DP", severity: MemoryDiagnosticSeverity.Warning, slot: "dp");
-        using var host = new OutputLayoutPanelTestHost(new([segment], warningCount: 1));
+        using var host = new OutputLayoutPanelTestHost(new([segment], warningCount: 1, canRequestIssue: true));
         OutputLayoutIssueRequestedEventArgs? received = null;
         host.Panel.IssueRequested += (_, args) => received = args;
         host.Click(host.Row("1"));
@@ -204,7 +204,7 @@ public sealed class OutputLayoutPanelInteractionTests
     public void ClearingAWarningKeepsFocusOnItsSurvivingRow()
     {
         using var host = new OutputLayoutPanelTestHost(new([
-            OutputLayoutPanelTestHost.Slice(0, 100, "DP", severity: MemoryDiagnosticSeverity.Warning, slot: "dp")], warningCount: 1));
+            OutputLayoutPanelTestHost.Slice(0, 100, "DP", severity: MemoryDiagnosticSeverity.Warning, slot: "dp")], warningCount: 1, canRequestIssue: true));
         host.Click(host.Row("1"));
         Assert.True(host.Find<Button>("OutputLayout.ShowIssue").Focus(NavigationMethod.Tab));
         host.Panel.Model = new([OutputLayoutPanelTestHost.Slice(0, 100, "DP", slot: "dp")]);

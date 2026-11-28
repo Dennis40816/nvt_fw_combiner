@@ -10,7 +10,6 @@ internal sealed partial class MergePresentationViewModel
     internal void RefreshMergeMemoryMapState(bool refreshAuthoring = true)
     {
         PrepareMergeMemoryMapState(refreshAuthoring);
-        OnPropertyChanged(nameof(MergeMemorySummary));
     }
 
     private void PrepareMergeMemoryMapState(bool refreshAuthoring = true)
@@ -22,7 +21,7 @@ internal sealed partial class MergePresentationViewModel
                 RefreshGeneralMergeAuthoringState();
             }
 
-            ActiveSessionSnapshot? acceptedSession = SelectedMergeMode switch
+            ActiveSessionSnapshot? acceptedSession = !HasSelectedIc ? null : SelectedMergeMode switch
             {
                 GeneralMergeMode => _generalMergeSession.CurrentSnapshot,
                 AbCodeMergeMode => _abMergeSession.CurrentSnapshot,
@@ -30,22 +29,15 @@ internal sealed partial class MergePresentationViewModel
             };
             OutputLayout.Publish(
                 _compositionServices, acceptedSession, Text,
-                IsGeneralMergeModeSelected ? [] : MergeSlots,
+                IsGeneralMergeModeSelected || !HasSelectedIc ? [] : MergeSlots,
                 IsGeneralMergeModeSelected
                     ? MemoryPendingPrerequisite.GeneralMergeSourceMapping
                     : MemoryPendingPrerequisite.DpBin,
                 IsGeneralMergeModeSelected ? _generalMergeAdmission : null,
-                SelectedMergeMode == NormalMergeMode ? _appliedStandardMergeRequired : null);
+                SelectedMergeMode == NormalMergeMode ? _appliedStandardMergeRequired : null,
+                Text.GetMergeMemorySummary(SelectedMergeMode, IsStandardMergeSupported,
+                    GeneralMergeMappings.Any(static mapping => mapping.HasFile)),
+                IsGeneralMergeModeSelected ? BuildAvailability : null);
         }
-    }
-
-    private void NotifyOutputLayoutChanged()
-    {
-        OnPropertyChanged(nameof(MergeMemoryRangeLabel));
-        OnPropertyChanged(nameof(MergeMemoryRows));
-        OnPropertyChanged(nameof(MergeCoverageSegments));
-        OnPropertyChanged(nameof(MergeCoverageRows));
-        OnPropertyChanged(nameof(MergeStartAddress));
-        OnPropertyChanged(nameof(MergeEndAddress));
     }
 }

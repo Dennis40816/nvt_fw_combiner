@@ -365,26 +365,6 @@
   </Border>
 </DataTemplate>
 
-<DataTemplate x:Key="MergeOutputLayoutPanelTemplate" DataType="vm:MergePresentationViewModel">
-  <Border Classes="panelSurface memoryInfoPanel">
-    <views:SpaciousPanel>
-      <StackPanel Spacing="{DynamicResource NfcSpace16}">
-      <StackPanel Spacing="{DynamicResource NfcSpace8}">
-        <StackPanel Spacing="{DynamicResource NfcFieldSpacing}">
-          <TextBlock Classes="sectionTitle" Text="{Binding Text.OutputLayoutTitle}" />
-          <TextBlock Classes="mutedText memoryInfoDescription" Text="{Binding MergeMemorySummary}" TextWrapping="Wrap" />
-        </StackPanel>
-        <Border Classes="compactSubtleSurface memoryInfoAddress" Padding="8,4">
-          <TextBlock Classes="monoText detailText memoryInfoAddressText" Text="{Binding MergeMemoryRangeLabel}" TextWrapping="Wrap" />
-        </Border>
-      </StackPanel>
-
-      <views:MemoryCoverageBar ItemsSource="{Binding MergeCoverageSegments}" StartAddress="{Binding MergeStartAddress}" EndAddress="{Binding MergeEndAddress}" Labels="{Binding Text}" IsPlain="True" ShowLabels="True" ShowLegend="True" ReducedMotion="{ReflectionBinding $parent[Window].DataContext.IsReducedMotionEnabled}" />
-      </StackPanel>
-    </views:SpaciousPanel>
-  </Border>
-</DataTemplate>
-
 <DataTemplate x:Key="FirmwareSlotFactNoteTooltipTemplate" DataType="vm:FirmwareSlotFactNote">
   <StackPanel Spacing="{DynamicResource NfcSpace2}">
     <ItemsControl IsVisible="{Binding HasWarnings}" ItemsSource="{Binding Warnings}">

@@ -61,6 +61,7 @@ internal static partial class UiCompositionRunner
             ctrlRamRegions);
         snapshot = layout;
         overview = GetMemoryOverview(layout, text);
+        Dictionary<string, OutputMapSource> sources = OutputMapProjection.SelectedSources(layout, acceptedSession);
         IReadOnlyList<MemoryLayoutConflict> conflicts = admission is null
             ? []
             : MemoryLayoutProjector.ProjectAdmissionConflicts(admission, layout.Capacity);
@@ -71,7 +72,7 @@ internal static partial class UiCompositionRunner
                 .. conflicts.Select(conflict => ToMemoryMapRow(conflict, text)),
             ],
             [
-                .. layout.AfterSegments.Select(segment => ToMemoryCoverageSegment(layout, segment, text)),
+                .. layout.AfterSegments.Select(segment => ToMemoryCoverageSegment(layout, segment, text, sources)),
                 .. conflicts.Select(conflict => ToMemoryCoverageSegment(layout, conflict, text)),
             ]);
     }
@@ -115,14 +116,28 @@ internal static partial class UiCompositionRunner
         MemoryPendingPrerequisite fallbackPrerequisite,
         ActiveSessionSnapshot? authoring = null, IReadOnlyList<string>? requiredAddressSpaces = null)
     {
+        return GetPendingMemoryDisplay(text, slots, fallbackPrerequisite, out _, authoring, requiredAddressSpaces);
+    }
+
+    internal static (
+        string RangeLabel,
+        IReadOnlyList<MemoryMapRowViewModel> Rows,
+        IReadOnlyList<MemoryCoverageSegmentViewModel> CoverageSegments) GetPendingMemoryDisplay(
+        ShellTextResources text,
+        IEnumerable<FirmwareSlotViewModel> slots,
+        MemoryPendingPrerequisite fallbackPrerequisite,
+        out MemoryLayoutPendingDisplay projection,
+        ActiveSessionSnapshot? authoring = null, IReadOnlyList<string>? requiredAddressSpaces = null)
+    {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(slots);
         FirmwareSlotViewModel[] current = [.. slots];
-        MemoryLayoutPendingDisplay projection = MemoryLayoutProjector.ProjectPending(authoring,
+        projection = MemoryLayoutProjector.ProjectPending(authoring,
             current.Select(static slot => new MemoryLayoutPendingInput(slot.SlotId, slot.AddressSpaceId,
                 !slot.DeclaredIsOptional, slot.FilePath, slot.InputIssueStatus, slot.CompiledSlotId,
                 slot.InputAvailabilityIssue, slot.InputAuthoringIssues)), fallbackPrerequisite, requiredAddressSpaces);
-        FirmwareSlotViewModel? pending = current.FirstOrDefault(slot => slot.SlotId == projection.SlotId);
+        string? pendingSlotId = projection.SlotId;
+        FirmwareSlotViewModel? pending = current.FirstOrDefault(slot => slot.SlotId == pendingSlotId);
         (string waitingLabel, string detail) = projection.Readiness == MemoryLayoutReadiness.Blocked
             ? text.GetBlockingInputText(projection, pending!.Title)
             : pending is null ? text.GetPendingInputText(projection.FallbackPrerequisite)
@@ -183,7 +198,8 @@ internal static partial class UiCompositionRunner
     private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(
         MemoryLayoutSnapshot layout,
         MemoryLayoutSegment segment,
-        ShellTextResources text)
+        ShellTextResources text,
+        Dictionary<string, OutputMapSource> sources)
     {
         bool initialized = segment.InitializationFillByte.HasValue;
         string sourceLabel = initialized
@@ -193,6 +209,9 @@ internal static partial class UiCompositionRunner
         string logicalSourceLabel = segment.ContentRole == MemoryContentRole.CtrlRam
             ? ShellTextResources.GetCtrlRamRegionTechnicalLabel(segment.CtrlRamRegionRole)
             : sourceLabel;
+        string? sourceTitle = segment.SourceKind == MemoryArtifactKind.Other &&
+            segment.SourceSpaceId is { } sourceSpace && sources.TryGetValue(sourceSpace, out OutputMapSource? source)
+                ? source.FileName : null;
         return new MemoryCoverageSegmentViewModel(
             FormatMemoryRange(segment.Range),
             sourceLabel,
@@ -227,7 +246,7 @@ internal static partial class UiCompositionRunner
                 ? text.FormatMemoryCtrlRamTitle(segment.CtrlRamRegionRole, segment.RegionGroup)
                 : segment.SourceSpaceId is null || segment.ContentRole == MemoryContentRole.Reserved
                 ? text.GetMemoryContentTitle(segment.ContentRole, segment.CtrlRamRegionRole)
-                : null);
+                : sourceTitle);
     }
 
     private static MemoryCoverageSegmentViewModel ToMemoryCoverageSegment(
@@ -244,6 +263,9 @@ internal static partial class UiCompositionRunner
             300d * conflict.Range.Length / layout.Capacity,
             diagnosticSeverity: MemoryDiagnosticSeverity.Error,
             text: text,
+            rangeStart: conflict.Range.Start,
+            rangeEndExclusive: conflict.Range.EndExclusive,
+            addressSpaceId: layout.AddressSpaceId,
             addressRangeLabel: FormatMemoryAddressRange(conflict.Range),
             lengthLabel: FormatMemoryLength(conflict.Range),
             compactDetail: detail,

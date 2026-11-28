@@ -31,7 +31,7 @@ public sealed class SpaciousPanelTests
         Assert.Contains("Property=\"BorderThickness\" Value=\"2\"", styles, StringComparison.Ordinal);
         Assert.Contains("Selector=\"ItemsControl.spaciousList\"", styles, StringComparison.Ordinal);
         Assert.Contains("Spacing=\"{DynamicResource NfcSpace8}\"", styles, StringComparison.Ordinal);
-        Assert.Equal(2, outputTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, outputTemplates.Split("<views:SpaciousPanel>", StringSplitOptions.None).Length - 1);
         XElement slotGroups = Assert.Single(XDocument.Parse(workflowTemplates).Descendants(),
             element => element.Name.LocalName == "ItemsControl" &&
                 ((string?)element.Attribute("Classes"))?.Split(' ').Contains("spaciousList", StringComparer.Ordinal) == true);

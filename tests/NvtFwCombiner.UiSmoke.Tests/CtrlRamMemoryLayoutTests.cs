@@ -9,7 +9,6 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using NvtFwCombiner.Application.MemoryLayout;
-using NvtFwCombiner.Domain.Composition;
 using NvtFwCombiner.Presentation.Avalonia;
 using NvtFwCombiner.Presentation.Avalonia.ViewModels;
 using NvtFwCombiner.Presentation.Avalonia.Views;
@@ -247,7 +246,7 @@ public sealed class CtrlRamMemoryLayoutTests
                 await Task.Delay(16, TestContext.Current.CancellationToken);
             } while (true);
             Control frame = Assert.IsType<StackPanel>(card.GetVisualParent());
-            Assert.Contains(frame.GetVisualDescendants().OfType<global::Avalonia.Controls.Shapes.Line>(),
+            Assert.Contains(frame.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Line>(),
                 line => line.StartPoint != line.EndPoint);
             window.MouseMove(new Point(2, 2), RawInputModifiers.None);
             await SettleAsync(() => Assert.DoesNotContain("railActive", legend.Classes),
@@ -324,7 +323,7 @@ public sealed class CtrlRamMemoryLayoutTests
                     Assert.Equal(default, activePosition.BorderThickness);
                     Assert.Equal(default, activePosition.BoxShadow);
                     Assert.Equal(Matrix.Identity, activePosition.RenderTransform?.Value ?? Matrix.Identity);
-                    Assert.Equal(global::Avalonia.Media.Brushes.Transparent, activePosition.Background);
+                    Assert.Equal(Avalonia.Media.Brushes.Transparent, activePosition.Background);
                     Point[] labelCenters = [.. Positions(window).Select(position =>
                         Center(Assert.Single(position.GetVisualDescendants().OfType<TextBlock>()), window))];
                     Assert.All(labelCenters, center => Assert.InRange(Math.Abs(center.Y - labelCenters[0].Y), 0, 0.5));
@@ -372,55 +371,24 @@ public sealed class CtrlRamMemoryLayoutTests
         finally { await CloseAndFlushAsync(window); }
     }
 
-    /// <summary>The real NT51928 Standard inputs retain DP/TP/LDC geometry through the shared renderer.</summary>
+    /// <summary>Standard DP/TP/LDC inputs retain their typed geometry in the production layered panel.</summary>
     [AvaloniaFact]
     public async Task Nt51928StandardWindowKeepsDpTpAndLdcCoverage()
     {
         using var workspace = TempWorkspace.Create("memory-standard-928");
-        using var golden = StandardMergeGoldenManifest.Load();
-        JsonElement inputs = golden.CaseByIc("51928").GetProperty("inputs");
-        PresentationHostServices services = await CreateServicesAsync(workspace);
-        using var window = new MainWindow(UiLaunchOptions.Empty, StartupTraceSession.Disabled,
-            services, ShellPreferenceSnapshot.Default)
-        { Width = 1180, Height = 1040 };
-        window.Show();
-        try
-        {
-            await AwaitHistoryReadyAsync(window);
-            MainWindowViewModel shell = Assert.IsType<MainWindowViewModel>(window.DataContext);
-            shell.ShowMergeCommand.Execute(null);
-            shell.WorkflowSession.SelectedIc = "NT51928";
-            shell.Merge.SelectedMergeMode = ExperienceIds.StandardMerge;
-            foreach ((string slot, string artifact) in new[]
-            {
-                (CompositionSlotIds.MergeDp, "dp-input"), (CompositionSlotIds.MergeTp, "tp-input"),
-                (CompositionSlotIds.MergeLdc, "ldc-input"),
-            })
-            {
-                await shell.WorkflowSession.SetSlotFileAsync(slot, golden.ManifestPath(inputs.GetProperty(artifact)),
-                    TestContext.Current.CancellationToken);
-            }
-            Render();
-            Assert.Equal("NT51928", shell.WorkflowSession.SelectedIc);
-            Assert.True(shell.Merge.IsNormalMergeModeSelected);
-            Assert.Equal(3, shell.Merge.MergeSlots.Count(slot => slot.HasFile));
-            Assert.Empty(shell.Reports.ReportHistoryEntries);
-            Assert.Contains(shell.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.Dp);
-            Assert.Contains(shell.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.Tp);
-            Assert.Contains(shell.Merge.MergeCoverageSegments, segment => segment.ContentRole == MemoryContentRole.Ldc);
-            MemoryCoverageBar rail = Assert.Single(window.GetVisualDescendants().OfType<MemoryCoverageBar>(),
-                control => control.IsEffectivelyVisible);
-            Assert.False(rail.ClipToBounds);
-            Assert.Equal(34, Assert.Single(rail.GetVisualDescendants().OfType<ItemsControl>(), control => control.Name == "MemoryMainRail").Bounds.Height);
-            Assert.InRange(rail.Bounds.Width, 300, 430);
-            Border[] slices = [.. rail.GetVisualDescendants().OfType<Border>()
-                .Where(border => border.Classes.Contains("memoryExplorerSlice"))];
-            Assert.NotEmpty(slices);
-            Assert.All(slices, slice => Assert.Equal(default, slice.BorderThickness));
-            Capture(window, "nt51928-standard-actual.png");
-            await AssertSupportedMemoryViewportsAsync(window, "nt51928-standard");
-        }
-        finally { await CloseAndFlushAsync(window); }
+        await using MergeOutputLayoutTestHost host = await MergeOutputLayoutTestHost.CreateAsync(workspace, width: 1180, height: 1040);
+        await host.LoadStandardAsync("NT51928");
+        Assert.True(host.Shell.Merge.IsNormalMergeModeSelected);
+        Assert.Equal(3, host.Shell.Merge.MergeSlots.Count(static slot => slot.HasFile));
+        Assert.Empty(host.Shell.Reports.ReportHistoryEntries);
+        Assert.Contains(host.Model.Segments, static segment => segment.ContentRole == MemoryContentRole.Dp);
+        Assert.Contains(host.Model.Segments, static segment => segment.ContentRole == MemoryContentRole.Tp);
+        Assert.Contains(host.Model.Segments, static segment => segment.ContentRole == MemoryContentRole.Ldc);
+        Canvas bar = host.Panel.FindControl<Canvas>("LayoutBar")!;
+        Assert.Equal(34, bar.Bounds.Height);
+        Assert.NotEmpty(bar.Children);
+        Assert.All(bar.Children.OfType<Border>(), static slice => Assert.Equal(default, slice.BorderThickness));
+        host.Capture("nt51928-standard-actual");
     }
 
     /// <summary>Characterizes supported full-window sizes without treating vertical scrolling as clipping.</summary>
@@ -501,7 +469,7 @@ public sealed class CtrlRamMemoryLayoutTests
 
         (long?, long?, MemoryContentRole, bool)[] Ranges()
         {
-            return [.. shell.Merge.MergeCoverageSegments.Concat(shell.Replace.ReplaceCoverageSegments)
+            return [.. shell.Merge.OutputLayout.Current.CoverageSegments.Concat(shell.Replace.ReplaceCoverageSegments)
                 .Select(segment => (segment.RangeStart, segment.RangeEndExclusive, segment.ContentRole, segment.IsSelectedForWrite))];
         }
     }

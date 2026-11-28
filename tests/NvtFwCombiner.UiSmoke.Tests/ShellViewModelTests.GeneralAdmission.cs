@@ -279,7 +279,7 @@ public sealed partial class GeneralWorkflowTests
 
                 Assert.False(viewModel.Merge.PreviewMergeCommand.CanExecute(null));
                 MemoryCoverageSegmentViewModel overlap = Assert.Single(
-                    viewModel.Merge.MergeCoverageSegments,
+                    viewModel.Merge.OutputLayout.Current.CoverageSegments,
                     segment => segment.SourceLabel == "Overlap error");
                 Assert.Equal("0x00002-0x00003 (len 0x2)", overlap.RangeLabel);
                 Assert.Contains(first.MappingId, overlap.Detail, StringComparison.Ordinal);

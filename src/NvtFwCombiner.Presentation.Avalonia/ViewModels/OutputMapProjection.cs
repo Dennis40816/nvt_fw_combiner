@@ -38,7 +38,8 @@ internal static class OutputMapProjection
             version: Version(layout, labels));
     }
 
-    private static Dictionary<string, OutputMapSource> SelectedSources(MemoryLayoutSnapshot layout,
+    /// <summary>Shares accepted source-space bindings and file names across memory display projections.</summary>
+    internal static Dictionary<string, OutputMapSource> SelectedSources(MemoryLayoutSnapshot layout,
         ActiveSessionSnapshot authoring)
     {
         var result = new Dictionary<string, OutputMapSource>(StringComparer.Ordinal);

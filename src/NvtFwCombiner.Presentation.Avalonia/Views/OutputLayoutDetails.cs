@@ -14,7 +14,7 @@ internal sealed class OutputLayoutDetails
     {
         OutputLayoutPanelModel model = owner.Model ?? throw new InvalidOperationException("Details require a display publication.");
         StackPanel content = OutputLayoutVisuals.Stack();
-        if (segment.DiagnosticSeverity == MemoryDiagnosticSeverity.Warning)
+        if (model.CanRequestIssue && segment.DiagnosticSeverity == MemoryDiagnosticSeverity.Warning)
         {
             var action = new Button
             {
