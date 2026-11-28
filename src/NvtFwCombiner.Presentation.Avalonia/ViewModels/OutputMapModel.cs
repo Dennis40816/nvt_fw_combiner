@@ -20,6 +20,20 @@ internal sealed class OutputMapModel
         Blocks = Array.AsReadOnly(blocks?.ToArray() ?? []);
         Sources = Array.AsReadOnly(sources?.ToArray() ?? []);
         CrcAnnotations = Array.AsReadOnly(crcAnnotations?.ToArray() ?? []);
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OutputMapRegion region in Regions)
+        {
+            if (!keys.Add(region.Key)) { throw new ArgumentException("Region keys must be unique.", nameof(regions)); }
+        }
+        foreach (OutputMapBlock block in Blocks)
+        {
+            if (!keys.Add(block.Key)) { throw new ArgumentException("Block and region keys must be unique.", nameof(blocks)); }
+        }
+        keys.Clear();
+        foreach (OutputMapSource source in Sources)
+        {
+            if (!keys.Add(source.Key)) { throw new ArgumentException("Source keys must be unique.", nameof(sources)); }
+        }
         Version = version;
         Highlight = highlight;
     }
@@ -46,8 +60,8 @@ internal sealed class OutputMapModel
 /// <param name="Key">Stable selection key, unique across regions and blocks.</param>
 /// <param name="Name">Display name.</param>
 /// <param name="Range">Half-open output range.</param>
-/// <param name="IsReadOnly">Declared effective access, never inferred from contents.</param>
-internal sealed record OutputMapRegion(string Key, string Name, ByteRange Range, bool IsReadOnly = false);
+/// <param name="IsReadOnly">Declared effective access, never inferred from contents; null when not declared.</param>
+internal sealed record OutputMapRegion(string Key, string Name, ByteRange Range, bool? IsReadOnly = false);
 
 /// <summary>A step's declared write and optional source read.</summary>
 /// <param name="Key">Stable selection key, unique across regions and blocks.</param>
@@ -87,8 +101,8 @@ internal sealed record OutputMapCrc(string Name, ByteRange? CoveredRange = null,
 /// <summary>A declared version field; the control never locates or decodes it.</summary>
 /// <param name="Name">Field name.</param>
 /// <param name="Range">Half-open output field range.</param>
-/// <param name="ValueText">Already decoded display value.</param>
-internal sealed record OutputMapVersion(string Name, ByteRange Range, string ValueText);
+/// <param name="ValueText">Already decoded display value; null when only the location is known.</param>
+internal sealed record OutputMapVersion(string Name, ByteRange Range, string? ValueText);
 
 /// <summary>Display severity supplied by an issue list.</summary>
 internal enum OutputMapHighlightSeverity

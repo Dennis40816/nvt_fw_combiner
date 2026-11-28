@@ -60,7 +60,7 @@ public sealed partial class OutputMap
         {
             double visibleLength = Math.Min(region.Range.EndExclusive, viewport.End) - Math.Max(region.Range.Start, viewport.Start);
             var content = new Grid();
-            if (region.IsReadOnly)
+            if (region.IsReadOnly == true)
             {
                 var hatch = new Border { IsHitTestVisible = false };
                 Resource(hatch, Border.BackgroundProperty, "OutputMapReadOnlyHatch");
@@ -113,7 +113,7 @@ public sealed partial class OutputMap
         }
         if (Model.Version is { } version && Intersects(version.Range, viewport))
         {
-            AddMarker(lane, version.Range.Start, $"{version.Name} · {version.ValueText} · {OutputRange(version.Range)}", "outputMapVersion");
+            AddMarker(lane, version.Range.Start, VersionDescription(version), "outputMapVersion");
         }
         AddOutputEnd(lane, viewport);
     }
@@ -131,7 +131,7 @@ public sealed partial class OutputMap
         }
         if (Model.Version is { } version && version.Range.Overlaps(block.TargetRange))
         {
-            description += $" · {version.Name} · {version.ValueText} · {OutputRange(version.Range)}";
+            description += $" · {VersionDescription(version)}";
         }
         return description;
     }
@@ -184,7 +184,19 @@ public sealed partial class OutputMap
 
     private string RegionDescription(OutputMapRegion region)
     {
-        return $"{region.Name} · {OutputRange(region.Range)} · {(region.IsReadOnly ? Text.ReadOnly : Text.Writable)}";
+        string description = $"{region.Name} · {OutputRange(region.Range)}";
+        return region.IsReadOnly switch
+        {
+            true => $"{description} · {Text.ReadOnly}",
+            false => $"{description} · {Text.Writable}",
+            null => description,
+        };
+    }
+
+    private string VersionDescription(OutputMapVersion version)
+    {
+        string name = version.ValueText is null ? version.Name : $"{version.Name} · {version.ValueText}";
+        return $"{name} · {OutputRange(version.Range)}";
     }
 
     private string SourceBrush(OutputMapBlock block)
@@ -257,6 +269,19 @@ public sealed partial class OutputMap
         marker.Classes.Add(style);
         ToolTip.SetTip(marker, description);
         AutomationProperties.SetName(marker, description);
+        if (style is "outputMapVersion" or "outputMapCrcStorage")
+        {
+            // The visual stays above the writes; its tooltip target yields to every block hit target.
+            var target = new Border
+            {
+                Background = Brushes.Transparent,
+                Height = height,
+                DataContext = new Placement(address, address, 8, true),
+                ZIndex = -1,
+            };
+            ToolTip.SetTip(target, description);
+            lane.Children.Add(target);
+        }
         lane.Children.Add(marker);
     }
 
