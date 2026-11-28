@@ -1,0 +1,6 @@
+tool: "calc"
+invocations:
+  -
+    id: "finalize"
+    kind: "crc-worker-v1"
+    tool: "calc"

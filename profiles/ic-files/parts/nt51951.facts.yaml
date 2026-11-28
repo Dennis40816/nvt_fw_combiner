@@ -1,0 +1,1486 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Shared records. Includes select named records; no override or deep merge.
+schema-version: 1
+part: "nt51951.facts"
+fact-sets:
+  -
+    id: "shared-regions-and-fields-ab-image"
+    regions:
+      -
+        id: "a-tp-code"
+        space: "flash"
+        start: "0xA000"
+        end: "0x37000"
+        kind: "code"
+        owner: "tp"
+        parent: "a-bank"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "ab-image"
+        space: "flash"
+        start: "0x0"
+        end: "0x100000"
+        kind: "image"
+        owner: "system"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "a-dp-before-tp"
+        space: "flash"
+        start: "0x0"
+        end: "0xA000"
+        kind: "image"
+        owner: "dp"
+        parent: "a-bank"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "a-cmi-dp-version"
+        space: "flash"
+        start: "0x5016"
+        end: "0x5019"
+        kind: "command"
+        owner: "dp"
+        parent: "a-dp-before-tp"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "a-dp-before-cmi"
+        space: "flash"
+        start: "0x0"
+        end: "0x5016"
+        kind: "data"
+        owner: "dp"
+        parent: "a-dp-before-tp"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "a-dp-after-cmi-before-tp"
+        space: "flash"
+        start: "0x5019"
+        end: "0xA000"
+        kind: "data"
+        owner: "dp"
+        parent: "a-dp-before-tp"
+        access: "hidden"
+        origin: "map"
+    fields:
+      -
+        id: "nt51950-partial-family-ab-event-buffer"
+        definition: "field-nt51950-partial-family-ab-event-buffer"
+        at:
+          kind: "group"
+          locations: []
+        required: true
+  -
+    id: "shared-regions-and-fields-and-extents-tp-a-svn"
+    regions:
+      -
+        id: "slice-steps-overlay-tpa-into-output-from-tp-a-input"
+        space: "tp-a-input"
+        start: "0xA000"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-steps-overlay-tpa-into-output-to-output-image"
+        space: "output-image"
+        start: "0xA000"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work"
+        space: "tp-b-work"
+        start: "0xA120"
+        end: "0xA124"
+        origin: "operation"
+      -
+        id: "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work"
+        space: "tp-b-work"
+        start: "0xA120"
+        end: "0xA124"
+        origin: "operation"
+      -
+        id: "slice-steps-overlay-tpb-into-output-from-tp-b-work"
+        space: "tp-b-work"
+        start: "0xA000"
+        end: "0x37000"
+        origin: "operation"
+    fields:
+      -
+        id: "tp-a-primary-firmware-config"
+        definition: "firmware-config-general-parameters"
+        at:
+          space: "tp-a-input"
+          start: "0x22200"
+          end: "0x22229"
+        required: false
+        bindings:
+          -
+            id: "tp-a-primary-firmware-config-inspection"
+            input: "tp-a-input"
+            targets:
+              -
+                field: "tp-firmware-version"
+              -
+                field: "tp-firmware-version-complement"
+              -
+                field: "event-buffer-format-version"
+            uses: ["inspection"]
+      -
+        id: "tp-b-primary-firmware-config"
+        definition: "firmware-config-general-parameters"
+        at:
+          space: "tp-b-input"
+          start: "0x22200"
+          end: "0x22229"
+        required: false
+        bindings:
+          -
+            id: "tp-b-primary-firmware-config-inspection"
+            input: "tp-b-input"
+            targets:
+              -
+                field: "tp-firmware-version"
+              -
+                field: "tp-firmware-version-complement"
+              -
+                field: "event-buffer-format-version"
+            uses: ["inspection"]
+      -
+        id: "tp-a-fwconfig-backup"
+        definition: "firmware-config-general-parameters"
+        at:
+          kind: "marker"
+          space: "tp-a-input"
+          search:
+            space: "tp-a-input"
+            start: "0x36FFC"
+            end: "0x37000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x29"
+          within: "a-tp-code"
+          match: "unique"
+        required: false
+      -
+        id: "tp-b-fwconfig-backup"
+        definition: "firmware-config-general-parameters"
+        at:
+          kind: "marker"
+          space: "tp-b-input"
+          search:
+            space: "tp-b-input"
+            start: "0x36FFC"
+            end: "0x37000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x29"
+          within: "a-tp-code"
+          match: "unique"
+        required: false
+      -
+        id: "tp-a-svn"
+        definition: "tp-svn"
+        at:
+          space: "tp-a-input"
+          start: "0xA024"
+          end: "0xA028"
+        required: false
+        bindings:
+          -
+            id: "tp-a-svn-display"
+            input: "tp-a-input"
+            targets:
+              -
+                field: "svn-flags"
+              -
+                field: "svn-revision"
+            uses: ["display"]
+      -
+        id: "tp-b-svn"
+        definition: "tp-svn"
+        at:
+          space: "tp-b-input"
+          start: "0xA024"
+          end: "0xA028"
+        required: false
+        bindings:
+          -
+            id: "tp-b-svn-display"
+            input: "tp-b-input"
+            targets:
+              -
+                field: "svn-flags"
+              -
+                field: "svn-revision"
+            uses: ["display"]
+    extents:
+      -
+        id: "tp-b-work-length"
+        length: "0x37000"
+  -
+    id: "shared-inputs-and-integrity-source"
+    inputs:
+      -
+        id: "dp-input"
+        kind: "dp"
+        required: true
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 1
+          max: 1
+      -
+        id: "tp-input"
+        kind: "tp"
+        required: true
+        min-length: "0x37000"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+          max: 1
+      -
+        id: "tp-a-input"
+        kind: "tp-a"
+        required: true
+        min-length: "0x37000"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+          max: 1
+      -
+        id: "tp-b-input"
+        kind: "tp-b"
+        required: true
+        min-length: "0x37000"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+          max: 1
+      -
+        id: "ctrlram-source"
+        kind: "ctrlram-source"
+        required: true
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "truncate-warning"
+        count:
+          min: 1
+      -
+        id: "source"
+        kind: "source"
+        required: true
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+    integrity:
+      -
+        id: "header-crc"
+        kind: "unknown"
+        reason: "Standard Merge preserves existing integrity; no recalculation contract is declared in this profile."
+        write-locations: []
+      -
+        id: "vendor-footer"
+        run: "vendor-footer-for-nt51951-ab-desay-1024k"
+  -
+    id: "shared-inputs-reference-base"
+    inputs:
+      -
+        id: "reference-base"
+        kind: "reference-base"
+        required: true
+        sizes: ["0x80000"]
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 1
+          max: 1
+  -
+    id: "shared-inputs-diffdlm-input"
+    inputs:
+      -
+        id: "diffdlm-input"
+        kind: "ctrlram-source"
+        required: false
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 0
+          max: 1
+  -
+    id: "shared-regions-and-integrity-and-extents-a-bank"
+    regions:
+      -
+        id: "a-bank"
+        space: "flash"
+        start: "0x0"
+        end: "0x80000"
+        kind: "image"
+        owner: "system"
+        parent: "ab-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "a-dp-after-tp"
+        space: "flash"
+        start: "0x37000"
+        end: "0x80000"
+        kind: "image"
+        owner: "dp"
+        parent: "a-bank"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "b-bank"
+        space: "flash"
+        start: "0x80000"
+        end: "0x100000"
+        kind: "image"
+        owner: "system"
+        parent: "ab-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "b-dp-before-tp"
+        space: "flash"
+        start: "0x80000"
+        end: "0x8A000"
+        kind: "image"
+        owner: "dp"
+        parent: "b-bank"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "b-cmi-dp-version"
+        space: "flash"
+        start: "0x84016"
+        end: "0x84019"
+        kind: "command"
+        owner: "dp"
+        parent: "b-dp-before-tp"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "b-dp-before-cmi"
+        space: "flash"
+        start: "0x80000"
+        end: "0x84016"
+        kind: "data"
+        owner: "dp"
+        parent: "b-dp-before-tp"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "b-dp-after-cmi-before-tp"
+        space: "flash"
+        start: "0x84019"
+        end: "0x8A000"
+        kind: "data"
+        owner: "dp"
+        parent: "b-dp-before-tp"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "b-dp-after-tp"
+        space: "flash"
+        start: "0xB7000"
+        end: "0x100000"
+        kind: "image"
+        owner: "dp"
+        parent: "b-bank"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "b-tp-code"
+        space: "flash"
+        start: "0x8A000"
+        end: "0xB7000"
+        kind: "code"
+        owner: "tp"
+        parent: "b-bank"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-stage-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x0"
+        end: "0x100000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-may-read-ab-image-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x0"
+        end: "0x100000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-artifacts-a-bank-from-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x80000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-ab-combiner-artifacts-b-bank-from-output-image"
+        space: "output-image"
+        start: "0x80000"
+        end: "0x100000"
+        origin: "operation"
+    integrity:
+      -
+        id: "nt51951-ab-combiner"
+        run: "nt51951-ab-combiner-for-nt51951-ab-merge-1024k-ab-merge-ic-count1-banks"
+    extents:
+      -
+        id: "ab-combiner-work-length"
+        length: "0x100000"
+  -
+    id: "shared-inputs-dp-ab-input"
+    inputs:
+      -
+        id: "dp-ab-input"
+        kind: "dp-ab"
+        required: false
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 0
+          max: 1
+  -
+    id: "shared-regions-and-fields-tp-svn"
+    regions:
+      -
+        id: "unmapped-prefix"
+        space: "flash"
+        start: "0x0"
+        end: "0xA000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "dp-container"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "customer-info"
+        space: "flash"
+        start: "0x37000"
+        end: "0x38000"
+        kind: "data"
+        owner: "customer"
+        parent: "dp-container"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "tp-overlay"
+        space: "flash"
+        start: "0xA000"
+        end: "0x37000"
+        kind: "code"
+        owner: "tp"
+        parent: "dp-container"
+        access: "whole"
+        origin: "map"
+      -
+        id: "slice-pre-check-non-uniform-dp-input-from-dp-input"
+        space: "dp-input"
+        start: "0x0"
+        end: "0xA000"
+        origin: "operation"
+      -
+        id: "slice-pre-check-non-uniform-tp-input-from-tp-input"
+        space: "tp-input"
+        start: "0xA000"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-steps-overlay-tp-from-tp-input"
+        space: "tp-input"
+        start: "0xA000"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-steps-overlay-tp-to-output-image"
+        space: "output-image"
+        start: "0xA000"
+        end: "0x37000"
+        origin: "operation"
+    fields:
+      -
+        id: "firmware-config-general-parameters"
+        definition: "firmware-config-general-parameters"
+        at:
+          kind: "marker"
+          space: "tp-input"
+          search:
+            space: "tp-input"
+            start: "0x36FFC"
+            end: "0x37000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x29"
+          within: "tp-overlay"
+          match: "unique"
+        required: false
+        bindings:
+          -
+            id: "firmware-config-standard-merge-inspection"
+            input: "tp-input"
+            targets:
+              -
+                field: "tp-firmware-version"
+              -
+                field: "tp-firmware-version-complement"
+              -
+                field: "sensor-count-x"
+              -
+                field: "sensor-count-y"
+              -
+                field: "display-resolution-x"
+              -
+                field: "display-resolution-y"
+              -
+                field: "maximum-operable-fingers"
+              -
+                field: "report-irq-type"
+              -
+                field: "tp-firmware-subversion"
+              -
+                field: "tp-resolution-x"
+              -
+                field: "tp-resolution-y"
+              -
+                field: "observed-ic-count"
+              -
+                field: "outermost-ic-master-enable"
+              -
+                field: "common-firmware-major-version"
+              -
+                field: "common-firmware-minor-version"
+              -
+                field: "common-firmware-additional-version"
+              -
+                field: "cascade-enable"
+              -
+                field: "pid"
+            uses: ["validation", "output-naming", "display", "version"]
+        map-selection:
+          -
+            id: "firmware-config-standard-merge-inspection"
+            input: "tp-input"
+            from-fields: ["tp-firmware-version", "tp-firmware-version-complement", "sensor-count-x", "sensor-count-y", "display-resolution-x", "display-resolution-y", "maximum-operable-fingers", "report-irq-type", "tp-firmware-subversion", "tp-resolution-x", "tp-resolution-y", "observed-ic-count", "outermost-ic-master-enable", "common-firmware-major-version", "common-firmware-minor-version", "common-firmware-additional-version", "cascade-enable", "pid"]
+      -
+        id: "firmware-config-dp-replace"
+        definition: "firmware-config-general-parameters"
+        at:
+          kind: "marker"
+          space: "reference-base"
+          search:
+            space: "reference-base"
+            start: "0x36FFC"
+            end: "0x37000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x29"
+          within: "tp-overlay"
+          match: "unique"
+        required: false
+      -
+        id: "nt51951-dpcmi-standard-merge"
+        definition: "dpcmi"
+        at:
+          kind: "selected"
+          space: "dp-input"
+          from-fields: "fields.firmware-config-general-parameters.observed-ic-count"
+          length: "0x3"
+          within: "dp-container"
+          cases:
+            -
+              when:
+                fact: "fields.firmware-config-general-parameters.observed-ic-count"
+                kind: "interval"
+                at-least: 1
+                at-most: 255
+              anchor:
+                space: "dp-input"
+                start: "0x5000"
+                end: "0x6000"
+              result:
+                space: "dp-input"
+                start: "0x5016"
+                end: "0x5019"
+        required: false
+        bindings:
+          -
+            id: "nt51951-dpcmi-standard-merge-inspection"
+            input: "dp-input"
+            targets:
+              -
+                field: "jira-low"
+              -
+                field: "dp-major"
+              -
+                field: "dp-minor"
+              -
+                field: "jira-high"
+            uses: ["validation", "output-naming", "display", "version"]
+      -
+        id: "nt51951-dpcmi-dp-replace"
+        definition: "dpcmi"
+        at:
+          kind: "selected"
+          space: "dp-replacement"
+          from-fields: "fields.firmware-config-dp-replace.observed-ic-count"
+          length: "0x3"
+          within: "dp-container"
+          cases:
+            -
+              when:
+                fact: "fields.firmware-config-dp-replace.observed-ic-count"
+                kind: "interval"
+                at-least: 1
+                at-most: 255
+              anchor:
+                space: "dp-replacement"
+                start: "0x5000"
+                end: "0x6000"
+              result:
+                space: "dp-replacement"
+                start: "0x5016"
+                end: "0x5019"
+        required: false
+      -
+        id: "tp-svn"
+        definition: "tp-svn"
+        at:
+          space: "tp-input"
+          region: "tp-overlay"
+          offset: "0x24"
+          length: "0x4"
+        required: false
+        bindings:
+          -
+            id: "tp-svn-display"
+            input: "tp-input"
+            targets:
+              -
+                field: "svn-flags"
+              -
+                field: "svn-revision"
+            uses: ["display"]
+  -
+    id: "shared-fields-version-info"
+    fields:
+      -
+        id: "version-info"
+        definition: "field-version-info-empty"
+        at:
+          kind: "group"
+          locations: []
+        required: false
+  -
+    id: "shared-regions-and-fields-gap-a120"
+    regions:
+      -
+        id: "flash-image"
+        space: "flash"
+        start: "0x0"
+        end: "0x37000"
+        kind: "image"
+        owner: "system"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "gap-prefix-offset00000"
+        space: "flash"
+        start: "0x0"
+        end: "0xA11C"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-a11c"
+        space: "flash"
+        start: "0xA11C"
+        end: "0xA120"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-a120"
+        space: "flash"
+        start: "0xA120"
+        end: "0xA130"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-a130"
+        space: "flash"
+        start: "0xA130"
+        end: "0xA134"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-a180"
+        space: "flash"
+        start: "0xA180"
+        end: "0x22200"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "fw-config-source"
+        space: "flash"
+        start: "0x22200"
+        end: "0x22980"
+        kind: "firmware-config"
+        owner: "tp"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-fwconfig-to-nf"
+        space: "flash"
+        start: "0x22980"
+        end: "0x22C00"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "normal-ctrlram"
+        space: "flash"
+        start: "0x25610"
+        end: "0x2B210"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "vn-ctrlram"
+        space: "flash"
+        start: "0x2B210"
+        end: "0x2D30C"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "header-copy"
+        space: "flash"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset2d50c-to-diff"
+        space: "flash"
+        start: "0x2D50C"
+        end: "0x33200"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "diff-ctrlram"
+        space: "flash"
+        start: "0x33200"
+        end: "0x34600"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "gap-inactive-diff-record-to-fwconfig-backup"
+        space: "flash"
+        start: "0x34600"
+        end: "0x36000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-fwconfig-backup-to-end-flag"
+        space: "flash"
+        start: "0x36780"
+        end: "0x37000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+    fields:
+      -
+        id: "nt51951-fwconfig-backup-envelope"
+        definition: "nt51927-fwconfig-backup-envelope"
+        at:
+          kind: "marker"
+          space: "reference-base"
+          search:
+            space: "reference-base"
+            start: "0x36FFC"
+            end: "0x37000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x1000"
+          within: "flash-image"
+          match: "unique"
+        required: false
+      -
+        id: "tp-svn-header-copy"
+        definition: "tp-svn"
+        at:
+          space: "reference-base"
+          region: "header-copy"
+          offset: "0x24"
+          length: "0x4"
+        required: false
+      -
+        id: "common-fw-version"
+        definition: "field-common-fw-version-from-nt51951-fwconfig-backup-envelope"
+        at: null
+        required: true
+  -
+    id: "shared-regions-nf-ctrlram"
+    regions:
+      -
+        id: "header-dlm-crc-a134-a180"
+        space: "flash"
+        start: "0xA134"
+        end: "0xA180"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "nf-ctrlram"
+        space: "flash"
+        start: "0x22C00"
+        end: "0x25610"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "fw-config-backup"
+        space: "flash"
+        start: "0x36000"
+        end: "0x36780"
+        kind: "firmware-config"
+        owner: "tp"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+  -
+    id: "shared-regions-and-inputs-and-integrity-and-extents-diffdlm-input"
+    regions:
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-placed-write-expected-backup-ic-count2-output-image"
+        space: "output-image"
+        start: "0x36000"
+        end: "0x36780"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-placed-write-within-output-image"
+        space: "output-image"
+        start: "0x36000"
+        end: "0x36780"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-stage-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-read-flash-image-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-header-crc-a11c-output-image"
+        space: "output-image"
+        start: "0xA11C"
+        end: "0xA120"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-header-crc-a130-output-image"
+        space: "output-image"
+        start: "0xA130"
+        end: "0xA134"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-header-dlm-crc-a134-a180-output-image"
+        space: "output-image"
+        start: "0xA134"
+        end: "0xA180"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-normal-ctrlram-output-image"
+        space: "output-image"
+        start: "0x25610"
+        end: "0x2B210"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-vn-ctrlram-output-image"
+        space: "output-image"
+        start: "0x2B210"
+        end: "0x2D30C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-header-copy-output-image"
+        space: "output-image"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-may-write-diff-ctrlram-offset0bytes-length2320bytes-output-image"
+        space: "output-image"
+        start: "0x33200"
+        end: "0x33B10"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-pre-clone-reference-diff-records-from-reference-base"
+        space: "reference-base"
+        start: "0x33200"
+        end: "0x34600"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-pre-clone-reference-diff-records-to-postbuild-diffdlm"
+        space: "postbuild-diffdlm"
+        start: "0x0"
+        end: "0x1400"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-pre-diff-check-index0-from-diffdlm-input"
+        space: "diffdlm-input"
+        start: "0x0"
+        end: "0x910"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-pre-diff-active-index0-from-diffdlm-input"
+        space: "diffdlm-input"
+        start: "0x0"
+        end: "0x910"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-pre-diff-active-index0-to-postbuild-diffdlm"
+        space: "postbuild-diffdlm"
+        start: "0x0"
+        end: "0x910"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram"
+        space: "postbuild-normal-ctrlram"
+        start: "0x0"
+        end: "0x5C00"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-normal-to-output-image"
+        space: "output-image"
+        start: "0x25610"
+        end: "0x2B210"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-diff-write-index0-from-postbuild-diffdlm"
+        space: "postbuild-diffdlm"
+        start: "0x0"
+        end: "0x910"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-diff-write-index0-to-output-image"
+        space: "output-image"
+        start: "0x33200"
+        end: "0x33B10"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram"
+        space: "postbuild-vn-ctrlram"
+        start: "0x0"
+        end: "0x20FC"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-vn-to-output-image"
+        space: "output-image"
+        start: "0x2B210"
+        end: "0x2D30C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-header-copy-from-output-image"
+        space: "output-image"
+        start: "0xA000"
+        end: "0xA200"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-merge-crc-blocks-header-copy-to-output-image"
+        space: "output-image"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-header-crc-blocks-header-copy-final-from-output-image"
+        space: "output-image"
+        start: "0xA000"
+        end: "0xA200"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-commands-nt51951-cascade-header-crc-blocks-header-copy-final-to-output-image"
+        space: "output-image"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw1x-cascade-combiner-artifacts-postbuild-diffdlm-from-postbuild-diffdlm"
+        space: "postbuild-diffdlm"
+        start: "0x0"
+        end: "0x1400"
+        origin: "operation"
+    inputs:
+      -
+        id: "diffdlm-input"
+        kind: "ctrlram-source"
+        required: false
+        min-length: "0x1400"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 0
+          max: 1
+    integrity:
+      -
+        id: "nt51951-fw1x-cascade-combiner"
+        run: "nt51951-fw1x-cascade-combiner-for-nt51951-ctrlram-fw1x-cascade-tp-work"
+    extents:
+      -
+        id: "postbuild-diffdlm-length"
+        length: "0x1400"
+  -
+    id: "shared-inputs-reference-base-for-nt51951-ctrlram-fw1x-cascade-tp-work"
+    inputs:
+      -
+        id: "reference-base"
+        kind: "reference-base"
+        required: true
+        sizes: ["0x37000"]
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 1
+          max: 1
+  -
+    id: "shared-regions-full-flash-tail"
+    regions:
+      -
+        id: "full-flash-tail"
+        space: "flash"
+        start: "0x37000"
+        end: "0x80000"
+        kind: "unmapped"
+        owner: "unknown"
+        access: "hidden"
+        origin: "map"
+  -
+    id: "shared-regions-nf-ctrlram-for-nt51951-ctrlram-fw200-single-tp-work"
+    regions:
+      -
+        id: "header-dlm-crc-a134-a180"
+        space: "flash"
+        start: "0xA134"
+        end: "0xA180"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "nf-ctrlram"
+        space: "flash"
+        start: "0x22C00"
+        end: "0x25610"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "fw-config-backup"
+        space: "flash"
+        start: "0x36000"
+        end: "0x36780"
+        kind: "firmware-config"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+  -
+    id: "shared-regions-and-integrity-nt51951-fw200-single-combiner"
+    regions:
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-stage-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-read-flash-image-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x37000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-write-header-crc-a11c-output-image"
+        space: "output-image"
+        start: "0xA11C"
+        end: "0xA120"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-write-header-crc-a130-output-image"
+        space: "output-image"
+        start: "0xA130"
+        end: "0xA134"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-write-nf-ctrlram-output-image"
+        space: "output-image"
+        start: "0x22C00"
+        end: "0x25610"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-write-normal-ctrlram-output-image"
+        space: "output-image"
+        start: "0x25610"
+        end: "0x2B210"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-write-vn-ctrlram-output-image"
+        space: "output-image"
+        start: "0x2B210"
+        end: "0x2D30C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-may-write-header-copy-output-image"
+        space: "output-image"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram"
+        space: "postbuild-normal-ctrlram"
+        start: "0x0"
+        end: "0x5C00"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-normal-to-output-image"
+        space: "output-image"
+        start: "0x25610"
+        end: "0x2B210"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram"
+        space: "postbuild-vn-ctrlram"
+        start: "0x0"
+        end: "0x20FC"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-vn-to-output-image"
+        space: "output-image"
+        start: "0x2B210"
+        end: "0x2D30C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram"
+        space: "postbuild-nf-ctrlram"
+        start: "0x0"
+        end: "0x2A10"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-nf-to-output-image"
+        space: "output-image"
+        start: "0x22C00"
+        end: "0x25610"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-header-copy-from-output-image"
+        space: "output-image"
+        start: "0xA000"
+        end: "0xA200"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-merge-crc-blocks-header-copy-to-output-image"
+        space: "output-image"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-header-crc-blocks-header-copy-final-from-output-image"
+        space: "output-image"
+        start: "0xA000"
+        end: "0xA200"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51951-fw200-single-combiner-commands-nt51951-single-header-crc-blocks-header-copy-final-to-output-image"
+        space: "output-image"
+        start: "0x2D30C"
+        end: "0x2D50C"
+        origin: "operation"
+    integrity:
+      -
+        id: "nt51951-fw200-single-combiner"
+        run: "nt51951-fw200-single-combiner-for-nt51951-ctrlram-fw200-single-tp-work"
+  -
+    id: "shared-regions-slice-post-import-postbuild-b-crc-to-output-image"
+    regions:
+      -
+        id: "slice-post-import-postbuild-b-ilm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-ilm-to-output-image"
+        space: "output-image"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-dlm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-dlm-to-output-image"
+        space: "output-image"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-crc-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-crc-to-output-image"
+        space: "output-image"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+  -
+    id: "shared-fields-and-inputs-tp-a-svn"
+    fields:
+      -
+        id: "version-info"
+        definition: "field-version-info-dp-tp"
+        at:
+          kind: "group"
+          locations:
+            -
+              id: "dp-a"
+              at:
+                space: "reference-base"
+                start: "0x5016"
+                end: "0x5019"
+            -
+              id: "dp-b"
+              at:
+                space: "reference-base"
+                start: "0x84016"
+                end: "0x84019"
+        required: false
+      -
+        id: "tp-a-primary-firmware-config"
+        definition: "firmware-config-general-parameters"
+        at:
+          space: "reference-base"
+          start: "0x22200"
+          end: "0x22229"
+        required: false
+        bindings:
+          -
+            id: "tp-a-primary-firmware-config-inspection"
+            input: "reference-base"
+            targets:
+              -
+                field: "tp-firmware-version"
+              -
+                field: "tp-firmware-version-complement"
+              -
+                field: "event-buffer-format-version"
+            uses: ["inspection"]
+      -
+        id: "tp-b-primary-firmware-config"
+        definition: "firmware-config-general-parameters"
+        at:
+          space: "reference-base"
+          start: "0xA2200"
+          end: "0xA2229"
+        required: false
+        bindings:
+          -
+            id: "tp-b-primary-firmware-config-inspection"
+            input: "reference-base"
+            targets:
+              -
+                field: "tp-firmware-version"
+              -
+                field: "tp-firmware-version-complement"
+              -
+                field: "event-buffer-format-version"
+            uses: ["inspection"]
+      -
+        id: "tp-a-fwconfig-backup"
+        definition: "firmware-config-general-parameters"
+        at:
+          kind: "marker"
+          space: "reference-base"
+          search:
+            space: "reference-base"
+            start: "0x36FFC"
+            end: "0x37000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x29"
+          within: "a-tp-code"
+          match: "unique"
+        required: false
+      -
+        id: "tp-b-fwconfig-backup"
+        definition: "firmware-config-general-parameters"
+        at:
+          kind: "marker"
+          space: "reference-base"
+          search:
+            space: "reference-base"
+            start: "0xB6FFC"
+            end: "0xB7000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x29"
+          within: "a-tp-code"
+          match: "unique"
+        required: false
+      -
+        id: "tp-a-svn"
+        definition: "tp-svn"
+        at:
+          space: "reference-base"
+          start: "0xA024"
+          end: "0xA028"
+        required: false
+        bindings:
+          -
+            id: "tp-a-svn-display"
+            input: "reference-base"
+            targets:
+              -
+                field: "svn-flags"
+              -
+                field: "svn-revision"
+            uses: ["display"]
+      -
+        id: "tp-b-svn"
+        definition: "tp-svn"
+        at:
+          space: "reference-base"
+          start: "0x8A024"
+          end: "0x8A028"
+        required: false
+        bindings:
+          -
+            id: "tp-b-svn-display"
+            input: "reference-base"
+            targets:
+              -
+                field: "svn-flags"
+              -
+                field: "svn-revision"
+            uses: ["display"]
+    inputs:
+      -
+        id: "reference-base"
+        kind: "reference-base"
+        required: true
+        sizes: ["0x100000"]
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 1
+          max: 1
+  -
+    id: "shared-checks-header-crc-a11c"
+    checks:
+      -
+        id: "header-crc-a11c"
+        stored-at:
+          space: "output-image"
+          start: "0xA11C"
+          end: "0xA120"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-crc-a130"
+        stored-at:
+          space: "output-image"
+          start: "0xA130"
+          end: "0xA134"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-dlm-crc-a134-a180"
+        stored-at:
+          space: "output-image"
+          start: "0xA134"
+          end: "0xA180"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."

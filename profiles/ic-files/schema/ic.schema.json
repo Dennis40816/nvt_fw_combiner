@@ -1,0 +1,1262 @@
+{
+  "schema-version": 1,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NFC IC source ic v1",
+  "description": "Version 1 IC source. Serialized declarations only; no firmware/support/Golden promotion.",
+  "type": "object",
+  "properties": {
+    "schema-version": {
+      "const": 1,
+      "description": "IC source format version. Dispatch by version before schema validation. Future readers migrate vN to vN+1; do not guess missing versions."
+    },
+    "ic": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "sizes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^0x[0-9A-Fa-f]+$"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "topology": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min-count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max-count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "kind",
+        "min-count"
+      ],
+      "additionalProperties": false
+    },
+    "layouts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/layout"
+      },
+      "minItems": 1
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ruleBinding"
+      },
+      "minItems": 1
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "previous-id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current-id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "previous-id",
+          "current-id"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Explicit historical source identities in this document. Resolve previous-id to current-id. No implicit aliases, counters or content hashes define a current identity."
+    }
+  },
+  "required": [
+    "schema-version",
+    "ic",
+    "sizes",
+    "layouts",
+    "rules"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "bankProcessing": {
+      "type": "object",
+      "properties": {
+        "bank": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "address-rebases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/rebase"
+          }
+        },
+        "finalize": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "bank",
+        "rule",
+        "address-rebases"
+      ],
+      "additionalProperties": false
+    },
+    "binding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/targetRef"
+              }
+            },
+            "uses": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            }
+          },
+          "required": [
+            "id",
+            "input",
+            "targets",
+            "uses"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relocation": {
+              "type": "object",
+              "properties": {
+                "group": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "transforms": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+                }
+              },
+              "required": [
+                "group",
+                "transforms"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "id",
+            "input",
+            "relocation"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "check": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stored-at": {
+          "$ref": "#/$defs/range"
+        },
+        "covers": {
+          "oneOf": [
+            {
+              "const": "unknown"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/range"
+              },
+              "minItems": 1
+            }
+          ]
+        },
+        "algorithm": {
+          "enum": [
+            "unknown",
+            "checksum32",
+            "crc32",
+            "md5",
+            "sha1",
+            "sha256"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "stored-at",
+        "covers",
+        "algorithm"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "covers": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "unknown"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "condition": {
+      "type": "object",
+      "properties": {
+        "fact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "equals",
+            "interval",
+            "present",
+            "absent"
+          ]
+        },
+        "equals": {
+          "type": [
+            "integer",
+            "string",
+            "boolean"
+          ]
+        },
+        "at-least": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "at-most": {
+          "type": "integer"
+        },
+        "below": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "fact",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "endpoint": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/range"
+        },
+        {
+          "$ref": "#/$defs/regionEndpoint"
+        }
+      ]
+    },
+    "include": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fact-set": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        },
+        "field-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        },
+        "input-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        },
+        "integrity-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        },
+        "check-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        },
+        "extent-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "additionalProperties": false
+    },
+    "input": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "sizes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^0x[0-9A-Fa-f]+$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "min-length": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "max-length": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "too-short": {
+          "oneOf": [
+            {
+              "const": "reject"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "pad-warning"
+                },
+                "fill": {
+                  "type": "string",
+                  "pattern": "^0x[0-9A-Fa-f]{1,2}$"
+                }
+              },
+              "required": [
+                "kind",
+                "fill"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "too-long": {
+          "enum": [
+            "reject",
+            "truncate-warning",
+            "coverage-warning"
+          ]
+        },
+        "count": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "min"
+          ],
+          "additionalProperties": false
+        },
+        "container-sizes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^0x[0-9A-Fa-f]+$"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "required",
+        "too-short",
+        "too-long",
+        "count"
+      ],
+      "additionalProperties": false
+    },
+    "integrityFact": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "run": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "run"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "const": "none"
+            }
+          },
+          "required": [
+            "id",
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "read-locations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/endpoint"
+              }
+            },
+            "write-locations": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/endpoint"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "size": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "setting": {
+                  "const": "requested-output-length"
+                }
+              },
+              "required": [
+                "setting"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "banks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "start": {
+                "type": "string",
+                "pattern": "^0x[0-9A-Fa-f]+$"
+              }
+            },
+            "required": [
+              "id",
+              "start"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/region"
+          }
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/located"
+          }
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/input"
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/check"
+          }
+        },
+        "check-order": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "integrity": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/integrityFact"
+          }
+        },
+        "extents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "length": {
+                "type": "string",
+                "pattern": "^0x[0-9A-Fa-f]+$"
+              }
+            },
+            "required": [
+              "id",
+              "length"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "bank-processing": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/bankProcessing"
+          }
+        },
+        "recompute": {
+          "type": "object",
+          "properties": {
+            "rule": {
+              "type": "string",
+              "minLength": 1
+            },
+            "run": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "rule",
+            "run"
+          ],
+          "additionalProperties": false
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/include"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "size",
+        "banks",
+        "regions",
+        "fields",
+        "inputs",
+        "checks",
+        "integrity"
+      ],
+      "additionalProperties": false
+    },
+    "located": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "$ref": "#/$defs/locator"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        },
+        "map-selection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1
+              },
+              "from-fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1,
+                "uniqueItems": true,
+                "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+              }
+            },
+            "required": [
+              "id",
+              "input",
+              "from-fields"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "definition",
+        "at",
+        "required"
+      ],
+      "additionalProperties": false
+    },
+    "locator": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/endpoint"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "marker"
+            },
+            "space": {
+              "type": "string",
+              "minLength": 1
+            },
+            "search": {
+              "$ref": "#/$defs/endpoint"
+            },
+            "bytes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "offset": {
+              "type": "integer"
+            },
+            "length": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            },
+            "within": {
+              "type": "string",
+              "minLength": 1
+            },
+            "match": {
+              "enum": [
+                "unique",
+                "lowest",
+                "highest"
+              ]
+            },
+            "match-count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "space",
+            "search",
+            "bytes",
+            "offset",
+            "length",
+            "within",
+            "match"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "selected"
+            },
+            "space": {
+              "type": "string",
+              "minLength": 1
+            },
+            "from-fields": {
+              "type": "string",
+              "minLength": 1
+            },
+            "length": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            },
+            "within": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cases": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "when": {
+                    "$ref": "#/$defs/when"
+                  },
+                  "anchor": {
+                    "$ref": "#/$defs/endpoint"
+                  },
+                  "result": {
+                    "$ref": "#/$defs/endpoint"
+                  }
+                },
+                "required": [
+                  "when",
+                  "anchor",
+                  "result"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "kind",
+            "space",
+            "from-fields",
+            "length",
+            "within",
+            "cases"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "group"
+            },
+            "locations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "at": {
+                    "$ref": "#/$defs/locator"
+                  }
+                },
+                "required": [
+                  "id",
+                  "at"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "locations"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "range": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        }
+      },
+      "required": [
+        "space",
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "rebase": {
+      "type": "object",
+      "properties": {
+        "stored-at": {
+          "$ref": "#/$defs/range"
+        },
+        "image-base": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "local-base": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "restore": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "stored-at",
+        "image-base",
+        "local-base",
+        "restore"
+      ],
+      "additionalProperties": false
+    },
+    "region": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "space": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "access": {
+          "enum": [
+            "hidden",
+            "read-only",
+            "explicit",
+            "whole"
+          ]
+        },
+        "align": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "origin": {
+          "enum": [
+            "map",
+            "operation"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "space",
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "regionEndpoint": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offset": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "length": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        }
+      },
+      "required": [
+        "space",
+        "region"
+      ],
+      "additionalProperties": false
+    },
+    "ruleBinding": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ic-refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "uniqueItems": true,
+          "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "variants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/variant"
+          },
+          "minItems": 1,
+          "maxItems": 1
+        },
+        "plan-bindings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "layout": {
+                "type": "string",
+                "minLength": 1
+              },
+              "plan": {
+                "type": "string",
+                "minLength": 1
+              },
+              "naming-ref": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "layout",
+              "plan",
+              "naming-ref"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "ic-refs",
+        "rule",
+        "variants",
+        "plan-bindings"
+      ],
+      "additionalProperties": false
+    },
+    "targetRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "field"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "span": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "span"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "series-ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "series-ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "group"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "variant": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "when": {
+                "$ref": "#/$defs/when"
+              },
+              "use": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "when",
+              "use"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "cases"
+      ],
+      "additionalProperties": false
+    },
+    "when": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/condition"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          },
+          "minItems": 1
+        }
+      ]
+    }
+  }
+}

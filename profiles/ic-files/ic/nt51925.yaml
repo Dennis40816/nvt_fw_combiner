@@ -1,0 +1,1040 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+schema-version: 1
+ic: ["NT51925"]
+sizes: ["0x30000", "0x40000"]
+layouts:
+  -
+    id: "nt51925-ctrlram-fw141-cascade-tp-work-192k"
+    size: "0x30000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "normal-ctrlram", "mp-ctrlram", "fw-config-backup", "gap-offset2f780"]
+        field-refs: ["tp-svn"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram"
+        region-refs: ["normal-slave-ctrlram", "mp-slave-ctrlram", "vn-ctrlram-fw141", "nf-ctrlram", "vector-table", "gap-offset2daf8"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw141-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw141-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-vn-ctrlram-fw141-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-fw-config-backup-to-output-image"]
+        integrity-refs: ["nt51925-fw141-runtime-combiner"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+  -
+    id: "nt51925-ctrlram-fw141-cascade-full-flash-256k-ctrlram-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "normal-ctrlram", "mp-ctrlram", "fw-config-backup", "gap-offset2f780"]
+        field-refs: ["tp-svn"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram"
+        region-refs: ["normal-slave-ctrlram", "mp-slave-ctrlram", "vn-ctrlram-fw141", "nf-ctrlram", "vector-table", "gap-offset2daf8"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw141-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw141-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-vn-ctrlram-fw141-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw141-runtime-combiner-commands-nt51925-fw141-cascade-merge-crc-blocks-fw-config-backup-to-output-image"]
+        integrity-refs: ["nt51925-fw141-runtime-combiner"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+  -
+    id: "nt51925-ctrlram-fw141-single-tp-work-192k"
+    size: "0x30000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "normal-ctrlram", "mp-ctrlram", "fw-config-backup", "gap-offset2f780"]
+        field-refs: ["tp-svn"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram-for-nt51925-ctrlram-fw141-single-tp-work-192k"
+        region-refs: ["vn-ctrlram-fw141", "nf-ctrlram", "gap-offset27fb8"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw141-single-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw141-single-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-vn-ctrlram-fw141-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-fw-config-backup-to-output-image"]
+        integrity-refs: ["nt51925-fw141-single-runtime-combiner"]
+  -
+    id: "nt51925-ctrlram-fw141-single-full-flash-256k-ctrlram-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "normal-ctrlram", "mp-ctrlram", "fw-config-backup", "gap-offset2f780"]
+        field-refs: ["tp-svn"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram-for-nt51925-ctrlram-fw141-single-tp-work-192k"
+        region-refs: ["vn-ctrlram-fw141", "nf-ctrlram", "gap-offset27fb8"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw141-single-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw141-single-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-vn-ctrlram-fw141-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw141-single-runtime-combiner-commands-nt51925-fw141-single-merge-crc-blocks-fw-config-backup-to-output-image"]
+        integrity-refs: ["nt51925-fw141-single-runtime-combiner"]
+  -
+    id: "nt51925-ctrlram-fw200-cascade-tp-work-192k"
+    size: "0x30000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-config"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "reserved-blank", "normal-ctrlram", "mp-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200", "gap-offset2e660", "header-copy", "gap-offset2ea80", "fw-config-backup", "gap-offset2f800"]
+        field-refs: ["tp-svn-header-copy"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-diff-ctrlram"
+        region-refs: ["diff-ctrlram"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw200-cascade-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw200-cascade-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-diff-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-vn-ctrlram-fw200-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-copy-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-diff-from-postbuild-diffdlm", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-diff-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-fw-config-backup-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-header-crc-blocks-header-copy-final-to-output-image"]
+        integrity-refs: ["nt51925-fw200-cascade-runtime-combiner"]
+  -
+    id: "nt51925-ctrlram-fw200-cascade-full-flash-256k-ctrlram-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-config"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "reserved-blank", "normal-ctrlram", "mp-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200", "gap-offset2e660", "header-copy", "gap-offset2ea80", "fw-config-backup", "gap-offset2f800"]
+        field-refs: ["tp-svn-header-copy"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-diff-ctrlram"
+        region-refs: ["diff-ctrlram"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw200-cascade-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw200-cascade-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-diff-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-vn-ctrlram-fw200-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-copy-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-diff-from-postbuild-diffdlm", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-diff-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-fw-config-backup-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51925-fw200-cascade-runtime-combiner-commands-nt51925-cascade-header-crc-blocks-header-copy-final-to-output-image"]
+        integrity-refs: ["nt51925-fw200-cascade-runtime-combiner"]
+  -
+    id: "nt51925-ctrlram-fw200-single-tp-work-192k"
+    size: "0x30000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-config"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "reserved-blank", "normal-ctrlram", "mp-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200", "gap-offset2e660", "header-copy", "gap-offset2ea80", "fw-config-backup", "gap-offset2f800"]
+        field-refs: ["tp-svn-header-copy"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-gap-offset27a00"
+        region-refs: ["gap-offset27a00"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw200-single-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw200-single-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-vn-ctrlram-fw200-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-copy-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-fw-config-backup-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-header-crc-blocks-header-copy-final-to-output-image"]
+        integrity-refs: ["nt51925-fw200-single-runtime-combiner"]
+  -
+    id: "nt51925-ctrlram-fw200-single-full-flash-256k-ctrlram-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-config"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "reserved-blank", "normal-ctrlram", "mp-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200", "gap-offset2e660", "header-copy", "gap-offset2ea80", "fw-config-backup", "gap-offset2f800"]
+        field-refs: ["tp-svn-header-copy"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-gap-offset27a00"
+        region-refs: ["gap-offset27a00"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51925-fw200-single-runtime-combiner"
+        region-refs: ["slice-invocation-nt51925-fw200-single-runtime-combiner-stage-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-read-flash-image-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-mp-ctrlram-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-vn-ctrlram-fw200-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-copy-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-fw-config-backup-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-index18-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-1c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-3c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-4c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-5c-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-may-write-header-crc-fc-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-mp-from-postbuild-mp-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-mp-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-fw-config-backup-from-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-fw-config-backup-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51925-fw200-single-runtime-combiner-commands-nt51925-single-header-crc-blocks-header-copy-final-to-output-image"]
+        integrity-refs: ["nt51925-fw200-single-runtime-combiner"]
+  -
+    id: "nt51925-standard-merge-256k"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-dpcmi"
+        region-refs: ["flash-image", "tp-code", "unmapped-gap", "customer-info", "dp-code", "slice-pre-check-non-uniform-dp-input-from-dp-input", "slice-pre-check-non-uniform-tp-input-from-tp-input", "slice-steps-copy-tp-from-tp-input", "slice-steps-copy-tp-to-output-image", "slice-steps-copy-dp-from-dp-input", "slice-steps-copy-dp-to-output-image"]
+        field-refs: ["nt51926-normal-tp-flash-header", "firmware-config-general-parameters", "dpcmi", "tp-svn"]
+  -
+    id: "nt51925-standard-merge-fw2-256k"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-dpcmi"
+        region-refs: ["flash-image", "tp-code", "unmapped-gap", "customer-info", "dp-code", "slice-pre-check-non-uniform-dp-input-from-dp-input", "slice-pre-check-non-uniform-tp-input-from-tp-input", "slice-steps-copy-tp-from-tp-input", "slice-steps-copy-tp-to-output-image", "slice-steps-copy-dp-from-dp-input", "slice-steps-copy-dp-to-output-image"]
+        field-refs: ["nt51926-normal-tp-flash-header", "firmware-config-general-parameters", "dpcmi", "tp-svn"]
+  -
+    id: "nt51925-ctrlram-fw141-cascade-full-flash-256k-general-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+    integrity: []
+    recompute:
+      rule: "nt51925-ctrlram-replace-fw141-runtime-cascade@nt51925-ctrlram-fw141-cascade-full-flash-256k"
+      run: "nt51925-fw141-runtime-combiner-for-nt51925-ctrlram-fw141-cascade-tp-work-192k"
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "normal-ctrlram", "mp-ctrlram", "fw-config-backup", "gap-offset2f780"]
+        field-refs: ["tp-svn"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram"
+        region-refs: ["normal-slave-ctrlram", "mp-slave-ctrlram", "vn-ctrlram-fw141", "nf-ctrlram", "vector-table", "gap-offset2daf8"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-checks-header-crc-18"
+        check-refs: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+  -
+    id: "nt51925-ctrlram-fw141-single-full-flash-256k-general-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+    integrity: []
+    recompute:
+      rule: "nt51925-ctrlram-replace-fw141-runtime-single@nt51925-ctrlram-fw141-single-full-flash-256k"
+      run: "nt51925-fw141-single-runtime-combiner-for-nt51925-ctrlram-fw141-single-tp-work-192k"
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "normal-ctrlram", "mp-ctrlram", "fw-config-backup", "gap-offset2f780"]
+        field-refs: ["tp-svn"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram-for-nt51925-ctrlram-fw141-single-tp-work-192k"
+        region-refs: ["vn-ctrlram-fw141", "nf-ctrlram", "gap-offset27fb8"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-checks-header-crc-18"
+        check-refs: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+  -
+    id: "nt51925-ctrlram-fw200-cascade-full-flash-256k-general-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+    integrity: []
+    recompute:
+      rule: "nt51925-ctrlram-replace-fw200-runtime-cascade@nt51925-ctrlram-fw200-cascade-full-flash-256k"
+      run: "nt51925-fw200-cascade-runtime-combiner-for-nt51925-ctrlram-fw200-cascade-tp-work-192k"
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-config"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "reserved-blank", "normal-ctrlram", "mp-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200", "gap-offset2e660", "header-copy", "gap-offset2ea80", "fw-config-backup", "gap-offset2f800"]
+        field-refs: ["tp-svn-header-copy"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-diff-ctrlram"
+        region-refs: ["diff-ctrlram"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-checks-header-crc-18"
+        check-refs: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+  -
+    id: "nt51925-ctrlram-fw200-single-full-flash-256k-general-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+    integrity: []
+    recompute:
+      rule: "nt51925-ctrlram-replace-fw200-runtime-single@nt51925-ctrlram-fw200-single-full-flash-256k"
+      run: "nt51925-fw200-single-runtime-combiner-for-nt51925-ctrlram-fw200-single-tp-work-192k"
+    include:
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-code"
+        region-refs: ["flash-image", "fw-header", "gap-prefix-offset00", "header-crc-18", "header-crc-1c", "gap-prefix-offset20", "header-crc-3c", "gap-prefix-offset40-to-offset4c", "header-crc-4c", "gap-prefix-offset50-to-offset5c", "header-crc-5c", "gap-prefix-offset60-to-fc", "header-crc-fc", "gap-prefix-offset100", "fw-code", "overlay-ilm", "end-flag"]
+        field-refs: ["common-fw-version", "nt51925-fwconfig-backup-envelope"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-fields-and-inputs-and-integrity-source"
+        field-refs: ["version-info"]
+        input-refs: ["tp-input", "dp-input", "ctrlram-source", "source"]
+        integrity-refs: ["header-crc", "vendor-footer"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-full-flash-dp-code"
+        region-refs: ["full-flash-unmapped-gap", "full-flash-customer-info", "full-flash-dp-code"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51925-standard-merge-256k"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-and-fields-fw-config"
+        region-refs: ["fw-config-source", "fw-config", "fw-register-reserved", "reserved-blank", "normal-ctrlram", "mp-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200", "gap-offset2e660", "header-copy", "gap-offset2ea80", "fw-config-backup", "gap-offset2f800"]
+        field-refs: ["tp-svn-header-copy"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-regions-gap-offset27a00"
+        region-refs: ["gap-offset27a00"]
+      -
+        file: "parts/nt51925.facts.yaml"
+        fact-set: "shared-checks-header-crc-18"
+        check-refs: ["header-crc-18", "header-crc-1c", "header-crc-3c", "header-crc-4c", "header-crc-5c", "header-crc-fc"]
+  -
+    id: "logical-output"
+    size:
+      setting: "requested-output-length"
+    banks: []
+    regions: []
+    fields: []
+    inputs:
+      -
+        id: "source"
+        kind: "source"
+        required: true
+        min-length: "0x1"
+        max-length: "0x7FFFFFFF"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+    checks: []
+    check-order: []
+    integrity: []
+rules:
+  -
+    id: "nt51925-ctrlram-replace-fw141-runtime-cascade@nt51925-ctrlram-fw141-cascade-tp-work-192k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+                at-most: 3
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw141-cascade-tp-work-192k"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw141-cascade-tp-work-192k"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw141-cascade-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw141-runtime-cascade@nt51925-ctrlram-fw141-cascade-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+                at-most: 3
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw141-cascade-full-flash-256k-ctrlram-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw141-cascade-full-flash-256k-ctrlram-replace"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw141-cascade-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw141-runtime-single@nt51925-ctrlram-fw141-single-tp-work-192k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw141-single-tp-work-192k"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw141-single-tp-work-192k"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw141-single-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw141-runtime-single@nt51925-ctrlram-fw141-single-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw141-single-full-flash-256k-ctrlram-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw141-single-full-flash-256k-ctrlram-replace"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw141-single-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw200-runtime-cascade@nt51925-ctrlram-fw200-cascade-tp-work-192k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+                at-most: 3
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw200-cascade-tp-work-192k"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw200-cascade-tp-work-192k"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw200-cascade-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw200-runtime-cascade@nt51925-ctrlram-fw200-cascade-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+                at-most: 3
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw200-cascade-full-flash-256k-ctrlram-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw200-cascade-full-flash-256k-ctrlram-replace"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw200-cascade-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw200-runtime-single@nt51925-ctrlram-fw200-single-tp-work-192k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw200-single-tp-work-192k"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw200-single-tp-work-192k"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw200-single-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-ctrlram-replace-fw200-runtime-single@nt51925-ctrlram-fw200-single-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "ctrlram-replace.nt51925"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw200-single-full-flash-256k-ctrlram-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw200-single-full-flash-256k-ctrlram-replace"
+        plan: "ctrlram-replace-for-nt51925-ctrlram-fw200-single-tp-work-192k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "nt51925-standard-merge-gen-flash@nt51925-standard-merge-256k"
+    ic-refs: ["NT51925"]
+    rule: "standard-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "tp-input"
+                kind: "present"
+            use: "nt51925-standard-merge-256k"
+    plan-bindings:
+      -
+        layout: "nt51925-standard-merge-256k"
+        plan: "standard-merge-for-nt51919-standard-merge-256k"
+        naming-ref: "nt51917-standard-merge-gen-flash-alias"
+  -
+    id: "nt51925-standard-merge-gen-flash@nt51925-standard-merge-fw2-256k"
+    ic-refs: ["NT51925"]
+    rule: "standard-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "tp-input"
+                kind: "present"
+            use: "nt51925-standard-merge-fw2-256k"
+    plan-bindings:
+      -
+        layout: "nt51925-standard-merge-fw2-256k"
+        plan: "standard-merge-for-nt51919-standard-merge-256k"
+        naming-ref: "nt51917-standard-merge-gen-flash-alias"
+  -
+    id: "general-replace@nt51925-ctrlram-fw141-cascade-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "general-replace"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+                at-most: 3
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw141-cascade-full-flash-256k-general-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw141-cascade-full-flash-256k-general-replace"
+        plan: "general-replace-for-nt51926-general-replace-full-flash-256k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "general-replace@nt51925-ctrlram-fw141-single-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "general-replace"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+                below: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw141-single-full-flash-256k-general-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw141-single-full-flash-256k-general-replace"
+        plan: "general-replace-for-nt51926-general-replace-full-flash-256k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "general-replace@nt51925-ctrlram-fw200-cascade-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "general-replace"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+                at-most: 3
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw200-cascade-full-flash-256k-general-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw200-cascade-full-flash-256k-general-replace"
+        plan: "general-replace-for-nt51926-general-replace-full-flash-256k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "general-replace@nt51925-ctrlram-fw200-single-full-flash-256k"
+    ic-refs: ["NT51925"]
+    rule: "general-replace"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "2.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51925-ctrlram-fw200-single-full-flash-256k-general-replace"
+    plan-bindings:
+      -
+        layout: "nt51925-ctrlram-fw200-single-full-flash-256k-general-replace"
+        plan: "general-replace-for-nt51926-general-replace-full-flash-256k"
+        naming-ref: "nt51925-ctrlram-replace-fw141-runtime-cascade"
+  -
+    id: "general-merge"
+    ic-refs: ["NT51925"]
+    rule: "general-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              fact: "ic-count"
+              kind: "present"
+            use: "logical-output"
+    plan-bindings:
+      -
+        layout: "logical-output"
+        plan: "general-merge-for-logical-output"
+        naming-ref: "logical-output"
+aliases:
+  -
+    previous-id: "gap-27a00"
+    current-id: "gap-offset27a00"
+  -
+    previous-id: "gap-27fb8"
+    current-id: "gap-offset27fb8"
+  -
+    previous-id: "gap-2daf8"
+    current-id: "gap-offset2daf8"
+  -
+    previous-id: "gap-2e660"
+    current-id: "gap-offset2e660"
+  -
+    previous-id: "gap-2ea80"
+    current-id: "gap-offset2ea80"
+  -
+    previous-id: "gap-2f780"
+    current-id: "gap-offset2f780"
+  -
+    previous-id: "gap-2f800"
+    current-id: "gap-offset2f800"
+  -
+    previous-id: "gap-prefix-00"
+    current-id: "gap-prefix-offset00"
+  -
+    previous-id: "gap-prefix-100"
+    current-id: "gap-prefix-offset100"
+  -
+    previous-id: "gap-prefix-20"
+    current-id: "gap-prefix-offset20"
+  -
+    previous-id: "gap-prefix-40-to-4c"
+    current-id: "gap-prefix-offset40-to-offset4c"
+  -
+    previous-id: "gap-prefix-50-to-5c"
+    current-id: "gap-prefix-offset50-to-offset5c"
+  -
+    previous-id: "gap-prefix-60-to-fc"
+    current-id: "gap-prefix-offset60-to-fc"

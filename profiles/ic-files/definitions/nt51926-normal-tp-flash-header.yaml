@@ -1,0 +1,419 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Local $self space is rebound to the located field id; no IC addresses are stored here.
+schema-version: 1
+definition: "nt51926-normal-tp-flash-header"
+kind: "structure"
+fields:
+  -
+    kind: "scalar"
+    id: "ilm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x4"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x4"
+      end: "0x8"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-size"
+    at:
+      space: "$self"
+      start: "0x8"
+      end: "0xC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "data-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0xC"
+      end: "0x10"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "data-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x10"
+      end: "0x14"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "data-size"
+    at:
+      space: "$self"
+      start: "0x14"
+      end: "0x18"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-crc-0"
+    at:
+      space: "$self"
+      start: "0x18"
+      end: "0x1C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-0"
+    at:
+      space: "$self"
+      start: "0x1C"
+      end: "0x20"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "cascade-info"
+    at:
+      space: "$self"
+      start: "0x20"
+      end: "0x21"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "spi-option"
+    at:
+      space: "$self"
+      start: "0x21"
+      end: "0x22"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "t6-t4"
+    at:
+      space: "$self"
+      start: "0x22"
+      end: "0x24"
+    decoder: "u16le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ov-info"
+    at:
+      space: "$self"
+      start: "0x28"
+      end: "0x2C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "fw-config-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x30"
+      end: "0x34"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "fw-config-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x38"
+      end: "0x3C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "fw-config-crc"
+    at:
+      space: "$self"
+      start: "0x3C"
+      end: "0x40"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ctrlram-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x40"
+      end: "0x44"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ctrlram-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x48"
+      end: "0x4C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ctrlram-crc"
+    at:
+      space: "$self"
+      start: "0x4C"
+      end: "0x50"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "mp-ctrlram-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x50"
+      end: "0x54"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "mp-ctrlram-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x58"
+      end: "0x5C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "mp-ctrlram-crc"
+    at:
+      space: "$self"
+      start: "0x5C"
+      end: "0x60"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0xF0"
+      end: "0xF4"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-size"
+    at:
+      space: "$self"
+      start: "0xF4"
+      end: "0xF8"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0xF8"
+      end: "0xFC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-crc"
+    at:
+      space: "$self"
+      start: "0xFC"
+      end: "0x100"
+    decoder: "u32le"
+    required: false
+semantics:
+  -
+    id: "ilm-start-address-in-bin"
+    subject: "ilm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "complete-header"
+  -
+    id: "ilm-destination-address-in-sram"
+    subject: "ilm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "complete-header"
+  -
+    id: "ilm-size"
+    subject: "ilm"
+    role: "size"
+    span: "complete-header"
+  -
+    id: "data-start-address-in-bin"
+    subject: "data"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "complete-header"
+  -
+    id: "data-destination-address-in-sram"
+    subject: "data"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "complete-header"
+  -
+    id: "data-size"
+    subject: "data"
+    role: "size"
+    span: "complete-header"
+  -
+    id: "ilm-crc-0"
+    subject: "ilm"
+    role: "integrity-value"
+    span: "complete-header"
+  -
+    id: "dlm-crc-0"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "complete-header"
+  -
+    id: "cascade-info"
+    subject: "header"
+    role: "option"
+    span: "complete-header"
+  -
+    id: "spi-option"
+    subject: "header"
+    role: "option"
+    span: "complete-header"
+  -
+    id: "t6-t4"
+    subject: "header"
+    role: "option"
+    span: "complete-header"
+  -
+    id: "ov-info"
+    subject: "header"
+    role: "option"
+    span: "complete-header"
+  -
+    id: "fw-config-destination-address-in-sram"
+    subject: "firmware-config"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "complete-header"
+  -
+    id: "fw-config-start-address-in-bin"
+    subject: "firmware-config"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "complete-header"
+  -
+    id: "fw-config-crc"
+    subject: "firmware-config"
+    role: "integrity-value"
+    span: "complete-header"
+  -
+    id: "ctrlram-destination-address-in-sram"
+    subject: "ctrlram"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "complete-header"
+  -
+    id: "ctrlram-start-address-in-bin"
+    subject: "ctrlram"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "complete-header"
+  -
+    id: "ctrlram-crc"
+    subject: "ctrlram"
+    role: "integrity-value"
+    span: "complete-header"
+  -
+    id: "mp-ctrlram-destination-address-in-sram"
+    subject: "mp-ctrlram"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "complete-header"
+  -
+    id: "mp-ctrlram-start-address-in-bin"
+    subject: "mp-ctrlram"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "complete-header"
+  -
+    id: "mp-ctrlram-crc"
+    subject: "mp-ctrlram"
+    role: "integrity-value"
+    span: "complete-header"
+  -
+    id: "header-destination-address-in-sram"
+    subject: "header"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "complete-header"
+  -
+    id: "header-size"
+    subject: "header"
+    role: "size"
+    span: "complete-header"
+  -
+    id: "header-start-address-in-bin"
+    subject: "header"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "complete-header"
+  -
+    id: "header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "complete-header"
+spans:
+  -
+    id: "complete-header"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x100"
+groups:
+  -
+    id: "header-integrity-values"
+    members:
+      -
+        field: "ilm-crc-0"
+      -
+        field: "dlm-crc-0"
+      -
+        field: "fw-config-crc"
+      -
+        field: "ctrlram-crc"
+      -
+        field: "mp-ctrlram-crc"
+      -
+        field: "header-crc"
+  -
+    id: "tp-bin-start-addresses"
+    members:
+      -
+        field: "ilm-start-address-in-bin"
+      -
+        field: "data-start-address-in-bin"
+      -
+        field: "fw-config-start-address-in-bin"
+      -
+        field: "ctrlram-start-address-in-bin"
+      -
+        field: "mp-ctrlram-start-address-in-bin"
+      -
+        field: "header-start-address-in-bin"

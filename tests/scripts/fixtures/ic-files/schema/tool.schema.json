@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "tool": {"type": "string"},
+    "invocations": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "kind": {"type": "string"}, "tool": {"type": "string"}}, "additionalProperties": false}}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,276 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Plans are complete named rule declarations; IC variants return layout names only.
+schema-version: 1
+ic-refs: ["NT51951"]
+rule: "ab-merge.nt51951"
+naming:
+  -
+    template: "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin"
+    locked: false
+    tokens: []
+    id: "nt51951-ab-merge"
+plans:
+  -
+    id: "ab-merge-for-nt51951-ab-desay-1024k"
+    kind: "ab-merge"
+    uses-inputs: ["dp-ab-input", "tp-a-input", "tp-b-input"]
+    initial:
+      kind: "blank"
+      fill: "0xFF"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "initialize"
+        to: "ab-combiner-work"
+        initial:
+          kind: "blank"
+          fill: "0x0"
+          length:
+            extent: "ab-combiner-work-length"
+      -
+        kind: "initialize"
+        to: "tp-b-work"
+        initial:
+          kind: "clone"
+          input: "tp-b-input"
+          length:
+            extent: "tp-b-work-length"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-dp-ab-image"
+        when:
+          fact: "dp-ab-input"
+          kind: "present"
+        overlap: "reject"
+        from:
+          space: "dp-ab-input"
+          region: "slice-steps-copy-dp-ab-image-from-dp-ab-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-dp-ab-image-to-output-image"
+      -
+        kind: "copy"
+        id: "overlay-tpa-into-output"
+        overlap: "replace-existing"
+        from:
+          space: "tp-a-input"
+          region: "slice-steps-overlay-tpa-into-output-from-tp-a-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-overlay-tpa-into-output-to-output-image"
+      -
+        kind: "transform"
+        id: "relocate-tpb-diff-for-b-bank"
+        overlap: "reject"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work"
+        to:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work"
+        addend: 262144
+        encoding: "u32le"
+      -
+        kind: "copy"
+        id: "overlay-tpb-into-output"
+        overlap: "replace-existing"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-overlay-tpb-into-output-from-tp-b-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-overlay-tpb-into-output-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-a-bank-to-combiner-work"
+        overlap: "reject"
+        from:
+          space: "output-image"
+          region: "slice-steps-copy-a-bank-to-combiner-work-from-output-image"
+        to:
+          space: "ab-combiner-work"
+          region: "slice-steps-copy-a-bank-to-combiner-work-to-ab-combiner-work"
+      -
+        kind: "copy"
+        id: "copy-b-bank-to-combiner-work"
+        overlap: "reject"
+        from:
+          space: "output-image"
+          region: "slice-steps-copy-b-bank-to-combiner-work-from-output-image"
+        to:
+          space: "ab-combiner-work"
+          region: "slice-steps-copy-b-bank-to-combiner-work-to-ab-combiner-work"
+      -
+        kind: "integrity"
+        id: "run-nt51950-ab-combiner"
+        run: "nt51950-ab-combiner-for-nt51951-ab-desay-1024k"
+      -
+        kind: "copy"
+        id: "import-postbuild-b-ilm"
+        overlap: "replace-existing"
+        from:
+          space: "ab-combiner-work"
+          region: "slice-steps-import-postbuild-b-ilm-from-ab-combiner-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-import-postbuild-b-ilm-to-output-image"
+      -
+        kind: "copy"
+        id: "import-postbuild-b-dlm"
+        overlap: "replace-existing"
+        from:
+          space: "ab-combiner-work"
+          region: "slice-steps-import-postbuild-b-dlm-from-ab-combiner-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-import-postbuild-b-dlm-to-output-image"
+      -
+        kind: "copy"
+        id: "import-postbuild-b-crc"
+        overlap: "replace-existing"
+        from:
+          space: "ab-combiner-work"
+          region: "slice-steps-import-postbuild-b-crc-from-ab-combiner-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-import-postbuild-b-crc-to-output-image"
+    post: []
+  -
+    id: "ab-merge-for-nt51951-ab-merge-1024k-ab-merge-ic-count1-banks"
+    kind: "ab-merge"
+    uses-inputs: ["dp-ab-input", "tp-a-input", "tp-b-input"]
+    initial:
+      kind: "blank"
+      fill: "0xFF"
+      length:
+        extent: "output"
+      input: "dp-ab-input"
+      root: "ab-image"
+      size-without-source:
+        extent: "output"
+    settings: []
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "initialize"
+        to: "ab-combiner-work"
+        initial:
+          kind: "blank"
+          fill: "0x0"
+          length:
+            extent: "ab-combiner-work-length"
+      -
+        kind: "initialize"
+        to: "tp-b-work"
+        initial:
+          kind: "clone"
+          input: "tp-b-input"
+          length:
+            extent: "tp-b-work-length"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-dp-ab-image"
+        when:
+          fact: "dp-ab-input"
+          kind: "present"
+        overlap: "reject"
+        from:
+          space: "dp-ab-input"
+          region: "ab-image"
+        to:
+          space: "output-image"
+          region: "ab-image"
+      -
+        kind: "copy"
+        id: "overlay-tpa-into-output"
+        overlap: "replace-existing"
+        from:
+          space: "tp-a-input"
+          region: "slice-steps-overlay-tpa-into-output-from-tp-a-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-overlay-tpa-into-output-to-output-image"
+      -
+        kind: "transform"
+        id: "relocate-tpb-diff-for-b-bank"
+        overlap: "reject"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work"
+        to:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work"
+        addend: 524288
+        encoding: "u32le"
+      -
+        kind: "copy"
+        id: "overlay-tpb-into-output"
+        overlap: "replace-existing"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-overlay-tpb-into-output-from-tp-b-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-overlay-tpb-into-output-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-a-bank-to-combiner-work"
+        overlap: "reject"
+        from:
+          space: "output-image"
+          region: "slice-steps-copy-a-bank-to-combiner-work-from-output-image"
+        to:
+          space: "ab-combiner-work"
+          region: "slice-steps-copy-a-bank-to-combiner-work-to-ab-combiner-work"
+      -
+        kind: "copy"
+        id: "copy-b-bank-to-combiner-work"
+        overlap: "reject"
+        from:
+          space: "output-image"
+          region: "slice-steps-copy-b-bank-to-combiner-work-from-output-image"
+        to:
+          space: "ab-combiner-work"
+          region: "slice-steps-copy-b-bank-to-combiner-work-to-ab-combiner-work"
+      -
+        kind: "integrity"
+        id: "run-nt51951-ab-combiner"
+        run: "nt51951-ab-combiner-for-nt51951-ab-merge-1024k-ab-merge-ic-count1-banks"
+      -
+        kind: "copy"
+        id: "import-postbuild-b-ilm"
+        overlap: "replace-existing"
+        from:
+          space: "ab-combiner-work"
+          region: "slice-steps-import-postbuild-b-ilm-from-ab-combiner-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-import-postbuild-b-ilm-to-output-image"
+      -
+        kind: "copy"
+        id: "import-postbuild-b-dlm"
+        overlap: "replace-existing"
+        from:
+          space: "ab-combiner-work"
+          region: "slice-steps-import-postbuild-b-dlm-from-ab-combiner-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-import-postbuild-b-dlm-to-output-image"
+      -
+        kind: "copy"
+        id: "import-postbuild-b-crc"
+        overlap: "replace-existing"
+        from:
+          space: "ab-combiner-work"
+          region: "slice-steps-import-postbuild-b-crc-from-ab-combiner-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-import-postbuild-b-crc-to-output-image"
+    post: []

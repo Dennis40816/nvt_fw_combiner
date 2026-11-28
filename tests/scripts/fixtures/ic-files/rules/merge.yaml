@@ -1,0 +1,8 @@
+rule: "merge"
+plans:
+  -
+    id: "main"
+    steps:
+      -
+        kind: "integrity"
+        run: "finalize"

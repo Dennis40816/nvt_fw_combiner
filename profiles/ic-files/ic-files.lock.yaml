@@ -1,0 +1,240 @@
+-
+  path: "definitions/dpcmi.yaml"
+  sha256: "f1fd7a63eb22eb0d71849da3ff2a6e87763f9a8fe5acef5c0fcd52d6124e4c26"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51923-fwconfig-backup-envelope.yaml"
+  sha256: "2f61d41bf6de1bcb28ece09b852a0a255888323b40ddcacb48a96a1b8c4a32dd"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51925-fwconfig-backup-envelope.yaml"
+  sha256: "3041a6e0e638e53c6af237712c119926a587da30c37a35f5c04424c57888099e"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51926-fwconfig-backup-envelope.yaml"
+  sha256: "cbd5c739b189c4d5a211bb9ae25d2b793fb186b7277d4677e55ee5e8152414e0"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51927-fwconfig-backup-envelope.yaml"
+  sha256: "441445e5c64dc6e7756ccff96c4d4eed5e74c87ef251dcaedda805d418f420e8"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51928-fwconfig-backup-envelope.yaml"
+  sha256: "3a25485d24dec4cb4dbbf8494728d7dfab217745dc573ea6f6b7c989035ddf0b"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51929-fwconfig-envelope.yaml"
+  sha256: "db55f3556a0897039e7b605fb758c5af568ba56a2674b42914655e6c66f348b4"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51932-fwconfig-backup-envelope.yaml"
+  sha256: "29bd7f48fc69876755895ba491e5c231347c7b1ea46a1618f2ef5cd7e776a383"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51950-fwconfig-backup-envelope.yaml"
+  sha256: "11714bb3207e299f7c78c36d3ab4ac609408cddbf0c822113a997594159e50dd"
+  uses: []
+-
+  path: "definitions/field-common-fw-version-from-nt51951-fwconfig-backup-envelope.yaml"
+  sha256: "4c77942444d5f83c096a68664f1d10ad1538e73314740c175545269c4686e01c"
+  uses: []
+-
+  path: "definitions/field-nt51950-partial-family-ab-event-buffer.yaml"
+  sha256: "18fb5162c09c09e0a185430aaa2b8ac4900efce059e92cb2d93d3712a2416b18"
+  uses: []
+-
+  path: "definitions/field-version-info-dp-tp.yaml"
+  sha256: "ef553a2aac7e8f6ee5356b956d2b44da87fcbf9bcfca485da4be76ed7eec1b73"
+  uses: []
+-
+  path: "definitions/field-version-info-empty.yaml"
+  sha256: "b3451e50172d59dab65eeb5a739ee4239b8dd18d42fe00f2017a41c1c841c30b"
+  uses: []
+-
+  path: "definitions/firmware-config-general-parameters.yaml"
+  sha256: "385e1b94876df3d0ac652ea5cc6f4659003080ec45c6fef5d4dcf88988fdcd3b"
+  uses: []
+-
+  path: "definitions/nt51923-normal-tp-flash-header.yaml"
+  sha256: "9814e9b78c210c226d7ebd085d228210110ea5896102ebe59b056cc869478fd1"
+  uses: []
+-
+  path: "definitions/nt51925-fwconfig-backup-envelope.yaml"
+  sha256: "aaecf6a684f164e3f3960af927f8e3cd03188d690e10415a16c5a031c0a5164b"
+  uses: []
+-
+  path: "definitions/nt51926-normal-tp-flash-header.yaml"
+  sha256: "e8bd927d8f795cc8dc6e592289c89ee3d331e1da06ac554cf5b3241f0d22850c"
+  uses: []
+-
+  path: "definitions/nt51927-fwconfig-backup-envelope.yaml"
+  sha256: "394a52a3b9007d18635e0374ec679d84080ff0345a33fde96870ea0929645b4b"
+  uses: []
+-
+  path: "definitions/nt51927-type927-tp-flash-header.yaml"
+  sha256: "0245e2f4570d099e4791310e279ed0aa686d9f402f4e05d4a3041a03cdbfe6d0"
+  uses: []
+-
+  path: "definitions/tp-svn.yaml"
+  sha256: "01bf615d7597ea29ad538ef7775a84d05989974c68c72326477a2481581e813e"
+  uses: []
+-
+  path: "definitions/type-ab-tp-flash-header.yaml"
+  sha256: "eed51c46d1e0d000427aa23f117ab88ea803a2c01456be02ff1a0c8b4b0abcb4"
+  uses: []
+-
+  path: "ic/nt51917.yaml"
+  sha256: "9dfd7da1ef4d9341e9e6157309aa1d6c4ad5cba25e56baab0dfc4ccf8631ea1f"
+  uses: ["definitions/firmware-config-general-parameters.yaml", "parts/nt51917.facts.yaml", "rules/ctrlram-replace.nt51917.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51923.yaml"
+  sha256: "e70467d008403fb47ff78a4f809b20c191e62c3c7b67d4edb10a19515f750457"
+  uses: ["definitions/dpcmi.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51923-normal-tp-flash-header.yaml", "definitions/tp-svn.yaml", "parts/nt51923.facts.yaml", "rules/ctrlram-replace.nt51923.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51925.yaml"
+  sha256: "10dbc6ceda2ca9a4e1766edbfeabd72e5aa558a3cbdf168e9864e119a7fc984c"
+  uses: ["parts/nt51925.facts.yaml", "rules/ctrlram-replace.nt51925.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51926.yaml"
+  sha256: "1d790867c3ff774636c5648bf74cfce2335ee8115665179a4b846c5a27ec799b"
+  uses: ["definitions/dpcmi.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51926-normal-tp-flash-header.yaml", "definitions/tp-svn.yaml", "parts/nt51926.facts.yaml", "rules/ctrlram-replace.nt51926.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51927.yaml"
+  sha256: "100bc8f9e41cadcc6790138b1e59b717409be2e681e89fed216a8a8abecc4fe4"
+  uses: ["definitions/firmware-config-general-parameters.yaml", "parts/nt51927.facts.yaml", "rules/ctrlram-replace.nt51927.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51928.yaml"
+  sha256: "07b74dfe74f9d6e079ccfbea1281d1a1fd685f4ce75eea12bddd96e0446ab03c"
+  uses: ["parts/nt51927.dp-code.yaml", "parts/nt51927.tp-code.yaml", "parts/nt51928.facts.yaml", "rules/ctrlram-replace.nt51928.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51929.yaml"
+  sha256: "e5eebb0a00f5e1a5492c916fc2a35f0ebba126a532a88034c81adf00ec264993"
+  uses: ["parts/nt51929.facts.yaml", "rules/ab-merge.nt51929.yaml", "rules/ab-replace.nt51929.yaml", "rules/ctrlram-replace.nt51929.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51950.yaml"
+  sha256: "fe9019768e926c5e270df1747738bb1704ba004c1d12f5248f9f7c718232cdbb"
+  uses: ["definitions/field-version-info-dp-tp.yaml", "parts/nt51950.facts.yaml", "rules/ab-merge.nt51950.yaml", "rules/ab-replace.nt51950-and-nt51951.yaml", "rules/ctrlram-replace.nt51950.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "ic/nt51951.yaml"
+  sha256: "bb5185fb21f930731145de52c1dfc2229b555b94e81268fcd5b834fa5bc7d021"
+  uses: ["definitions/field-version-info-dp-tp.yaml", "parts/nt51951.facts.yaml", "rules/ab-merge.nt51951.yaml", "rules/ab-replace.nt51950-and-nt51951.yaml", "rules/ctrlram-replace.nt51951.yaml", "rules/general-merge.yaml", "rules/general-replace.yaml", "rules/standard-merge.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51917.facts.yaml"
+  sha256: "8e93cadf3bad744223816628d4fe31617f1fa0a1431984a5151bfd861616dc6e"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51927-fwconfig-backup-envelope.yaml", "definitions/field-version-info-empty.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/nt51927-type927-tp-flash-header.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51923.facts.yaml"
+  sha256: "dc405a287eec6324638368c1a1bab1d042524380b8462b61a0673fc9b5d16dea"
+  uses: ["definitions/field-common-fw-version-from-nt51923-fwconfig-backup-envelope.yaml", "definitions/field-version-info-empty.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51925.facts.yaml"
+  sha256: "cd77f345899c6bf6922b85c7134264ae7ca8e39a4435c5d92db5421b811cb3bd"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51925-fwconfig-backup-envelope.yaml", "definitions/field-version-info-empty.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51925-fwconfig-backup-envelope.yaml", "definitions/nt51926-normal-tp-flash-header.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51926.facts.yaml"
+  sha256: "5937995c3d0741b19a1646ea41950ee157e6001bf455ca63f720d47c5624183d"
+  uses: ["definitions/field-common-fw-version-from-nt51926-fwconfig-backup-envelope.yaml", "definitions/field-version-info-empty.yaml", "definitions/nt51925-fwconfig-backup-envelope.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51927.dp-code.yaml"
+  sha256: "4e78fc136336490fd0c9068e09d1942647ab59c01ed079345687af84d55d4b32"
+  uses: []
+-
+  path: "parts/nt51927.facts.yaml"
+  sha256: "f51d09c9073aac68d208287cc399298e04d4a06404b16a98860e2a01b6c44aa0"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51927-fwconfig-backup-envelope.yaml", "definitions/field-version-info-empty.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/nt51927-type927-tp-flash-header.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51927.tp-code.yaml"
+  sha256: "8d1fc40dad15992715cd0ff6ab1e77eeaee609e0365ee568189a21391d8d8345"
+  uses: []
+-
+  path: "parts/nt51928.facts.yaml"
+  sha256: "e2460eeac81bf06a9f20da277cbf673dee6c9d9f120ffa915a02b2c209606657"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51928-fwconfig-backup-envelope.yaml", "definitions/field-version-info-empty.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/nt51927-type927-tp-flash-header.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51929.facts.yaml"
+  sha256: "7f203701a659d548bdcfc01b812ce4981c30d451cd9e331d3e310278f500f441"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51929-fwconfig-envelope.yaml", "definitions/field-common-fw-version-from-nt51932-fwconfig-backup-envelope.yaml", "definitions/field-version-info-dp-tp.yaml", "definitions/field-version-info-empty.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/tp-svn.yaml", "definitions/type-ab-tp-flash-header.yaml", "tools/integrity-methods.yaml"]
+-
+  path: "parts/nt51950.facts.yaml"
+  sha256: "6ed5225bda9bc1cec262d27fd303623bf3c9521056811593d7ac2b7b904711ab"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51950-fwconfig-backup-envelope.yaml", "definitions/field-nt51950-partial-family-ab-event-buffer.yaml", "definitions/field-version-info-dp-tp.yaml", "definitions/field-version-info-empty.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "parts/nt51951.facts.yaml"
+  sha256: "3df958f0faaf9ffa0ba160a146926196ac3e4f79b508c97f8f4b0b864b90aea6"
+  uses: ["definitions/dpcmi.yaml", "definitions/field-common-fw-version-from-nt51951-fwconfig-backup-envelope.yaml", "definitions/field-nt51950-partial-family-ab-event-buffer.yaml", "definitions/field-version-info-dp-tp.yaml", "definitions/field-version-info-empty.yaml", "definitions/firmware-config-general-parameters.yaml", "definitions/nt51927-fwconfig-backup-envelope.yaml", "definitions/tp-svn.yaml", "tools/integrity-methods.yaml", "tools/legacy-combiner.yaml"]
+-
+  path: "rules/ab-merge.nt51929.yaml"
+  sha256: "d7d6a82526e3dc08abc561df5c7368234db82c7fd9e51baf3369d665663d3fd5"
+  uses: []
+-
+  path: "rules/ab-merge.nt51950.yaml"
+  sha256: "fb92b4f792b8c2e09a664780fcd9c7931905073caed5988d6dec1da011a48ae0"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ab-merge.nt51951.yaml"
+  sha256: "37ecea9f7708fc8b03752f80e3e19583a5d140f369d30ac585d2eeba765099a8"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ab-replace.nt51929.yaml"
+  sha256: "f914ae8de4d2e95049106e24a359fb0ab059dbac011c5040cb110fd3afa5de1f"
+  uses: []
+-
+  path: "rules/ab-replace.nt51950-and-nt51951.yaml"
+  sha256: "6f69e6317f2326c5c6cfa5b83795a5575a925b5170b9dfcb47c0354b5fd4fde6"
+  uses: []
+-
+  path: "rules/ctrlram-replace.nt51917.yaml"
+  sha256: "2ff0c58cdbc54199c9b1a036c8bdcae3902c8ef24203eb8f9e94f738bab991b1"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51923.yaml"
+  sha256: "2dccfac912388da1d5cb84d23959e354b06b9bae54a22d601933619231cc2ded"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51925.yaml"
+  sha256: "6da95697a21017863df3da6d5737ec2a1470804456f20f1b13e854ff7116d4ff"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51926.yaml"
+  sha256: "8f90c7661b9aa6debb1866b1465933bed8a98c9647f89524d80bf155d46bdb78"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51927.yaml"
+  sha256: "0796136bb9c3f12e3656d542812df479b2719c8e062c5355f7871b72e868582b"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51928.yaml"
+  sha256: "9bbe3652b3c873dc7d8ebac9d7a56c2819f40fbe0282cecd5d64c365542d25a9"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51929.yaml"
+  sha256: "c5908722a29f8e7942a4b78a1d90d607866349997f123ed89d95be700392b47f"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51950.yaml"
+  sha256: "c18f689fe3d6c52d1e19d17530ea11667658661e6fbc0bdecae9be01ff0ec789"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/ctrlram-replace.nt51951.yaml"
+  sha256: "1af97bfb212fdc15eb7127fa5667ab2e33ca9e7e7b8fc2146f41e32cc58b533c"
+  uses: ["tools/legacy-combiner.yaml"]
+-
+  path: "rules/general-merge.yaml"
+  sha256: "c760be55d67357ae58d728447ed396ef2b50bc4ad1a301dd9ff62687ab305e92"
+  uses: []
+-
+  path: "rules/general-replace.yaml"
+  sha256: "6c9d0b35921e9b8ba53994b6ce6dbac852172beada604d7c73ac75976da15893"
+  uses: []
+-
+  path: "rules/standard-merge.yaml"
+  sha256: "387914312c5b5129ee945f2f5db1d9821ba8c66011cfc28749002242c5fc619e"
+  uses: ["tools/integrity-methods.yaml"]
+-
+  path: "tools/integrity-methods.yaml"
+  sha256: "d03b60f4ba7db3fa0f126e9cfc81b234473d1f4af00a5e44eb633b60b397410b"
+  uses: []
+-
+  path: "tools/legacy-combiner.yaml"
+  sha256: "049de9100240af77e72b849daeefa7c3d4eafa798d24733818a5275877b9d9c3"
+  uses: []

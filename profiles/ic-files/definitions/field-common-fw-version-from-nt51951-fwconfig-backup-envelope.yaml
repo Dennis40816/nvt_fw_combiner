@@ -1,0 +1,7 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Local $self space is rebound to the located field id; no IC addresses are stored here.
+schema-version: 1
+definition: "field-common-fw-version-from-nt51951-fwconfig-backup-envelope"
+kind: "projection"
+from-fields: ["nt51951-fwconfig-backup-envelope.common-fw-major", "nt51951-fwconfig-backup-envelope.common-fw-minor", "nt51951-fwconfig-backup-envelope.common-fw-additional"]
+decoder: "common-fw-version"

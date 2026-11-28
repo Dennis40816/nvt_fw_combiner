@@ -1,0 +1,18 @@
+{
+  "oneOf": [
+    {"type": "object", "properties": {"part": {"type": "string"}, "regions": {"type": "array", "items": {"type": "string"}}}, "required": ["part", "regions"], "additionalProperties": false},
+    {"type": "object", "properties": {"part": {"type": "string"}, "fact-sets": {"type": "array", "items": {"$ref": "#/$defs/facts"}}}, "required": ["part", "fact-sets"], "additionalProperties": false}
+  ],
+  "$defs": {
+    "facts": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "fields": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "definition": {"type": "string"}, "at": {"$ref": "#/$defs/range"}, "required": {"type": "boolean"}}, "additionalProperties": false}},
+        "integrity": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "run": {"type": "string"}}, "additionalProperties": false}}
+      },
+      "additionalProperties": false
+    },
+    "range": {"type": "object", "properties": {"space": {"type": "string"}, "start": {"type": "string"}, "end": {"type": "string"}}, "additionalProperties": false}
+  }
+}

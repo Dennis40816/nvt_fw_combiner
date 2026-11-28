@@ -1,0 +1,1882 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+schema-version: 1
+ic: ["NT51950"]
+sizes: ["0x37000", "0x40000", "0x80000", "0x100000"]
+topology:
+  kind: "numeric"
+  min-count: 1
+layouts:
+  -
+    id: "nt51950-ab-merge-1024k-ab-merge-banks"
+    size: "0x100000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x80000"
+    regions:
+      -
+        id: "slice-steps-overlay-tpb-into-output-to-output-image"
+        space: "output-image"
+        start: "0x8A000"
+        end: "0xB7000"
+        origin: "operation"
+      -
+        id: "slice-steps-copy-a-bank-to-combiner-work-from-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x80000"
+        origin: "operation"
+      -
+        id: "slice-steps-copy-a-bank-to-combiner-work-to-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x0"
+        end: "0x80000"
+        origin: "operation"
+      -
+        id: "slice-steps-copy-b-bank-to-combiner-work-from-output-image"
+        space: "output-image"
+        start: "0x80000"
+        end: "0x100000"
+        origin: "operation"
+      -
+        id: "slice-steps-copy-b-bank-to-combiner-work-to-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x80000"
+        end: "0x100000"
+        origin: "operation"
+      -
+        id: "slice-steps-import-postbuild-b-ilm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-steps-import-postbuild-b-ilm-to-output-image"
+        space: "output-image"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-steps-import-postbuild-b-dlm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-steps-import-postbuild-b-dlm-to-output-image"
+        space: "output-image"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-steps-import-postbuild-b-crc-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+      -
+        id: "slice-steps-import-postbuild-b-crc-to-output-image"
+        space: "output-image"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+    fields:
+      -
+        id: "version-info"
+        definition: "field-version-info-dp-tp"
+        at:
+          kind: "group"
+          locations:
+            -
+              id: "dp-a"
+              at:
+                space: "dp-ab-input"
+                start: "0x5016"
+                end: "0x5019"
+            -
+              id: "dp-b"
+              at:
+                space: "dp-ab-input"
+                start: "0x84016"
+                end: "0x84019"
+        required: false
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-ab-image"
+        region-refs: ["ab-image", "a-dp-before-tp", "a-cmi-dp-version", "a-dp-before-cmi", "a-dp-after-cmi-before-tp"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-and-extents-a-bank"
+        region-refs: ["a-dp-after-tp", "b-dp-after-tp", "b-dp-before-tp", "a-bank", "b-bank", "b-tp-code", "b-cmi-dp-version", "b-dp-before-cmi", "b-dp-after-cmi-before-tp", "slice-invocation-ab-header-crc-may-read-a-bank-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78080bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78096bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78128bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-and-extents-tp-a-svn"
+        region-refs: ["slice-steps-overlay-tpa-into-output-from-tp-a-input", "slice-steps-overlay-tpa-into-output-to-output-image", "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work", "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work", "slice-steps-overlay-tpb-into-output-from-tp-b-work"]
+        field-refs: ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config", "tp-a-fwconfig-backup", "tp-b-fwconfig-backup", "tp-a-svn", "tp-b-svn"]
+        extent-refs: ["tp-b-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+  -
+    id: "nt51950-ab-desay-single-1024k"
+    size: "0x100000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x40000"
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-ab-image"
+        region-refs: ["ab-image", "a-dp-before-tp", "a-cmi-dp-version", "a-dp-before-cmi", "a-dp-after-cmi-before-tp"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-and-extents-tp-a-svn"
+        region-refs: ["slice-steps-overlay-tpa-into-output-from-tp-a-input", "slice-steps-overlay-tpa-into-output-to-output-image", "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work", "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work", "slice-steps-overlay-tpb-into-output-from-tp-b-work"]
+        field-refs: ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config", "tp-a-fwconfig-backup", "tp-b-fwconfig-backup", "tp-a-svn", "tp-b-svn"]
+        extent-refs: ["tp-b-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-and-inputs-and-integrity-dp-ab-input"
+        region-refs: ["a-dp-after-tp", "b-dp-after-tp", "b-dp-before-tp", "b-cmi-dp-version", "b-dp-before-cmi", "b-dp-after-cmi-before-tp", "dp-container-tail", "slice-invocation-ab-header-crc-may-read-ab-image-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-offset0bytes-length524288bytes-ab-combiner-work", "slice-steps-copy-dp-ab-image-from-dp-ab-input", "slice-steps-copy-dp-ab-image-to-output-image"]
+        field-refs: ["version-info"]
+        input-refs: ["dp-ab-input"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-extents-a-bank"
+        region-refs: ["a-bank", "b-bank", "b-tp-code", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-slice-steps-import-postbuild-b-crc-to-output-image"
+        region-refs: ["slice-steps-overlay-tpb-into-output-to-output-image", "slice-steps-copy-a-bank-to-combiner-work-from-output-image", "slice-steps-copy-a-bank-to-combiner-work-to-ab-combiner-work", "slice-steps-copy-b-bank-to-combiner-work-from-output-image", "slice-steps-copy-b-bank-to-combiner-work-to-ab-combiner-work", "slice-steps-import-postbuild-b-ilm-from-ab-combiner-work", "slice-steps-import-postbuild-b-ilm-to-output-image", "slice-steps-import-postbuild-b-dlm-from-ab-combiner-work", "slice-steps-import-postbuild-b-dlm-to-output-image", "slice-steps-import-postbuild-b-crc-from-ab-combiner-work", "slice-steps-import-postbuild-b-crc-to-output-image"]
+  -
+    id: "nt51950-ab-desay-cascade-1024k"
+    size: "0x100000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x40000"
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-ab-image"
+        region-refs: ["ab-image", "a-dp-before-tp", "a-cmi-dp-version", "a-dp-before-cmi", "a-dp-after-cmi-before-tp"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-and-extents-tp-a-svn"
+        region-refs: ["slice-steps-overlay-tpa-into-output-from-tp-a-input", "slice-steps-overlay-tpa-into-output-to-output-image", "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work", "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work", "slice-steps-overlay-tpb-into-output-from-tp-b-work"]
+        field-refs: ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config", "tp-a-fwconfig-backup", "tp-b-fwconfig-backup", "tp-a-svn", "tp-b-svn"]
+        extent-refs: ["tp-b-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-and-inputs-and-integrity-dp-ab-input"
+        region-refs: ["a-dp-after-tp", "b-dp-after-tp", "b-dp-before-tp", "b-cmi-dp-version", "b-dp-before-cmi", "b-dp-after-cmi-before-tp", "dp-container-tail", "slice-invocation-ab-header-crc-may-read-ab-image-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-offset0bytes-length524288bytes-ab-combiner-work", "slice-steps-copy-dp-ab-image-from-dp-ab-input", "slice-steps-copy-dp-ab-image-to-output-image"]
+        field-refs: ["version-info"]
+        input-refs: ["dp-ab-input"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-extents-a-bank"
+        region-refs: ["a-bank", "b-bank", "b-tp-code", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-slice-steps-import-postbuild-b-crc-to-output-image"
+        region-refs: ["slice-steps-overlay-tpb-into-output-to-output-image", "slice-steps-copy-a-bank-to-combiner-work-from-output-image", "slice-steps-copy-a-bank-to-combiner-work-to-ab-combiner-work", "slice-steps-copy-b-bank-to-combiner-work-from-output-image", "slice-steps-copy-b-bank-to-combiner-work-to-ab-combiner-work", "slice-steps-import-postbuild-b-ilm-from-ab-combiner-work", "slice-steps-import-postbuild-b-ilm-to-output-image", "slice-steps-import-postbuild-b-dlm-from-ab-combiner-work", "slice-steps-import-postbuild-b-dlm-to-output-image", "slice-steps-import-postbuild-b-crc-from-ab-combiner-work", "slice-steps-import-postbuild-b-crc-to-output-image"]
+  -
+    id: "nt51950-ab-merge-512k-ab-merge-banks"
+    size: "0x80000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x40000"
+    regions: []
+    fields:
+      -
+        id: "version-info"
+        definition: "field-version-info-dp-tp"
+        at:
+          kind: "group"
+          locations:
+            -
+              id: "dp-a"
+              at:
+                space: "dp-ab-input"
+                start: "0x3B016"
+                end: "0x3B019"
+            -
+              id: "dp-b"
+              at:
+                space: "dp-ab-input"
+                start: "0x7B016"
+                end: "0x7B019"
+        required: false
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-and-extents-tp-a-svn"
+        region-refs: ["slice-steps-overlay-tpa-into-output-from-tp-a-input", "slice-steps-overlay-tpa-into-output-to-output-image", "slice-steps-relocate-tpb-diff-for-b-bank-from-tp-b-work", "slice-steps-relocate-tpb-diff-for-b-bank-to-tp-b-work", "slice-steps-overlay-tpb-into-output-from-tp-b-work"]
+        field-refs: ["tp-a-primary-firmware-config", "tp-b-primary-firmware-config", "tp-a-fwconfig-backup", "tp-b-fwconfig-backup", "tp-a-svn", "tp-b-svn"]
+        extent-refs: ["tp-b-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-extents-a-bank"
+        region-refs: ["a-bank", "b-bank", "b-tp-code", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-slice-steps-import-postbuild-b-crc-to-output-image"
+        region-refs: ["slice-steps-overlay-tpb-into-output-to-output-image", "slice-steps-copy-a-bank-to-combiner-work-from-output-image", "slice-steps-copy-a-bank-to-combiner-work-to-ab-combiner-work", "slice-steps-copy-b-bank-to-combiner-work-from-output-image", "slice-steps-copy-b-bank-to-combiner-work-to-ab-combiner-work", "slice-steps-import-postbuild-b-ilm-from-ab-combiner-work", "slice-steps-import-postbuild-b-ilm-to-output-image", "slice-steps-import-postbuild-b-dlm-from-ab-combiner-work", "slice-steps-import-postbuild-b-dlm-to-output-image", "slice-steps-import-postbuild-b-crc-from-ab-combiner-work", "slice-steps-import-postbuild-b-crc-to-output-image"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-image"
+        region-refs: ["ab-image", "a-dp-after-tp", "a-dp-before-tp", "b-dp-after-tp", "b-dp-before-tp", "a-cmi-dp-version", "a-dp-after-tp-before-cmi", "a-dp-after-cmi", "b-cmi-dp-version", "b-dp-after-tp-before-cmi", "b-dp-after-cmi", "slice-invocation-ab-header-crc-may-read-ab-image-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+  -
+    id: "nt51950-ctrlram-fw1x-cascade-tp-work"
+    size: "0x37000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-gap-a120"
+        region-refs: ["flash-image", "gap-prefix-offset00000", "header-crc-a11c", "gap-a120", "header-crc-a130", "gap-a180", "fw-config-source", "gap-fwconfig-to-nf", "normal-ctrlram", "vn-ctrlram", "header-copy", "gap-offset2d50c-to-diff", "diff-ctrlram", "gap-inactive-diff-record-to-fwconfig-backup", "gap-fwconfig-backup-to-end-flag"]
+        field-refs: ["nt51950-fwconfig-backup-envelope", "tp-svn-header-copy", "common-fw-version"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram"
+        region-refs: ["header-dlm-crc-a134-a180", "nf-ctrlram", "fw-config-backup"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-and-extents-diffdlm-input"
+        region-refs: ["slice-invocation-nt51950-fw1x-cascade-combiner-placed-write-expected-backup-ic-count2-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-placed-write-within-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-stage-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-read-flash-image-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-crc-a11c-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-crc-a130-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-dlm-crc-a134-a180-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-vn-ctrlram-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-copy-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-diff-ctrlram-offset0bytes-length2320bytes-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-clone-reference-diff-records-from-reference-base", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-clone-reference-diff-records-to-postbuild-diffdlm", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-diff-check-index0-from-diffdlm-input", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-diff-active-index0-from-diffdlm-input", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-diff-active-index0-to-postbuild-diffdlm", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-diff-write-index0-from-postbuild-diffdlm", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-diff-write-index0-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-header-crc-blocks-header-copy-final-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-artifacts-postbuild-diffdlm-from-postbuild-diffdlm"]
+        input-refs: ["diffdlm-input"]
+        integrity-refs: ["nt51950-fw1x-cascade-combiner"]
+        extent-refs: ["postbuild-diffdlm-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51950-ctrlram-fw1x-cascade-tp-work"
+        input-refs: ["reference-base"]
+  -
+    id: "nt51950-ctrlram-fw1x-cascade-full-flash-ctrlram-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-gap-a120"
+        region-refs: ["flash-image", "gap-prefix-offset00000", "header-crc-a11c", "gap-a120", "header-crc-a130", "gap-a180", "fw-config-source", "gap-fwconfig-to-nf", "normal-ctrlram", "vn-ctrlram", "header-copy", "gap-offset2d50c-to-diff", "diff-ctrlram", "gap-inactive-diff-record-to-fwconfig-backup", "gap-fwconfig-backup-to-end-flag"]
+        field-refs: ["nt51950-fwconfig-backup-envelope", "tp-svn-header-copy", "common-fw-version"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram"
+        region-refs: ["header-dlm-crc-a134-a180", "nf-ctrlram", "fw-config-backup"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-and-extents-diffdlm-input"
+        region-refs: ["slice-invocation-nt51950-fw1x-cascade-combiner-placed-write-expected-backup-ic-count2-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-placed-write-within-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-stage-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-read-flash-image-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-crc-a11c-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-crc-a130-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-dlm-crc-a134-a180-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-vn-ctrlram-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-header-copy-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-may-write-diff-ctrlram-offset0bytes-length2320bytes-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-clone-reference-diff-records-from-reference-base", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-clone-reference-diff-records-to-postbuild-diffdlm", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-diff-check-index0-from-diffdlm-input", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-diff-active-index0-from-diffdlm-input", "slice-invocation-nt51950-fw1x-cascade-combiner-pre-diff-active-index0-to-postbuild-diffdlm", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-diff-write-index0-from-postbuild-diffdlm", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-diff-write-index0-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-commands-nt51950-cascade-header-crc-blocks-header-copy-final-to-output-image", "slice-invocation-nt51950-fw1x-cascade-combiner-artifacts-postbuild-diffdlm-from-postbuild-diffdlm"]
+        input-refs: ["diffdlm-input"]
+        integrity-refs: ["nt51950-fw1x-cascade-combiner"]
+        extent-refs: ["postbuild-diffdlm-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-full-flash-tail"
+        region-refs: ["full-flash-tail"]
+  -
+    id: "nt51950-ctrlram-fw200-single-tp-work"
+    size: "0x37000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-gap-a120"
+        region-refs: ["flash-image", "gap-prefix-offset00000", "header-crc-a11c", "gap-a120", "header-crc-a130", "gap-a180", "fw-config-source", "gap-fwconfig-to-nf", "normal-ctrlram", "vn-ctrlram", "header-copy", "gap-offset2d50c-to-diff", "diff-ctrlram", "gap-inactive-diff-record-to-fwconfig-backup", "gap-fwconfig-backup-to-end-flag"]
+        field-refs: ["nt51950-fwconfig-backup-envelope", "tp-svn-header-copy", "common-fw-version"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base-for-nt51950-ctrlram-fw1x-cascade-tp-work"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram-for-nt51950-ctrlram-fw200-single-tp-work"
+        region-refs: ["header-dlm-crc-a134-a180", "nf-ctrlram", "fw-config-backup"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51950-fw200-single-combiner"
+        region-refs: ["slice-invocation-nt51950-fw200-single-combiner-stage-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-read-flash-image-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-header-crc-a11c-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-header-crc-a130-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-vn-ctrlram-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-header-copy-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-header-crc-blocks-header-copy-final-to-output-image"]
+        integrity-refs: ["nt51950-fw200-single-combiner"]
+  -
+    id: "nt51950-ctrlram-fw200-single-full-flash-ctrlram-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-gap-a120"
+        region-refs: ["flash-image", "gap-prefix-offset00000", "header-crc-a11c", "gap-a120", "header-crc-a130", "gap-a180", "fw-config-source", "gap-fwconfig-to-nf", "normal-ctrlram", "vn-ctrlram", "header-copy", "gap-offset2d50c-to-diff", "diff-ctrlram", "gap-inactive-diff-record-to-fwconfig-backup", "gap-fwconfig-backup-to-end-flag"]
+        field-refs: ["nt51950-fwconfig-backup-envelope", "tp-svn-header-copy", "common-fw-version"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-full-flash-tail"
+        region-refs: ["full-flash-tail"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram-for-nt51950-ctrlram-fw200-single-tp-work"
+        region-refs: ["header-dlm-crc-a134-a180", "nf-ctrlram", "fw-config-backup"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-nt51950-fw200-single-combiner"
+        region-refs: ["slice-invocation-nt51950-fw200-single-combiner-stage-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-read-flash-image-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-header-crc-a11c-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-header-crc-a130-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-nf-ctrlram-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-normal-ctrlram-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-vn-ctrlram-output-image", "slice-invocation-nt51950-fw200-single-combiner-may-write-header-copy-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-normal-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-vn-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-nf-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-header-copy-from-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-merge-crc-blocks-header-copy-to-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-header-crc-blocks-header-copy-final-from-output-image", "slice-invocation-nt51950-fw200-single-combiner-commands-nt51950-single-header-crc-blocks-header-copy-final-to-output-image"]
+        integrity-refs: ["nt51950-fw200-single-combiner"]
+  -
+    id: "nt51950-standard-merge-256k"
+    size: "0x40000"
+    banks: []
+    regions:
+      -
+        id: "dp-container"
+        space: "flash"
+        start: "0x0"
+        end: "0x40000"
+        kind: "image"
+        owner: "dp"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "unmapped-suffix"
+        space: "flash"
+        start: "0x38000"
+        end: "0x40000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "dp-container"
+        access: "hidden"
+        origin: "map"
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["unmapped-prefix", "customer-info", "tp-overlay", "slice-pre-check-non-uniform-dp-input-from-dp-input", "slice-pre-check-non-uniform-tp-input-from-tp-input", "slice-steps-overlay-tp-from-tp-input", "slice-steps-overlay-tp-to-output-image"]
+        field-refs: ["firmware-config-general-parameters", "firmware-config-dp-replace", "nt51950-dpcmi-standard-merge", "nt51950-dpcmi-dp-replace", "tp-svn"]
+  -
+    id: "nt51950-standard-merge-512k"
+    size: "0x80000"
+    banks: []
+    regions:
+      -
+        id: "dp-container"
+        space: "flash"
+        start: "0x0"
+        end: "0x80000"
+        kind: "image"
+        owner: "dp"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "unmapped-suffix"
+        space: "flash"
+        start: "0x38000"
+        end: "0x80000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "dp-container"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "slice-invocation-ab-header-crc-may-read-dp-container-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x0"
+        end: "0x80000"
+        origin: "operation"
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity:
+      -
+        id: "ab-header-crc"
+        run: "ab-header-crc-for-nt51950-standard-merge-512k"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["unmapped-prefix", "customer-info", "tp-overlay", "slice-pre-check-non-uniform-dp-input-from-dp-input", "slice-pre-check-non-uniform-tp-input-from-tp-input", "slice-steps-overlay-tp-from-tp-input", "slice-steps-overlay-tp-to-output-image"]
+        field-refs: ["firmware-config-general-parameters", "firmware-config-dp-replace", "nt51950-dpcmi-standard-merge", "nt51950-dpcmi-dp-replace", "tp-svn"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset73984bytes-length4bytes-ab-combiner-work"
+        region-refs: ["slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset73984bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset74000bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset74032bytes-length4bytes-ab-combiner-work"]
+  -
+    id: "nt51950-standard-merge-1024k"
+    size: "0x100000"
+    banks: []
+    regions:
+      -
+        id: "dp-container"
+        space: "flash"
+        start: "0x0"
+        end: "0x100000"
+        kind: "image"
+        owner: "dp"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "unmapped-suffix"
+        space: "flash"
+        start: "0x38000"
+        end: "0x100000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "dp-container"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "slice-invocation-ab-header-crc-may-read-dp-container-offset0bytes-length524288bytes-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x0"
+        end: "0x80000"
+        origin: "operation"
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity:
+      -
+        id: "ab-header-crc"
+        run: "ab-header-crc-for-nt51950-standard-merge-1024k"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-tp-svn"
+        region-refs: ["unmapped-prefix", "customer-info", "tp-overlay", "slice-pre-check-non-uniform-dp-input-from-dp-input", "slice-pre-check-non-uniform-tp-input-from-tp-input", "slice-steps-overlay-tp-from-tp-input", "slice-steps-overlay-tp-to-output-image"]
+        field-refs: ["firmware-config-general-parameters", "firmware-config-dp-replace", "nt51950-dpcmi-standard-merge", "nt51950-dpcmi-dp-replace", "tp-svn"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset73984bytes-length4bytes-ab-combiner-work"
+        region-refs: ["slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset73984bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset74000bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-unmapped-suffix-offset74032bytes-length4bytes-ab-combiner-work"]
+  -
+    id: "nt51950-ab-merge-512k-ab-replace-banks-b-and-both"
+    size: "0x80000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x40000"
+    regions:
+      -
+        id: "slice-post-import-postbuild-b-ilm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x4A100"
+        end: "0x4A104"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-ilm-to-output-image"
+        space: "output-image"
+        start: "0x4A100"
+        end: "0x4A104"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-dlm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x4A110"
+        end: "0x4A114"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-dlm-to-output-image"
+        space: "output-image"
+        start: "0x4A110"
+        end: "0x4A114"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-crc-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x4A130"
+        end: "0x4A134"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-crc-to-output-image"
+        space: "output-image"
+        start: "0x4A130"
+        end: "0x4A134"
+        origin: "operation"
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    bank-processing:
+      -
+        bank: "a-bank"
+        rule: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-full-flash"
+        address-rebases: []
+      -
+        bank: "b-bank"
+        rule: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-full-flash"
+        address-rebases:
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x4A120"
+              end: "0x4A124"
+            image-base: "0x40000"
+            local-base: "0x0"
+            restore: true
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x4A100"
+              end: "0x4A104"
+            image-base: "0x40000"
+            local-base: "0x0"
+            restore: false
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x4A110"
+              end: "0x4A114"
+            image-base: "0x40000"
+            local-base: "0x0"
+            restore: false
+        finalize: "nt51950-ab-combiner-for-nt51950-ab-merge-512k-ab-merge-banks"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-extents-a-bank"
+        region-refs: ["a-bank", "b-bank", "b-tp-code", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-image"
+        region-refs: ["ab-image", "a-dp-after-tp", "a-dp-before-tp", "b-dp-after-tp", "b-dp-before-tp", "a-cmi-dp-version", "a-dp-after-tp-before-cmi", "a-dp-after-cmi", "b-cmi-dp-version", "b-dp-after-tp-before-cmi", "b-dp-after-cmi", "slice-invocation-ab-header-crc-may-read-ab-image-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-tp-a-svn"
+        field-refs: ["tp-a-primary-firmware-config", "tp-a-fwconfig-backup", "tp-a-svn"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-and-inputs-tp-b-svn"
+        field-refs: ["tp-b-primary-firmware-config", "tp-b-fwconfig-backup", "tp-b-svn", "version-info"]
+        input-refs: ["reference-base"]
+  -
+    id: "nt51950-ab-merge-1024k-ab-replace-banks-b-and-both"
+    size: "0x100000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x80000"
+    regions:
+      -
+        id: "slice-post-import-postbuild-b-ilm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-ilm-to-output-image"
+        space: "output-image"
+        start: "0x8A100"
+        end: "0x8A104"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-dlm-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-dlm-to-output-image"
+        space: "output-image"
+        start: "0x8A110"
+        end: "0x8A114"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-crc-from-ab-combiner-work"
+        space: "ab-combiner-work"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+      -
+        id: "slice-post-import-postbuild-b-crc-to-output-image"
+        space: "output-image"
+        start: "0x8A130"
+        end: "0x8A134"
+        origin: "operation"
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    bank-processing:
+      -
+        bank: "a-bank"
+        rule: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-full-flash"
+        address-rebases: []
+      -
+        bank: "b-bank"
+        rule: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-full-flash"
+        address-rebases:
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x8A120"
+              end: "0x8A124"
+            image-base: "0x80000"
+            local-base: "0x0"
+            restore: true
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x8A100"
+              end: "0x8A104"
+            image-base: "0x80000"
+            local-base: "0x0"
+            restore: false
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x8A110"
+              end: "0x8A114"
+            image-base: "0x80000"
+            local-base: "0x0"
+            restore: false
+        finalize: "nt51950-ab-combiner-for-nt51950-ab-merge-1024k-ab-merge-banks"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-ab-image"
+        region-refs: ["ab-image", "a-dp-before-tp", "a-cmi-dp-version", "a-dp-before-cmi", "a-dp-after-cmi-before-tp"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-and-extents-a-bank"
+        region-refs: ["a-dp-after-tp", "b-dp-after-tp", "b-dp-before-tp", "a-bank", "b-bank", "b-tp-code", "b-cmi-dp-version", "b-dp-before-cmi", "b-dp-after-cmi-before-tp", "slice-invocation-ab-header-crc-may-read-a-bank-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78080bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78096bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78128bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-tp-a-svn"
+        field-refs: ["tp-a-primary-firmware-config", "tp-a-fwconfig-backup", "tp-a-svn"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-and-inputs-tp-b-svn-for-nt51950-ab-merge-1024k-ab-replace-banks-a"
+        field-refs: ["tp-b-primary-firmware-config", "tp-b-fwconfig-backup", "tp-b-svn", "version-info"]
+        input-refs: ["reference-base"]
+  -
+    id: "nt51950-ab-merge-512k-ab-replace-banks-a"
+    size: "0x80000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x40000"
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    bank-processing:
+      -
+        bank: "a-bank"
+        rule: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-full-flash"
+        address-rebases: []
+      -
+        bank: "b-bank"
+        rule: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-full-flash"
+        address-rebases:
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x4A120"
+              end: "0x4A124"
+            image-base: "0x40000"
+            local-base: "0x0"
+            restore: true
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x4A100"
+              end: "0x4A104"
+            image-base: "0x40000"
+            local-base: "0x0"
+            restore: false
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x4A110"
+              end: "0x4A114"
+            image-base: "0x40000"
+            local-base: "0x0"
+            restore: false
+        finalize: "nt51950-ab-combiner-for-nt51950-ab-merge-512k-ab-merge-banks"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-extents-a-bank"
+        region-refs: ["a-bank", "b-bank", "b-tp-code", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-image"
+        region-refs: ["ab-image", "a-dp-after-tp", "a-dp-before-tp", "b-dp-after-tp", "b-dp-before-tp", "a-cmi-dp-version", "a-dp-after-tp-before-cmi", "a-dp-after-cmi", "b-cmi-dp-version", "b-dp-after-tp-before-cmi", "b-dp-after-cmi", "slice-invocation-ab-header-crc-may-read-ab-image-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-tp-a-svn"
+        field-refs: ["tp-a-primary-firmware-config", "tp-a-fwconfig-backup", "tp-a-svn"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-and-inputs-tp-b-svn"
+        field-refs: ["tp-b-primary-firmware-config", "tp-b-fwconfig-backup", "tp-b-svn", "version-info"]
+        input-refs: ["reference-base"]
+  -
+    id: "nt51950-ab-merge-1024k-ab-replace-banks-a"
+    size: "0x100000"
+    banks:
+      -
+        id: "a-bank"
+        start: "0x0"
+      -
+        id: "b-bank"
+        start: "0x80000"
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: []
+    integrity: []
+    extents: []
+    bank-processing:
+      -
+        bank: "a-bank"
+        rule: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-full-flash"
+        address-rebases: []
+      -
+        bank: "b-bank"
+        rule: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-full-flash"
+        address-rebases:
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x8A120"
+              end: "0x8A124"
+            image-base: "0x80000"
+            local-base: "0x0"
+            restore: true
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x8A100"
+              end: "0x8A104"
+            image-base: "0x80000"
+            local-base: "0x0"
+            restore: false
+          -
+            stored-at:
+              space: "output-image"
+              start: "0x8A110"
+              end: "0x8A114"
+            image-base: "0x80000"
+            local-base: "0x0"
+            restore: false
+        finalize: "nt51950-ab-combiner-for-nt51950-ab-merge-1024k-ab-merge-banks"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-ab-image"
+        region-refs: ["ab-image", "a-dp-before-tp", "a-cmi-dp-version", "a-dp-before-cmi", "a-dp-after-cmi-before-tp"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-and-extents-a-bank"
+        region-refs: ["a-dp-after-tp", "b-dp-after-tp", "b-dp-before-tp", "a-bank", "b-bank", "b-tp-code", "b-cmi-dp-version", "b-dp-before-cmi", "b-dp-after-cmi-before-tp", "slice-invocation-ab-header-crc-may-read-a-bank-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78080bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78096bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-a-dp-after-tp-offset78128bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-stage-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-read-ab-image-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset256bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset272bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-may-write-b-tp-code-offset304bytes-length4bytes-ab-combiner-work", "slice-invocation-nt51950-ab-combiner-artifacts-a-bank-from-output-image", "slice-invocation-nt51950-ab-combiner-artifacts-b-bank-from-output-image"]
+        integrity-refs: ["ab-header-crc", "nt51950-ab-combiner"]
+        extent-refs: ["ab-combiner-work-length"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-a-tp-code"
+        region-refs: ["a-tp-code"]
+        field-refs: ["nt51950-partial-family-ab-event-buffer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-tp-a-svn"
+        field-refs: ["tp-a-primary-firmware-config", "tp-a-fwconfig-backup", "tp-a-svn"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-and-inputs-tp-b-svn-for-nt51950-ab-merge-1024k-ab-replace-banks-a"
+        field-refs: ["tp-b-primary-firmware-config", "tp-b-fwconfig-backup", "tp-b-svn", "version-info"]
+        input-refs: ["reference-base"]
+  -
+    id: "nt51950-ctrlram-fw1x-cascade-full-flash-general-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: ["header-crc-a11c", "header-crc-a130", "header-dlm-crc-a134-a180"]
+    integrity: []
+    recompute:
+      rule: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-full-flash"
+      run: "nt51950-fw1x-cascade-combiner-for-nt51950-ctrlram-fw1x-cascade-tp-work"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-gap-a120"
+        region-refs: ["flash-image", "gap-prefix-offset00000", "header-crc-a11c", "gap-a120", "header-crc-a130", "gap-a180", "fw-config-source", "gap-fwconfig-to-nf", "normal-ctrlram", "vn-ctrlram", "header-copy", "gap-offset2d50c-to-diff", "diff-ctrlram", "gap-inactive-diff-record-to-fwconfig-backup", "gap-fwconfig-backup-to-end-flag"]
+        field-refs: ["nt51950-fwconfig-backup-envelope", "tp-svn-header-copy", "common-fw-version"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram"
+        region-refs: ["header-dlm-crc-a134-a180", "nf-ctrlram", "fw-config-backup"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-full-flash-tail"
+        region-refs: ["full-flash-tail"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-checks-header-crc-a11c"
+        check-refs: ["header-crc-a11c", "header-crc-a130", "header-dlm-crc-a134-a180"]
+  -
+    id: "nt51950-ctrlram-fw200-single-full-flash-general-replace"
+    size: "0x40000"
+    banks: []
+    regions: []
+    fields: []
+    inputs: []
+    checks: []
+    check-order: ["header-crc-a11c", "header-crc-a130", "header-dlm-crc-a134-a180"]
+    integrity: []
+    recompute:
+      rule: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-full-flash"
+      run: "nt51950-fw200-single-combiner-for-nt51950-ctrlram-fw200-single-tp-work"
+    include:
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-inputs-and-integrity-source"
+        region-refs: ["slice-invocation-ab-header-crc-stage-ab-combiner-work", "slice-invocation-ab-header-crc-artifacts-a-bank-from-output-image", "slice-invocation-ab-header-crc-artifacts-b-bank-from-output-image"]
+        input-refs: ["tp-a-input", "tp-b-input", "ctrlram-source", "dp-input", "tp-input", "source"]
+        integrity-refs: ["vendor-footer"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-dp-ab-input"
+        input-refs: ["dp-ab-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-reference-base"
+        input-refs: ["reference-base"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-inputs-diffdlm-input"
+        input-refs: ["diffdlm-input"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-fields-gap-a120"
+        region-refs: ["flash-image", "gap-prefix-offset00000", "header-crc-a11c", "gap-a120", "header-crc-a130", "gap-a180", "fw-config-source", "gap-fwconfig-to-nf", "normal-ctrlram", "vn-ctrlram", "header-copy", "gap-offset2d50c-to-diff", "diff-ctrlram", "gap-inactive-diff-record-to-fwconfig-backup", "gap-fwconfig-backup-to-end-flag"]
+        field-refs: ["nt51950-fwconfig-backup-envelope", "tp-svn-header-copy", "common-fw-version"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-and-integrity-ab-header-crc"
+        region-refs: ["slice-invocation-ab-header-crc-may-read-ab-combiner-work-offset0bytes-length524288bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303360bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303376bytes-length4bytes-ab-combiner-work", "slice-invocation-ab-header-crc-may-write-ab-combiner-work-offset303408bytes-length4bytes-ab-combiner-work"]
+        integrity-refs: ["ab-header-crc"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-fields-version-info"
+        field-refs: ["version-info"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-full-flash-tail"
+        region-refs: ["full-flash-tail"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-regions-nf-ctrlram-for-nt51950-ctrlram-fw200-single-tp-work"
+        region-refs: ["header-dlm-crc-a134-a180", "nf-ctrlram", "fw-config-backup"]
+      -
+        file: "parts/nt51950.facts.yaml"
+        fact-set: "shared-checks-header-crc-a11c"
+        check-refs: ["header-crc-a11c", "header-crc-a130", "header-dlm-crc-a134-a180"]
+  -
+    id: "logical-output"
+    size:
+      setting: "requested-output-length"
+    banks: []
+    regions: []
+    fields: []
+    inputs:
+      -
+        id: "source"
+        kind: "source"
+        required: true
+        min-length: "0x1"
+        max-length: "0x7FFFFFFF"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+    checks: []
+    check-order: []
+    integrity: []
+rules:
+  -
+    id: "nt51950-ab-merge-cascade@nt51950-ab-merge-1024k"
+    ic-refs: ["NT51950"]
+    rule: "ab-merge.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+              -
+                fact: "fields.nt51950-partial-family-ab-event-buffer"
+                kind: "equals"
+                equals: "common"
+              -
+                fact: "tp-a-input"
+                kind: "present"
+            use: "nt51950-ab-merge-1024k-ab-merge-banks"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-merge-1024k-ab-merge-banks"
+        plan: "ab-merge-for-nt51950-ab-merge-1024k-ab-merge-banks"
+        naming-ref: "nt51950-ab-merge"
+  -
+    id: "nt51950-ab-merge-cascade@nt51950-ab-merge-1024k@format=desay"
+    ic-refs: ["NT51950"]
+    rule: "ab-merge.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+              -
+                fact: "fields.nt51950-partial-family-ab-event-buffer"
+                kind: "equals"
+                equals: "desay"
+              -
+                fact: "tp-a-input"
+                kind: "present"
+            use: "nt51950-ab-merge-1024k-ab-merge-banks"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-merge-1024k-ab-merge-banks"
+        plan: "ab-merge-for-nt51950-ab-merge-1024k-ab-merge-banks"
+        naming-ref: "nt51950-ab-merge"
+  -
+    id: "nt51950-ab-merge-desay@nt51950-ab-desay-single-1024k"
+    ic-refs: ["NT51950"]
+    rule: "ab-merge.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "tp-a-input"
+                kind: "present"
+            use: "nt51950-ab-desay-single-1024k"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-desay-single-1024k"
+        plan: "ab-merge-for-nt51950-ab-desay-single-1024k"
+        naming-ref: "nt51950-ab-merge"
+  -
+    id: "nt51950-ab-merge-desay@nt51950-ab-desay-cascade-1024k"
+    ic-refs: ["NT51950"]
+    rule: "ab-merge.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "interval"
+                at-least: 2
+              -
+                fact: "tp-a-input"
+                kind: "present"
+            use: "nt51950-ab-desay-cascade-1024k"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-desay-cascade-1024k"
+        plan: "ab-merge-for-nt51950-ab-desay-single-1024k"
+        naming-ref: "nt51950-ab-merge"
+  -
+    id: "nt51950-ab-merge@nt51950-ab-merge-512k"
+    ic-refs: ["NT51950"]
+    rule: "ab-merge.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.nt51950-partial-family-ab-event-buffer"
+                kind: "equals"
+                equals: "common"
+              -
+                fact: "tp-a-input"
+                kind: "present"
+            use: "nt51950-ab-merge-512k-ab-merge-banks"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-merge-512k-ab-merge-banks"
+        plan: "ab-merge-for-nt51950-ab-merge-512k-ab-merge-banks"
+        naming-ref: "nt51950-ab-merge"
+  -
+    id: "nt51950-ab-merge@nt51950-ab-merge-512k@format=desay"
+    ic-refs: ["NT51950"]
+    rule: "ab-merge.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.nt51950-partial-family-ab-event-buffer"
+                kind: "equals"
+                equals: "desay"
+              -
+                fact: "tp-a-input"
+                kind: "present"
+            use: "nt51950-ab-merge-512k-ab-merge-banks"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-merge-512k-ab-merge-banks"
+        plan: "ab-merge-for-nt51950-ab-merge-512k-ab-merge-banks"
+        naming-ref: "nt51950-ab-merge"
+  -
+    id: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-tp-work"
+    ic-refs: ["NT51950"]
+    rule: "ctrlram-replace.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 2
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51950-ctrlram-fw1x-cascade-tp-work"
+    plan-bindings:
+      -
+        layout: "nt51950-ctrlram-fw1x-cascade-tp-work"
+        plan: "ctrlram-replace-for-nt51950-ctrlram-fw1x-cascade-tp-work"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "nt51950-ctrlram-replace-fw1x-cascade@nt51950-ctrlram-fw1x-cascade-full-flash"
+    ic-refs: ["NT51950"]
+    rule: "ctrlram-replace.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 2
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51950-ctrlram-fw1x-cascade-full-flash-ctrlram-replace"
+    plan-bindings:
+      -
+        layout: "nt51950-ctrlram-fw1x-cascade-full-flash-ctrlram-replace"
+        plan: "ctrlram-replace-for-nt51950-ctrlram-fw1x-cascade-tp-work"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-tp-work"
+    ic-refs: ["NT51950"]
+    rule: "ctrlram-replace.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51950-ctrlram-fw200-single-tp-work"
+    plan-bindings:
+      -
+        layout: "nt51950-ctrlram-fw200-single-tp-work"
+        plan: "ctrlram-replace-for-nt51950-ctrlram-fw200-single-tp-work"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "nt51950-ctrlram-replace-fw200-single@nt51950-ctrlram-fw200-single-full-flash"
+    ic-refs: ["NT51950"]
+    rule: "ctrlram-replace.nt51950"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51950-ctrlram-fw200-single-full-flash-ctrlram-replace"
+    plan-bindings:
+      -
+        layout: "nt51950-ctrlram-fw200-single-full-flash-ctrlram-replace"
+        plan: "ctrlram-replace-for-nt51950-ctrlram-fw200-single-tp-work"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "nt51950-standard-merge-dp-perspective@nt51950-standard-merge-256k"
+    ic-refs: ["NT51950"]
+    rule: "standard-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "dp-input"
+                kind: "present"
+            use: "nt51950-standard-merge-256k"
+    plan-bindings:
+      -
+        layout: "nt51950-standard-merge-256k"
+        plan: "standard-merge-for-nt51950-standard-merge-256k"
+        naming-ref: "nt51917-standard-merge-gen-flash-alias"
+  -
+    id: "nt51950-standard-merge-dp-perspective@nt51950-standard-merge-512k"
+    ic-refs: ["NT51950"]
+    rule: "standard-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "dp-input"
+                kind: "present"
+            use: "nt51950-standard-merge-512k"
+    plan-bindings:
+      -
+        layout: "nt51950-standard-merge-512k"
+        plan: "standard-merge-for-nt51950-standard-merge-256k"
+        naming-ref: "nt51917-standard-merge-gen-flash-alias"
+  -
+    id: "nt51950-standard-merge-dp-perspective@nt51950-standard-merge-1024k"
+    ic-refs: ["NT51950"]
+    rule: "standard-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "dp-input"
+                kind: "present"
+            use: "nt51950-standard-merge-1024k"
+    plan-bindings:
+      -
+        layout: "nt51950-standard-merge-1024k"
+        plan: "standard-merge-for-nt51950-standard-merge-256k"
+        naming-ref: "nt51917-standard-merge-gen-flash-alias"
+  -
+    id: "ab-replace@nt51950-ab-merge-512k@1-ic"
+    ic-refs: ["NT51950"]
+    rule: "ab-replace.nt51950-and-nt51951"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+              -
+                fact: "setting.banks"
+                kind: "equals"
+                equals: "both"
+            use: "nt51950-ab-merge-512k-ab-replace-banks-b-and-both"
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+              -
+                fact: "setting.banks"
+                kind: "equals"
+                equals: "a"
+            use: "nt51950-ab-merge-512k-ab-replace-banks-a"
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+              -
+                fact: "setting.banks"
+                kind: "equals"
+                equals: "b"
+            use: "nt51950-ab-merge-512k-ab-replace-banks-b-and-both"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-merge-512k-ab-replace-banks-b-and-both"
+        plan: "ab-replace-for-nt51950-ab-merge-512k-ab-replace-banks-b-and-both"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+      -
+        layout: "nt51950-ab-merge-512k-ab-replace-banks-a"
+        plan: "ab-replace-for-nt51950-ab-merge-512k-ab-replace-banks-a"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "ab-replace@nt51950-ab-merge-1024k@2-ic"
+    ic-refs: ["NT51950"]
+    rule: "ab-replace.nt51950-and-nt51951"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 2
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+              -
+                fact: "setting.banks"
+                kind: "equals"
+                equals: "both"
+            use: "nt51950-ab-merge-1024k-ab-replace-banks-b-and-both"
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 2
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+              -
+                fact: "setting.banks"
+                kind: "equals"
+                equals: "a"
+            use: "nt51950-ab-merge-1024k-ab-replace-banks-a"
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 2
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+              -
+                fact: "setting.banks"
+                kind: "equals"
+                equals: "b"
+            use: "nt51950-ab-merge-1024k-ab-replace-banks-b-and-both"
+    plan-bindings:
+      -
+        layout: "nt51950-ab-merge-1024k-ab-replace-banks-b-and-both"
+        plan: "ab-replace-for-nt51950-ab-merge-512k-ab-replace-banks-b-and-both"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+      -
+        layout: "nt51950-ab-merge-1024k-ab-replace-banks-a"
+        plan: "ab-replace-for-nt51950-ab-merge-512k-ab-replace-banks-a"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "general-replace@nt51950-ctrlram-fw1x-cascade-full-flash"
+    ic-refs: ["NT51950"]
+    rule: "general-replace"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 2
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51950-ctrlram-fw1x-cascade-full-flash-general-replace"
+    plan-bindings:
+      -
+        layout: "nt51950-ctrlram-fw1x-cascade-full-flash-general-replace"
+        plan: "general-replace-for-nt51926-general-replace-full-flash-256k"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "general-replace@nt51950-ctrlram-fw200-single-full-flash"
+    ic-refs: ["NT51950"]
+    rule: "general-replace"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              -
+                fact: "ic-count"
+                kind: "equals"
+                equals: 1
+              -
+                fact: "fields.common-fw-version"
+                kind: "interval"
+                at-least: "1.0.0"
+              -
+                fact: "reference-base"
+                kind: "present"
+            use: "nt51950-ctrlram-fw200-single-full-flash-general-replace"
+    plan-bindings:
+      -
+        layout: "nt51950-ctrlram-fw200-single-full-flash-general-replace"
+        plan: "general-replace-for-nt51926-general-replace-full-flash-256k"
+        naming-ref: "nt51950-ctrlram-replace-fw1x-cascade"
+  -
+    id: "general-merge"
+    ic-refs: ["NT51950"]
+    rule: "general-merge"
+    variants:
+      -
+        id: "layout"
+        cases:
+          -
+            when:
+              fact: "ic-count"
+              kind: "present"
+            use: "logical-output"
+    plan-bindings:
+      -
+        layout: "logical-output"
+        plan: "general-merge-for-logical-output"
+        naming-ref: "logical-output"
+aliases:
+  -
+    previous-id: "gap-2d50c-to-diff"
+    current-id: "gap-offset2d50c-to-diff"
+  -
+    previous-id: "gap-prefix-00000"
+    current-id: "gap-prefix-offset00000"

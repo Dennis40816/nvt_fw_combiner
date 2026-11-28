@@ -1,0 +1,51 @@
+{
+  "loaderSemanticVersion": "1",
+  "localIdFields": ["id"],
+  "kinds": {
+    "definition": {
+      "folder": "definitions", "schema": "definition.schema.json",
+      "identities": {"definition": ["/definition"]}, "requiredIdentities": ["definition"], "references": {}
+    },
+    "part": {
+      "folder": "parts", "schema": "part.schema.json",
+      "identities": {"part": ["/part"]}, "requiredIdentities": ["part"],
+      "references": {"definition": ["/**/definition"], "invocation": ["/**/run"]}
+    },
+    "ic": {
+      "folder": "ic", "schema": "ic.schema.json",
+      "identities": {"ic": ["/ic/*"]}, "requiredIdentities": ["ic"],
+      "references": {
+        "definition": ["/layouts/*/fields/*/definition"],
+        "rule": ["/rules/*/rule"],
+        "invocation": ["/layouts/*/integrity/*/run", "/layouts/*/recompute/run", "/layouts/*/bank-processing/*/finalize"],
+        "path:part": ["/layouts/*/include/*/file"]
+      }
+    },
+    "rule": {
+      "folder": "rules", "schema": "rule.schema.json",
+      "identities": {"rule": ["/rule"]}, "requiredIdentities": ["rule"],
+      "references": {"invocation": ["/**/run"]}
+    },
+    "tool": {
+      "folder": "tools", "schema": "tool.schema.json",
+      "identities": {"tool": ["/tool"], "invocation": ["/invocations/*/id"]}, "requiredIdentities": ["tool"],
+      "references": {"tool": ["/invocations/*/tool"], "path:tool": ["/invocations/*/file"], "invocation": ["/**/run"]}
+    }
+  },
+  "override": {
+    "folder": "overrides",
+    "schema": "override.schema.json",
+    "baseField": "base", "icField": "ic", "hashField": "sha256", "icNamespace": "ic",
+    "references": {"ic": ["/base/*/ic"]},
+    "fallbackSchema": {
+      "type": "object",
+      "properties": {
+        "base": {
+          "type": "array",
+          "items": {"type": "object", "properties": {"ic": {"type": "string"}, "sha256": {"type": "string"}}, "required": ["ic"], "additionalProperties": false}
+        }
+      },
+      "required": ["base"], "additionalProperties": false
+    }
+  }
+}

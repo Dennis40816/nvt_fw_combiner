@@ -1,0 +1,875 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Shared records. Includes select named records; no override or deep merge.
+schema-version: 1
+part: "nt51923.facts"
+fact-sets:
+  -
+    id: "shared-regions-and-fields-mp-ctrlram"
+    regions:
+      -
+        id: "flash-image"
+        space: "flash"
+        start: "0x0"
+        end: "0x3C000"
+        kind: "image"
+        owner: "system"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "gap-prefix-offset0000"
+        space: "flash"
+        start: "0x0"
+        end: "0x18"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-0018"
+        space: "flash"
+        start: "0x18"
+        end: "0x1C"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-001c"
+        space: "flash"
+        start: "0x1C"
+        end: "0x20"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset0020"
+        space: "flash"
+        start: "0x20"
+        end: "0x3C"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-003c"
+        space: "flash"
+        start: "0x3C"
+        end: "0x40"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset0040-to-offset004c"
+        space: "flash"
+        start: "0x40"
+        end: "0x4C"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-004c"
+        space: "flash"
+        start: "0x4C"
+        end: "0x50"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset0050-to-offset005c"
+        space: "flash"
+        start: "0x50"
+        end: "0x5C"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-005c"
+        space: "flash"
+        start: "0x5C"
+        end: "0x60"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset0060-to-offset00fc"
+        space: "flash"
+        start: "0x60"
+        end: "0xFC"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-crc-00fc"
+        space: "flash"
+        start: "0xFC"
+        end: "0x100"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset0100"
+        space: "flash"
+        start: "0x100"
+        end: "0x22000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "fw-config-source"
+        space: "flash"
+        start: "0x22000"
+        end: "0x22800"
+        kind: "firmware-config"
+        owner: "tp"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "normal-ctrlram"
+        space: "flash"
+        start: "0x22800"
+        end: "0x26000"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "mp-ctrlram"
+        space: "flash"
+        start: "0x26000"
+        end: "0x28800"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "nf-ctrlram"
+        space: "flash"
+        start: "0x2A000"
+        end: "0x2E4B0"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "gap-offset2e4b0"
+        space: "flash"
+        start: "0x2E4B0"
+        end: "0x2E800"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "vn-ctrlram"
+        space: "flash"
+        start: "0x2E800"
+        end: "0x2FE60"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "gap-offset2fe60"
+        space: "flash"
+        start: "0x2FE60"
+        end: "0x30310"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "header-copy"
+        space: "flash"
+        start: "0x30310"
+        end: "0x30410"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset30410"
+        space: "flash"
+        start: "0x30410"
+        end: "0x3B000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "fw-config-backup-copy"
+        space: "flash"
+        start: "0x3B000"
+        end: "0x3B800"
+        kind: "header"
+        owner: "system"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "gap-offset3b800"
+        space: "flash"
+        start: "0x3B800"
+        end: "0x3C000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+    fields:
+      -
+        id: "nt51923-fwconfig-backup-envelope"
+        definition: "nt51927-fwconfig-backup-envelope"
+        at:
+          kind: "marker"
+          space: "reference-base"
+          search:
+            space: "reference-base"
+            start: "0x0"
+            end: "0x3C000"
+          bytes: "004e5654"
+          offset: -4092
+          length: "0x1000"
+          within: "flash-image"
+          match: "unique"
+        required: false
+      -
+        id: "tp-svn-header-copy"
+        definition: "tp-svn"
+        at:
+          space: "reference-base"
+          region: "header-copy"
+          offset: "0x24"
+          length: "0x4"
+        required: false
+      -
+        id: "common-fw-version"
+        definition: "field-common-fw-version-from-nt51923-fwconfig-backup-envelope"
+        at: null
+        required: true
+  -
+    id: "shared-regions-diff-ctrlram-0"
+    regions:
+      -
+        id: "diff-ctrlram-0"
+        space: "flash"
+        start: "0x28800"
+        end: "0x29400"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+      -
+        id: "diff-ctrlram-1"
+        space: "flash"
+        start: "0x29400"
+        end: "0x2A000"
+        kind: "ctrlram"
+        owner: "tp"
+        parent: "flash-image"
+        access: "explicit"
+        origin: "map"
+  -
+    id: "shared-regions-and-integrity-nt51923-fw141-cascade3-combiner"
+    regions:
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-stage-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x3C000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-read-flash-image-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x3C000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-crc-index0018-output-image"
+        space: "output-image"
+        start: "0x18"
+        end: "0x1C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-crc-001c-output-image"
+        space: "output-image"
+        start: "0x1C"
+        end: "0x20"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-crc-003c-output-image"
+        space: "output-image"
+        start: "0x3C"
+        end: "0x40"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-crc-004c-output-image"
+        space: "output-image"
+        start: "0x4C"
+        end: "0x50"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-crc-005c-output-image"
+        space: "output-image"
+        start: "0x5C"
+        end: "0x60"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-crc-00fc-output-image"
+        space: "output-image"
+        start: "0xFC"
+        end: "0x100"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-normal-ctrlram-output-image"
+        space: "output-image"
+        start: "0x22800"
+        end: "0x26000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-mp-ctrlram-output-image"
+        space: "output-image"
+        start: "0x26000"
+        end: "0x28800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-diff-ctrlram-index0-output-image"
+        space: "output-image"
+        start: "0x28800"
+        end: "0x29400"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-diff-ctrlram-index1-output-image"
+        space: "output-image"
+        start: "0x29400"
+        end: "0x2A000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-nf-ctrlram-output-image"
+        space: "output-image"
+        start: "0x2A000"
+        end: "0x2E4B0"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-vn-ctrlram-output-image"
+        space: "output-image"
+        start: "0x2E800"
+        end: "0x2FE60"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-header-copy-output-image"
+        space: "output-image"
+        start: "0x30310"
+        end: "0x30410"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-may-write-fw-config-backup-copy-output-image"
+        space: "output-image"
+        start: "0x3B000"
+        end: "0x3B800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-normal-from-postbuild-normal-ctrlram"
+        space: "postbuild-normal-ctrlram"
+        start: "0x0"
+        end: "0x3800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-normal-to-output-image"
+        space: "output-image"
+        start: "0x22800"
+        end: "0x26000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-diff-index0-from-postbuild-diffdlm"
+        space: "postbuild-diffdlm"
+        start: "0x0"
+        end: "0xC00"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-diff-index0-to-output-image"
+        space: "output-image"
+        start: "0x28800"
+        end: "0x29400"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-diff-index1-from-postbuild-diffdlm"
+        space: "postbuild-diffdlm"
+        start: "0x1400"
+        end: "0x2000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-diff-index1-to-output-image"
+        space: "output-image"
+        start: "0x29400"
+        end: "0x2A000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-mp-from-postbuild-mp-ctrlram"
+        space: "postbuild-mp-ctrlram"
+        start: "0x0"
+        end: "0x2800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-mp-to-output-image"
+        space: "output-image"
+        start: "0x26000"
+        end: "0x28800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-vn-from-postbuild-vn-ctrlram"
+        space: "postbuild-vn-ctrlram"
+        start: "0x0"
+        end: "0x1660"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-vn-to-output-image"
+        space: "output-image"
+        start: "0x2E800"
+        end: "0x2FE60"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-nf-from-postbuild-nf-ctrlram"
+        space: "postbuild-nf-ctrlram"
+        start: "0x0"
+        end: "0x44B0"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-nf-to-output-image"
+        space: "output-image"
+        start: "0x2A000"
+        end: "0x2E4B0"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-fw-config-backup-from-output-image"
+        space: "output-image"
+        start: "0x22000"
+        end: "0x22800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-fw-config-backup-to-output-image"
+        space: "output-image"
+        start: "0x3B000"
+        end: "0x3B800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-header-copy-from-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x100"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-merge-crc-blocks-header-copy-to-output-image"
+        space: "output-image"
+        start: "0x30310"
+        end: "0x30410"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-header-crc-blocks-header-copy-final-from-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x100"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-cascade3-combiner-commands-nt51923-cascade-header-crc-blocks-header-copy-final-to-output-image"
+        space: "output-image"
+        start: "0x30310"
+        end: "0x30410"
+        origin: "operation"
+    integrity:
+      -
+        id: "nt51923-fw141-cascade3-combiner"
+        run: "nt51923-fw141-cascade3-combiner-for-nt51923-ctrlram-fw141-cascade3-tp-work-240k"
+  -
+    id: "shared-fields-and-inputs-and-integrity-source"
+    fields:
+      -
+        id: "version-info"
+        definition: "field-version-info-empty"
+        at:
+          kind: "group"
+          locations: []
+        required: false
+    inputs:
+      -
+        id: "tp-input"
+        kind: "tp"
+        required: true
+        min-length: "0x3C000"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+          max: 1
+      -
+        id: "dp-input"
+        kind: "dp"
+        required: true
+        min-length: "0x40000"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+          max: 1
+      -
+        id: "ctrlram-source"
+        kind: "ctrlram-source"
+        required: true
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "truncate-warning"
+        count:
+          min: 1
+      -
+        id: "source"
+        kind: "source"
+        required: true
+        min-length: "0x1"
+        too-short: "reject"
+        too-long: "coverage-warning"
+        count:
+          min: 1
+    integrity:
+      -
+        id: "header-crc"
+        kind: "unknown"
+        reason: "Standard Merge preserves existing integrity; no recalculation contract is declared in this profile."
+        write-locations:
+          -
+            space: "output-image"
+            start: "0x0"
+            end: "0x100"
+      -
+        id: "vendor-footer"
+        run: "vendor-footer-for-nt51951-ab-desay-1024k"
+  -
+    id: "shared-inputs-reference-base"
+    inputs:
+      -
+        id: "reference-base"
+        kind: "reference-base"
+        required: true
+        sizes: ["0x3C000"]
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 1
+          max: 1
+  -
+    id: "shared-regions-dp-code"
+    regions:
+      -
+        id: "dp-code"
+        space: "flash"
+        start: "0x3E000"
+        end: "0x40000"
+        kind: "code"
+        owner: "dp"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "project-id"
+        space: "flash"
+        start: "0x3C000"
+        end: "0x3D000"
+        kind: "data"
+        owner: "system"
+        access: "hidden"
+        origin: "map"
+      -
+        id: "customer-info"
+        space: "flash"
+        start: "0x3D000"
+        end: "0x3E000"
+        kind: "customer-information"
+        owner: "customer"
+        access: "hidden"
+        origin: "map"
+  -
+    id: "shared-inputs-reference-base-for-nt51923-standard-merge-256k"
+    inputs:
+      -
+        id: "reference-base"
+        kind: "reference-base"
+        required: true
+        sizes: ["0x40000"]
+        too-short: "reject"
+        too-long: "reject"
+        count:
+          min: 1
+          max: 1
+  -
+    id: "shared-regions-gap-diff-offset28800"
+    regions:
+      -
+        id: "gap-diff-offset28800"
+        space: "flash"
+        start: "0x28800"
+        end: "0x2A000"
+        kind: "unmapped"
+        owner: "unknown"
+        parent: "flash-image"
+        access: "hidden"
+        origin: "map"
+  -
+    id: "shared-regions-and-integrity-nt51923-fw141-single-combiner"
+    regions:
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-stage-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x3C000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-read-flash-image-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x3C000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-crc-index0018-output-image"
+        space: "output-image"
+        start: "0x18"
+        end: "0x1C"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-crc-001c-output-image"
+        space: "output-image"
+        start: "0x1C"
+        end: "0x20"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-crc-003c-output-image"
+        space: "output-image"
+        start: "0x3C"
+        end: "0x40"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-crc-004c-output-image"
+        space: "output-image"
+        start: "0x4C"
+        end: "0x50"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-crc-005c-output-image"
+        space: "output-image"
+        start: "0x5C"
+        end: "0x60"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-crc-00fc-output-image"
+        space: "output-image"
+        start: "0xFC"
+        end: "0x100"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-normal-ctrlram-output-image"
+        space: "output-image"
+        start: "0x22800"
+        end: "0x26000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-mp-ctrlram-output-image"
+        space: "output-image"
+        start: "0x26000"
+        end: "0x28800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-nf-ctrlram-output-image"
+        space: "output-image"
+        start: "0x2A000"
+        end: "0x2E4B0"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-vn-ctrlram-output-image"
+        space: "output-image"
+        start: "0x2E800"
+        end: "0x2FE60"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-header-copy-output-image"
+        space: "output-image"
+        start: "0x30310"
+        end: "0x30410"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-may-write-fw-config-backup-copy-output-image"
+        space: "output-image"
+        start: "0x3B000"
+        end: "0x3B800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-normal-from-postbuild-normal-ctrlram"
+        space: "postbuild-normal-ctrlram"
+        start: "0x0"
+        end: "0x3800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-normal-to-output-image"
+        space: "output-image"
+        start: "0x22800"
+        end: "0x26000"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-mp-from-postbuild-mp-ctrlram"
+        space: "postbuild-mp-ctrlram"
+        start: "0x0"
+        end: "0x2800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-mp-to-output-image"
+        space: "output-image"
+        start: "0x26000"
+        end: "0x28800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-vn-from-postbuild-vn-ctrlram"
+        space: "postbuild-vn-ctrlram"
+        start: "0x0"
+        end: "0x1660"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-vn-to-output-image"
+        space: "output-image"
+        start: "0x2E800"
+        end: "0x2FE60"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-nf-from-postbuild-nf-ctrlram"
+        space: "postbuild-nf-ctrlram"
+        start: "0x0"
+        end: "0x44B0"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-nf-to-output-image"
+        space: "output-image"
+        start: "0x2A000"
+        end: "0x2E4B0"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-fw-config-backup-from-output-image"
+        space: "output-image"
+        start: "0x22000"
+        end: "0x22800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-fw-config-backup-to-output-image"
+        space: "output-image"
+        start: "0x3B000"
+        end: "0x3B800"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-header-copy-from-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x100"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-merge-crc-blocks-header-copy-to-output-image"
+        space: "output-image"
+        start: "0x30310"
+        end: "0x30410"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-header-crc-blocks-header-copy-final-from-output-image"
+        space: "output-image"
+        start: "0x0"
+        end: "0x100"
+        origin: "operation"
+      -
+        id: "slice-invocation-nt51923-fw141-single-combiner-commands-nt51923-single-header-crc-blocks-header-copy-final-to-output-image"
+        space: "output-image"
+        start: "0x30310"
+        end: "0x30410"
+        origin: "operation"
+    integrity:
+      -
+        id: "nt51923-fw141-single-combiner"
+        run: "nt51923-fw141-single-combiner-for-nt51923-ctrlram-fw141-single-tp-work-240k"
+  -
+    id: "shared-checks-header-crc-0018"
+    checks:
+      -
+        id: "header-crc-0018"
+        stored-at:
+          space: "output-image"
+          start: "0x18"
+          end: "0x1C"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-crc-001c"
+        stored-at:
+          space: "output-image"
+          start: "0x1C"
+          end: "0x20"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-crc-003c"
+        stored-at:
+          space: "output-image"
+          start: "0x3C"
+          end: "0x40"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-crc-004c"
+        stored-at:
+          space: "output-image"
+          start: "0x4C"
+          end: "0x50"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-crc-005c"
+        stored-at:
+          space: "output-image"
+          start: "0x5C"
+          end: "0x60"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."
+      -
+        id: "header-crc-00fc"
+        stored-at:
+          space: "output-image"
+          start: "0xFC"
+          end: "0x100"
+        covers: "unknown"
+        algorithm: "unknown"
+        reason: "Not declared by the Legacy Combiner catalog or family. A command mode/CRC argument and processor read envelope do not specify CRC coverage or algorithm."

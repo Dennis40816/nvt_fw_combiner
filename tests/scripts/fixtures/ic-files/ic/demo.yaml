@@ -1,0 +1,16 @@
+ic: ["DEMO"]
+sizes: ["0xA"]
+layouts:
+  -
+    id: "base"
+    size: "0xA"
+    fields: []
+    integrity: []
+    include:
+      -
+        file: "parts/common.yaml"
+        fact-set: "facts"
+rules:
+  -
+    id: "merge-binding"
+    rule: "merge"

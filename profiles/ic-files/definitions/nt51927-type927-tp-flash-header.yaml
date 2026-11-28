@@ -1,0 +1,1301 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Local $self space is rebound to the located field id; no IC addresses are stored here.
+schema-version: 1
+definition: "nt51927-type927-tp-flash-header"
+kind: "structure"
+fields:
+  -
+    kind: "scalar"
+    id: "ov-info"
+    at:
+      space: "$self"
+      start: "0x28"
+      end: "0x2C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "fw-config-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x30"
+      end: "0x34"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "fw-config-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x38"
+      end: "0x3C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "fw-config-crc"
+    at:
+      space: "$self"
+      start: "0x3C"
+      end: "0x40"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ctrlram-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x40"
+      end: "0x44"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ctrlram-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x48"
+      end: "0x4C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ctrlram-crc"
+    at:
+      space: "$self"
+      start: "0x4C"
+      end: "0x50"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "mp-ctrlram-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x50"
+      end: "0x54"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "mp-ctrlram-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x58"
+      end: "0x5C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "mp-ctrlram-crc"
+    at:
+      space: "$self"
+      start: "0x5C"
+      end: "0x60"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0xF0"
+      end: "0xF4"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-size"
+    at:
+      space: "$self"
+      start: "0xF4"
+      end: "0xF8"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0xF8"
+      end: "0xFC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-crc"
+    at:
+      space: "$self"
+      start: "0xFC"
+      end: "0x100"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-calibration"
+    at:
+      space: "$self"
+      start: "0x200"
+      end: "0x202"
+    decoder: "u16le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-read-command"
+    at:
+      space: "$self"
+      start: "0x202"
+      end: "0x203"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-divider-count"
+    at:
+      space: "$self"
+      start: "0x203"
+      end: "0x204"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-t2-t1"
+    at:
+      space: "$self"
+      start: "0x204"
+      end: "0x205"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-t4-t3"
+    at:
+      space: "$self"
+      start: "0x205"
+      end: "0x206"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-t6-t5"
+    at:
+      space: "$self"
+      start: "0x206"
+      end: "0x207"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-t8-t7"
+    at:
+      space: "$self"
+      start: "0x207"
+      end: "0x208"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "command-build-t9"
+    at:
+      space: "$self"
+      start: "0x208"
+      end: "0x209"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "common-header-crc"
+    at:
+      space: "$self"
+      start: "0x21C"
+      end: "0x220"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-ilm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x220"
+      end: "0x224"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-ilm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x224"
+      end: "0x228"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-ilm-size"
+    at:
+      space: "$self"
+      start: "0x228"
+      end: "0x22C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-ilm-crc"
+    at:
+      space: "$self"
+      start: "0x22C"
+      end: "0x230"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-data-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x230"
+      end: "0x234"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-data-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x234"
+      end: "0x238"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-data-size"
+    at:
+      space: "$self"
+      start: "0x238"
+      end: "0x23C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-dlm-crc"
+    at:
+      space: "$self"
+      start: "0x23C"
+      end: "0x240"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-ic-location"
+    at:
+      space: "$self"
+      start: "0x240"
+      end: "0x241"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-next-header-address"
+    at:
+      space: "$self"
+      start: "0x248"
+      end: "0x24C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank0-header-crc"
+    at:
+      space: "$self"
+      start: "0x24C"
+      end: "0x250"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-ilm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x250"
+      end: "0x254"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-ilm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x254"
+      end: "0x258"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-ilm-size"
+    at:
+      space: "$self"
+      start: "0x258"
+      end: "0x25C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-ilm-crc"
+    at:
+      space: "$self"
+      start: "0x25C"
+      end: "0x260"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-data-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x260"
+      end: "0x264"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-data-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x264"
+      end: "0x268"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-data-size"
+    at:
+      space: "$self"
+      start: "0x268"
+      end: "0x26C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-dlm-crc"
+    at:
+      space: "$self"
+      start: "0x26C"
+      end: "0x270"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-ic-location"
+    at:
+      space: "$self"
+      start: "0x270"
+      end: "0x271"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-next-header-address"
+    at:
+      space: "$self"
+      start: "0x278"
+      end: "0x27C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank1-header-crc"
+    at:
+      space: "$self"
+      start: "0x27C"
+      end: "0x280"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-ilm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x280"
+      end: "0x284"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-ilm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x284"
+      end: "0x288"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-ilm-size"
+    at:
+      space: "$self"
+      start: "0x288"
+      end: "0x28C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-ilm-crc"
+    at:
+      space: "$self"
+      start: "0x28C"
+      end: "0x290"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-data-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x290"
+      end: "0x294"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-data-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x294"
+      end: "0x298"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-data-size"
+    at:
+      space: "$self"
+      start: "0x298"
+      end: "0x29C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-dlm-crc"
+    at:
+      space: "$self"
+      start: "0x29C"
+      end: "0x2A0"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-ic-location"
+    at:
+      space: "$self"
+      start: "0x2A0"
+      end: "0x2A1"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-next-header-address"
+    at:
+      space: "$self"
+      start: "0x2A8"
+      end: "0x2AC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank2-header-crc"
+    at:
+      space: "$self"
+      start: "0x2AC"
+      end: "0x2B0"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-ilm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x2B0"
+      end: "0x2B4"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-ilm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x2B4"
+      end: "0x2B8"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-ilm-size"
+    at:
+      space: "$self"
+      start: "0x2B8"
+      end: "0x2BC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-ilm-crc"
+    at:
+      space: "$self"
+      start: "0x2BC"
+      end: "0x2C0"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-data-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x2C0"
+      end: "0x2C4"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-data-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x2C4"
+      end: "0x2C8"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-data-size"
+    at:
+      space: "$self"
+      start: "0x2C8"
+      end: "0x2CC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-dlm-crc"
+    at:
+      space: "$self"
+      start: "0x2CC"
+      end: "0x2D0"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-ic-location"
+    at:
+      space: "$self"
+      start: "0x2D0"
+      end: "0x2D1"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-next-header-address"
+    at:
+      space: "$self"
+      start: "0x2D8"
+      end: "0x2DC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "header-bank3-header-crc"
+    at:
+      space: "$self"
+      start: "0x2DC"
+      end: "0x2E0"
+    decoder: "u32le"
+    required: false
+semantics:
+  -
+    id: "ov-info"
+    subject: "header"
+    role: "option"
+    span: "global-header"
+  -
+    id: "fw-config-destination-address-in-sram"
+    subject: "firmware-config"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "global-header"
+  -
+    id: "fw-config-start-address-in-bin"
+    subject: "firmware-config"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "global-header"
+  -
+    id: "fw-config-crc"
+    subject: "firmware-config"
+    role: "integrity-value"
+    span: "global-header"
+  -
+    id: "ctrlram-destination-address-in-sram"
+    subject: "ctrlram"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "global-header"
+  -
+    id: "ctrlram-start-address-in-bin"
+    subject: "ctrlram"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "global-header"
+  -
+    id: "ctrlram-crc"
+    subject: "ctrlram"
+    role: "integrity-value"
+    span: "global-header"
+  -
+    id: "mp-ctrlram-destination-address-in-sram"
+    subject: "mp-ctrlram"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "global-header"
+  -
+    id: "mp-ctrlram-start-address-in-bin"
+    subject: "mp-ctrlram"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "global-header"
+  -
+    id: "mp-ctrlram-crc"
+    subject: "mp-ctrlram"
+    role: "integrity-value"
+    span: "global-header"
+  -
+    id: "header-destination-address-in-sram"
+    subject: "header"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "global-header"
+  -
+    id: "header-size"
+    subject: "header"
+    role: "size"
+    span: "global-header"
+  -
+    id: "header-start-address-in-bin"
+    subject: "header"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "global-header"
+  -
+    id: "header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "global-header"
+  -
+    id: "command-calibration"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-read-command"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-divider-count"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-t2-t1"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-t4-t3"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-t6-t5"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-t8-t7"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "command-build-t9"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "common-header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-ilm-start-address-in-bin"
+    subject: "ilm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-ilm-destination-address-in-sram"
+    subject: "ilm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-ilm-size"
+    subject: "ilm"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-ilm-crc"
+    subject: "ilm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-data-start-address-in-bin"
+    subject: "data"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-data-destination-address-in-sram"
+    subject: "data"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-data-size"
+    subject: "data"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-dlm-crc"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-ic-location"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-next-header-address"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank0-header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-ilm-start-address-in-bin"
+    subject: "ilm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-ilm-destination-address-in-sram"
+    subject: "ilm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-ilm-size"
+    subject: "ilm"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-ilm-crc"
+    subject: "ilm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-data-start-address-in-bin"
+    subject: "data"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-data-destination-address-in-sram"
+    subject: "data"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-data-size"
+    subject: "data"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-dlm-crc"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-ic-location"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-next-header-address"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank1-header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-ilm-start-address-in-bin"
+    subject: "ilm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-ilm-destination-address-in-sram"
+    subject: "ilm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-ilm-size"
+    subject: "ilm"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-ilm-crc"
+    subject: "ilm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-data-start-address-in-bin"
+    subject: "data"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-data-destination-address-in-sram"
+    subject: "data"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-data-size"
+    subject: "data"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-dlm-crc"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-ic-location"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-next-header-address"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank2-header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-ilm-start-address-in-bin"
+    subject: "ilm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-ilm-destination-address-in-sram"
+    subject: "ilm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-ilm-size"
+    subject: "ilm"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-ilm-crc"
+    subject: "ilm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-data-start-address-in-bin"
+    subject: "data"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-data-destination-address-in-sram"
+    subject: "data"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-data-size"
+    subject: "data"
+    role: "size"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-dlm-crc"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-ic-location"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-next-header-address"
+    subject: "header"
+    role: "option"
+    span: "modeled-instance-headers"
+  -
+    id: "header-bank3-header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "modeled-instance-headers"
+spans:
+  -
+    id: "global-header"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x100"
+  -
+    id: "modeled-instance-headers"
+    at:
+      space: "$self"
+      start: "0x200"
+      end: "0x2E0"
+  -
+    id: "header-refresh-source"
+    at:
+      space: "$self"
+      start: "0x200"
+      end: "0x390"
+  -
+    id: "final-header-backup-source"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x460"
+series:
+  -
+    id: "ilm-crc-series"
+    entries:
+      -
+        field: "header-bank0-ilm-crc"
+        index: 0
+      -
+        field: "header-bank1-ilm-crc"
+        index: 1
+      -
+        field: "header-bank2-ilm-crc"
+        index: 2
+      -
+        field: "header-bank3-ilm-crc"
+        index: 3
+    cases:
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 1
+        indices: [0, 1]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 2
+        indices: [0, 1, 2]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 3
+        indices: [0, 1, 2, 3]
+  -
+    id: "dlm-crc-series"
+    entries:
+      -
+        field: "header-bank0-dlm-crc"
+        index: 0
+      -
+        field: "header-bank1-dlm-crc"
+        index: 1
+      -
+        field: "header-bank2-dlm-crc"
+        index: 2
+      -
+        field: "header-bank3-dlm-crc"
+        index: 3
+    cases:
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 1
+        indices: [0, 1]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 2
+        indices: [0, 1, 2]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 3
+        indices: [0, 1, 2, 3]
+  -
+    id: "header-crc-series"
+    entries:
+      -
+        field: "header-bank0-header-crc"
+        index: 0
+      -
+        field: "header-bank1-header-crc"
+        index: 1
+      -
+        field: "header-bank2-header-crc"
+        index: 2
+      -
+        field: "header-bank3-header-crc"
+        index: 3
+    cases:
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 1
+        indices: [0, 1]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 2
+        indices: [0, 1, 2]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 3
+        indices: [0, 1, 2, 3]
+groups:
+  -
+    id: "header-integrity-values"
+    members:
+      -
+        field: "fw-config-crc"
+      -
+        field: "ctrlram-crc"
+      -
+        field: "mp-ctrlram-crc"
+      -
+        field: "header-crc"
+      -
+        field: "common-header-crc"
+      -
+        series-ref: "ilm-crc-series"
+      -
+        series-ref: "dlm-crc-series"
+      -
+        series-ref: "header-crc-series"
+  -
+    id: "tp-bin-start-addresses"
+    members:
+      -
+        field: "fw-config-start-address-in-bin"
+      -
+        field: "ctrlram-start-address-in-bin"
+      -
+        field: "mp-ctrlram-start-address-in-bin"
+      -
+        field: "header-start-address-in-bin"
+      -
+        field: "header-bank0-ilm-start-address-in-bin"
+      -
+        field: "header-bank0-data-start-address-in-bin"
+      -
+        field: "header-bank1-ilm-start-address-in-bin"
+      -
+        field: "header-bank1-data-start-address-in-bin"
+      -
+        field: "header-bank2-ilm-start-address-in-bin"
+      -
+        field: "header-bank2-data-start-address-in-bin"
+      -
+        field: "header-bank3-ilm-start-address-in-bin"
+      -
+        field: "header-bank3-data-start-address-in-bin"
+aliases:
+  -
+    previous-id: "header-0-data-destination-address-in-sram"
+    current-id: "header-bank0-data-destination-address-in-sram"
+  -
+    previous-id: "header-0-data-size"
+    current-id: "header-bank0-data-size"
+  -
+    previous-id: "header-0-data-start-address-in-bin"
+    current-id: "header-bank0-data-start-address-in-bin"
+  -
+    previous-id: "header-0-dlm-crc"
+    current-id: "header-bank0-dlm-crc"
+  -
+    previous-id: "header-0-header-crc"
+    current-id: "header-bank0-header-crc"
+  -
+    previous-id: "header-0-ic-location"
+    current-id: "header-bank0-ic-location"
+  -
+    previous-id: "header-0-ilm-crc"
+    current-id: "header-bank0-ilm-crc"
+  -
+    previous-id: "header-0-ilm-destination-address-in-sram"
+    current-id: "header-bank0-ilm-destination-address-in-sram"
+  -
+    previous-id: "header-0-ilm-size"
+    current-id: "header-bank0-ilm-size"
+  -
+    previous-id: "header-0-ilm-start-address-in-bin"
+    current-id: "header-bank0-ilm-start-address-in-bin"
+  -
+    previous-id: "header-0-next-header-address"
+    current-id: "header-bank0-next-header-address"
+  -
+    previous-id: "header-1-data-destination-address-in-sram"
+    current-id: "header-bank1-data-destination-address-in-sram"
+  -
+    previous-id: "header-1-data-size"
+    current-id: "header-bank1-data-size"
+  -
+    previous-id: "header-1-data-start-address-in-bin"
+    current-id: "header-bank1-data-start-address-in-bin"
+  -
+    previous-id: "header-1-dlm-crc"
+    current-id: "header-bank1-dlm-crc"
+  -
+    previous-id: "header-1-header-crc"
+    current-id: "header-bank1-header-crc"
+  -
+    previous-id: "header-1-ic-location"
+    current-id: "header-bank1-ic-location"
+  -
+    previous-id: "header-1-ilm-crc"
+    current-id: "header-bank1-ilm-crc"
+  -
+    previous-id: "header-1-ilm-destination-address-in-sram"
+    current-id: "header-bank1-ilm-destination-address-in-sram"
+  -
+    previous-id: "header-1-ilm-size"
+    current-id: "header-bank1-ilm-size"
+  -
+    previous-id: "header-1-ilm-start-address-in-bin"
+    current-id: "header-bank1-ilm-start-address-in-bin"
+  -
+    previous-id: "header-1-next-header-address"
+    current-id: "header-bank1-next-header-address"
+  -
+    previous-id: "header-2-data-destination-address-in-sram"
+    current-id: "header-bank2-data-destination-address-in-sram"
+  -
+    previous-id: "header-2-data-size"
+    current-id: "header-bank2-data-size"
+  -
+    previous-id: "header-2-data-start-address-in-bin"
+    current-id: "header-bank2-data-start-address-in-bin"
+  -
+    previous-id: "header-2-dlm-crc"
+    current-id: "header-bank2-dlm-crc"
+  -
+    previous-id: "header-2-header-crc"
+    current-id: "header-bank2-header-crc"
+  -
+    previous-id: "header-2-ic-location"
+    current-id: "header-bank2-ic-location"
+  -
+    previous-id: "header-2-ilm-crc"
+    current-id: "header-bank2-ilm-crc"
+  -
+    previous-id: "header-2-ilm-destination-address-in-sram"
+    current-id: "header-bank2-ilm-destination-address-in-sram"
+  -
+    previous-id: "header-2-ilm-size"
+    current-id: "header-bank2-ilm-size"
+  -
+    previous-id: "header-2-ilm-start-address-in-bin"
+    current-id: "header-bank2-ilm-start-address-in-bin"
+  -
+    previous-id: "header-2-next-header-address"
+    current-id: "header-bank2-next-header-address"
+  -
+    previous-id: "header-3-data-destination-address-in-sram"
+    current-id: "header-bank3-data-destination-address-in-sram"
+  -
+    previous-id: "header-3-data-size"
+    current-id: "header-bank3-data-size"
+  -
+    previous-id: "header-3-data-start-address-in-bin"
+    current-id: "header-bank3-data-start-address-in-bin"
+  -
+    previous-id: "header-3-dlm-crc"
+    current-id: "header-bank3-dlm-crc"
+  -
+    previous-id: "header-3-header-crc"
+    current-id: "header-bank3-header-crc"
+  -
+    previous-id: "header-3-ic-location"
+    current-id: "header-bank3-ic-location"
+  -
+    previous-id: "header-3-ilm-crc"
+    current-id: "header-bank3-ilm-crc"
+  -
+    previous-id: "header-3-ilm-destination-address-in-sram"
+    current-id: "header-bank3-ilm-destination-address-in-sram"
+  -
+    previous-id: "header-3-ilm-size"
+    current-id: "header-bank3-ilm-size"
+  -
+    previous-id: "header-3-ilm-start-address-in-bin"
+    current-id: "header-bank3-ilm-start-address-in-bin"
+  -
+    previous-id: "header-3-next-header-address"
+    current-id: "header-bank3-next-header-address"

@@ -1,0 +1,289 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Plans are complete named rule declarations; IC variants return layout names only.
+schema-version: 1
+ic-refs: ["NT51917", "NT51919", "NT51923", "NT51925", "NT51926", "NT51927", "NT51928", "NT51929", "NT51932", "NT51950", "NT51951"]
+rule: "standard-merge"
+naming:
+  -
+    template: "{ic}_FlashCode_D{dp-version}T{tp-version}_{date}.bin"
+    locked: false
+    tokens:
+      -
+        id: "date"
+        fact: "run-date-local"
+        formatter: "yyyyMMdd"
+        missing: "reject"
+      -
+        id: "dp-version"
+        from-fields: "fields.version-info.dp"
+        formatter: "dpcmi-version"
+        missing:
+          text: "xxxx"
+      -
+        id: "ic"
+        fact: "compiled-ic"
+        formatter: "compiled-ic"
+        missing: "reject"
+      -
+        id: "tp-version"
+        from-fields: "fields.version-info.tp"
+        formatter: "firmware-config-tp-version"
+        missing:
+          text: "xxxx"
+    id: "nt51917-standard-merge-gen-flash-alias"
+plans:
+  -
+    id: "standard-merge-for-nt51919-standard-merge-256k"
+    kind: "standard-merge"
+    uses-inputs: ["tp-input", "dp-input"]
+    initial:
+      kind: "blank"
+      fill: "0x0"
+      length:
+        extent: "output"
+    settings:
+      -
+        id: "vendor-footer"
+        type: "boolean"
+        default: false
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "dp-input"
+          region: "slice-pre-check-non-uniform-dp-input-from-dp-input"
+        diagnostic: "DP_UNIFORM_CONTENT_WARNING"
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "tp-input"
+          region: "slice-pre-check-non-uniform-tp-input-from-tp-input"
+        diagnostic: "TP_UNIFORM_CONTENT_WARNING"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-tp"
+        overlap: "reject"
+        from:
+          space: "tp-input"
+          region: "slice-steps-copy-tp-from-tp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-tp-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-dp"
+        overlap: "reject"
+        from:
+          space: "dp-input"
+          region: "slice-steps-copy-dp-from-dp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-dp-to-output-image"
+    post:
+      -
+        kind: "integrity"
+        when:
+          fact: "setting.vendor-footer"
+          kind: "equals"
+          equals: true
+        run: "vendor-footer-for-nt51951-ab-desay-1024k"
+  -
+    id: "standard-merge-for-nt51928-standard-merge-256k"
+    kind: "standard-merge"
+    uses-inputs: ["tp-input", "dp-input", "ldc-input"]
+    initial:
+      kind: "blank"
+      fill: "0x0"
+      length:
+        extent: "output"
+    settings:
+      -
+        id: "vendor-footer"
+        type: "boolean"
+        default: false
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "dp-input"
+          region: "slice-pre-check-non-uniform-dp-input-from-dp-input"
+        diagnostic: "DP_UNIFORM_CONTENT_WARNING"
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "tp-input"
+          region: "slice-pre-check-non-uniform-tp-input-from-tp-input"
+        diagnostic: "TP_UNIFORM_CONTENT_WARNING"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-tp"
+        overlap: "reject"
+        from:
+          space: "tp-input"
+          region: "slice-steps-copy-tp-from-tp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-tp-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-dp"
+        overlap: "reject"
+        from:
+          space: "dp-input"
+          region: "slice-steps-copy-dp-from-dp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-dp-to-output-image"
+    post:
+      -
+        kind: "integrity"
+        when:
+          fact: "setting.vendor-footer"
+          kind: "equals"
+          equals: true
+        run: "vendor-footer-for-nt51951-ab-desay-1024k"
+  -
+    id: "standard-merge-for-nt51928-standard-merge-512k"
+    kind: "standard-merge"
+    uses-inputs: ["tp-input", "dp-input", "ldc-input"]
+    initial:
+      kind: "blank"
+      fill: "0x0"
+      length:
+        extent: "output"
+    settings:
+      -
+        id: "vendor-footer"
+        type: "boolean"
+        default: false
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "dp-input"
+          region: "slice-pre-check-non-uniform-dp-input-from-dp-input"
+        diagnostic: "DP_UNIFORM_CONTENT_WARNING"
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "tp-input"
+          region: "slice-pre-check-non-uniform-tp-input-from-tp-input"
+        diagnostic: "TP_UNIFORM_CONTENT_WARNING"
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "ldc-input"
+          region: "slice-pre-check-non-uniform-ldc-input-from-ldc-input"
+        diagnostic: "LDC_UNIFORM_CONTENT_WARNING"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-tp"
+        overlap: "reject"
+        from:
+          space: "tp-input"
+          region: "slice-steps-copy-tp-from-tp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-tp-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-dp"
+        overlap: "reject"
+        from:
+          space: "dp-input"
+          region: "slice-steps-copy-dp-from-dp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-dp-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-ldc"
+        when:
+          fact: "ldc-input"
+          kind: "present"
+        overlap: "reject"
+        from:
+          space: "ldc-input"
+          region: "slice-steps-copy-ldc-from-ldc-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-ldc-to-output-image"
+    post:
+      -
+        kind: "integrity"
+        when:
+          fact: "setting.vendor-footer"
+          kind: "equals"
+          equals: true
+        run: "vendor-footer-for-nt51951-ab-desay-1024k"
+  -
+    id: "standard-merge-for-nt51950-standard-merge-256k"
+    kind: "standard-merge"
+    uses-inputs: ["dp-input", "tp-input"]
+    initial:
+      kind: "blank"
+      fill: "0x0"
+      length:
+        extent: "output"
+      input: "dp-input"
+      root: "dp-container"
+      size-without-source:
+        extent: "output"
+    settings:
+      -
+        id: "vendor-footer"
+        type: "boolean"
+        default: false
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "dp-input"
+          region: "slice-pre-check-non-uniform-dp-input-from-dp-input"
+        diagnostic: "DP_UNIFORM_CONTENT_WARNING"
+      -
+        kind: "check-non-uniform"
+        from:
+          space: "tp-input"
+          region: "slice-pre-check-non-uniform-tp-input-from-tp-input"
+        diagnostic: "TP_UNIFORM_CONTENT_WARNING"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-dp-container"
+        overlap: "reject"
+        from:
+          space: "dp-input"
+          region: "dp-container"
+        to:
+          space: "output-image"
+          region: "dp-container"
+      -
+        kind: "copy"
+        id: "overlay-tp"
+        overlap: "replace-existing"
+        from:
+          space: "tp-input"
+          region: "slice-steps-overlay-tp-from-tp-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-overlay-tp-to-output-image"
+    post:
+      -
+        kind: "integrity"
+        when:
+          fact: "setting.vendor-footer"
+          kind: "equals"
+          equals: true
+        run: "vendor-footer-for-nt51951-ab-desay-1024k"

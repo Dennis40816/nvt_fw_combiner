@@ -1,0 +1,442 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Local $self space is rebound to the located field id; no IC addresses are stored here.
+schema-version: 1
+definition: "type-ab-tp-flash-header"
+kind: "structure"
+fields:
+  -
+    kind: "scalar"
+    id: "header-crc"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x4"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x4"
+      end: "0x8"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-size"
+    at:
+      space: "$self"
+      start: "0x8"
+      end: "0xC"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-crc-0"
+    at:
+      space: "$self"
+      start: "0xC"
+      end: "0x10"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x10"
+      end: "0x14"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-size"
+    at:
+      space: "$self"
+      start: "0x14"
+      end: "0x18"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-0"
+    at:
+      space: "$self"
+      start: "0x18"
+      end: "0x1C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-diff-destination-address-in-sram"
+    at:
+      space: "$self"
+      start: "0x1C"
+      end: "0x20"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-diff-size"
+    at:
+      space: "$self"
+      start: "0x20"
+      end: "0x22"
+    decoder: "u16le"
+    required: false
+  -
+    kind: "scalar"
+    id: "build-read-command"
+    at:
+      space: "$self"
+      start: "0x24"
+      end: "0x25"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "build-divider-count"
+    at:
+      space: "$self"
+      start: "0x25"
+      end: "0x26"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "spi-option"
+    at:
+      space: "$self"
+      start: "0x26"
+      end: "0x27"
+    decoder: "u8le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-1"
+    at:
+      space: "$self"
+      start: "0x28"
+      end: "0x2C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-2"
+    at:
+      space: "$self"
+      start: "0x2C"
+      end: "0x30"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-3"
+    at:
+      space: "$self"
+      start: "0x30"
+      end: "0x34"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-4"
+    at:
+      space: "$self"
+      start: "0x34"
+      end: "0x38"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-5"
+    at:
+      space: "$self"
+      start: "0x38"
+      end: "0x3C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-6"
+    at:
+      space: "$self"
+      start: "0x3C"
+      end: "0x40"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-crc-7"
+    at:
+      space: "$self"
+      start: "0x40"
+      end: "0x44"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "ilm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x64"
+      end: "0x68"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x68"
+      end: "0x6C"
+    decoder: "u32le"
+    required: false
+  -
+    kind: "scalar"
+    id: "dlm-diff-start-address-in-bin"
+    at:
+      space: "$self"
+      start: "0x6C"
+      end: "0x70"
+    decoder: "u32le"
+    required: false
+semantics:
+  -
+    id: "header-crc"
+    subject: "header"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "ilm-destination-address-in-sram"
+    subject: "ilm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "descriptor-table"
+  -
+    id: "ilm-size"
+    subject: "ilm"
+    role: "size"
+    span: "descriptor-table"
+  -
+    id: "ilm-crc-0"
+    subject: "ilm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-destination-address-in-sram"
+    subject: "dlm"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "descriptor-table"
+  -
+    id: "dlm-size"
+    subject: "dlm"
+    role: "size"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-0"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-diff-destination-address-in-sram"
+    subject: "dlm-difference"
+    role: "destination-address"
+    space: "sram"
+    basis: "absolute"
+    span: "descriptor-table"
+  -
+    id: "dlm-diff-size"
+    subject: "dlm-difference"
+    role: "size"
+    span: "descriptor-table"
+  -
+    id: "build-read-command"
+    subject: "header"
+    role: "option"
+    span: "descriptor-table"
+  -
+    id: "build-divider-count"
+    subject: "header"
+    role: "option"
+    span: "descriptor-table"
+  -
+    id: "spi-option"
+    subject: "header"
+    role: "option"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-1"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-2"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-3"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-4"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-5"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-6"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "dlm-crc-7"
+    subject: "dlm"
+    role: "integrity-value"
+    span: "descriptor-table"
+  -
+    id: "ilm-start-address-in-bin"
+    subject: "ilm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "bank-relative-start-addresses"
+  -
+    id: "dlm-start-address-in-bin"
+    subject: "dlm"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "bank-relative-start-addresses"
+  -
+    id: "dlm-diff-start-address-in-bin"
+    subject: "dlm-difference"
+    role: "tp-bin-start-address"
+    space: "tp-bin"
+    basis: "tp-bin-offset"
+    span: "bank-relative-start-addresses"
+spans:
+  -
+    id: "complete-header"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x100"
+  -
+    id: "descriptor-table"
+    at:
+      space: "$self"
+      start: "0x0"
+      end: "0x44"
+  -
+    id: "bank-relative-start-addresses"
+    at:
+      space: "$self"
+      start: "0x64"
+      end: "0x70"
+series:
+  -
+    id: "dlm-crc-series"
+    entries:
+      -
+        field: "dlm-crc-0"
+        index: 0
+      -
+        field: "dlm-crc-1"
+        index: 1
+      -
+        field: "dlm-crc-2"
+        index: 2
+      -
+        field: "dlm-crc-3"
+        index: 3
+      -
+        field: "dlm-crc-4"
+        index: 4
+      -
+        field: "dlm-crc-5"
+        index: 5
+      -
+        field: "dlm-crc-6"
+        index: 6
+      -
+        field: "dlm-crc-7"
+        index: 7
+    cases:
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 1
+        indices: [0]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 2
+        indices: [0, 1]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 3
+        indices: [0, 1, 2]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 4
+        indices: [0, 1, 2, 3]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 5
+        indices: [0, 1, 2, 3, 4]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 6
+        indices: [0, 1, 2, 3, 4, 5]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 7
+        indices: [0, 1, 2, 3, 4, 5, 6]
+      -
+        when:
+          fact: "ic-count"
+          kind: "equals"
+          equals: 8
+        indices: [0, 1, 2, 3, 4, 5, 6, 7]
+groups:
+  -
+    id: "header-integrity-values"
+    members:
+      -
+        field: "header-crc"
+      -
+        field: "ilm-crc-0"
+      -
+        series-ref: "dlm-crc-series"
+  -
+    id: "tp-bank-relative-start-addresses"
+    members:
+      -
+        field: "ilm-start-address-in-bin"
+      -
+        field: "dlm-start-address-in-bin"
+      -
+        field: "dlm-diff-start-address-in-bin"

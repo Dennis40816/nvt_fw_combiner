@@ -1,0 +1,140 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Plans are complete named rule declarations; IC variants return layout names only.
+schema-version: 1
+ic-refs: ["NT51926"]
+rule: "ctrlram-replace.nt51926"
+naming:
+  -
+    template: "nt51926-ctrlram-replace-fw141-cascade.bin"
+    locked: false
+    tokens: []
+    id: "nt51926-ctrlram-replace-fw141-cascade"
+  -
+    template: "nt51926-ctrlram-replace.bin"
+    locked: false
+    tokens: []
+    id: "nt51926-ctrlram-replace-fw141-runtime-cascade"
+plans:
+  -
+    id: "ctrlram-replace-for-nt51926-ctrlram-fw141-tp-work-240k-ic-count2-nt51926-ctrlram-replace-fw141-cascade"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "normal-ctrlram-input", "diff-ctrlram-input", "mp-ctrlram-input", "vn-ctrlram-input", "nf-ctrlram-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings: []
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "run-nt51926-fw141-cascade-combiner"
+        run: "nt51926-fw141-cascade-combiner-for-nt51926-ctrlram-fw141-tp-work-240k-ic-count2-nt51926-ctrlram-replace-fw141-cascade"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51926-ctrlram-fw141-tp-work-240k-ic-count2-nt51926-ctrlram-replace-fw141-runtime-cascade"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["normal-ctrlram", "mp-ctrlram", "diff-ctrlram", "nf-ctrlram", "vn-ctrlram-fw141"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51926-fw141-runtime-combiner-for-nt51926-ctrlram-fw141-tp-work-240k-ic-count2-nt51926-ctrlram-replace-fw141-runtime-cascade"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51926-ctrlram-fw141-tp-work-240k-ic-count1-nt51926-ctrlram-replace-fw141-runtime-single"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["normal-ctrlram", "mp-ctrlram", "diff-ctrlram", "nf-ctrlram", "vn-ctrlram-fw141"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-single"
+        run: "nt51926-fw141-single-runtime-combiner-for-nt51926-ctrlram-fw141-tp-work-240k-ic-count1-nt51926-ctrlram-replace-fw141-runtime-single"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51926-ctrlram-fw200-tp-work-240k-ic-count2"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["normal-ctrlram", "mp-ctrlram", "diff-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51926-fw200-cascade-runtime-combiner-for-nt51926-ctrlram-fw200-tp-work-240k-ic-count2"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51926-ctrlram-fw200-tp-work-240k-ic-count1"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["normal-ctrlram", "mp-ctrlram", "diff-ctrlram", "nf-ctrlram", "vn-ctrlram-fw200"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-single"
+        run: "nt51926-fw200-single-runtime-combiner-for-nt51926-ctrlram-fw200-tp-work-240k-ic-count1"
+    post: []

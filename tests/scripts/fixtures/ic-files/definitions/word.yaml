@@ -1,0 +1,4 @@
+# A reusable synthetic field.
+definition: "word"
+kind: "scalar"
+decoder: "u8le"

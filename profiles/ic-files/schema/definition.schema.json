@@ -1,0 +1,1363 @@
+{
+  "schema-version": 1,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NFC IC source definition v1",
+  "description": "Version 1 IC source. Serialized declarations only; no firmware/support/Golden promotion.",
+  "type": "object",
+  "properties": {
+    "schema-version": {
+      "const": 1,
+      "description": "IC source format version. Dispatch by version before schema validation. Future readers migrate vN to vN+1; do not guess missing versions."
+    },
+    "definition": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "group",
+        "structure",
+        "scalar",
+        "projection"
+      ]
+    },
+    "from-fields": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      ]
+    },
+    "decoder": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/field"
+      }
+    },
+    "bits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "bit-offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "bit-length": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "bit-offset",
+          "bit-length"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "asserts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "$ref": "#/$defs/range"
+          },
+          "equals": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mask": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "at",
+          "equals"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "other": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "field",
+          "other",
+          "relation"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "semantics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1
+          },
+          "space": {
+            "type": "string",
+            "minLength": 1
+          },
+          "basis": {
+            "type": "string",
+            "minLength": 1
+          },
+          "span": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "subject",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "spans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "at": {
+            "$ref": "#/$defs/range"
+          }
+        },
+        "required": [
+          "id",
+          "at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "series": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "index": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "field",
+                "index"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "cases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "when": {
+                  "$ref": "#/$defs/when"
+                },
+                "indices": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "when",
+                "indices"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "entries"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "field"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "series-ref": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "series-ref"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "members"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "format-policy": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "primaries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "complement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default-format": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "label"
+            ],
+            "additionalProperties": false
+          },
+          "formats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "bytes": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 255
+                  },
+                  "uniqueItems": true
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "bytes"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "primaries",
+          "field",
+          "complement",
+          "default-format",
+          "formats"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "previous-id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current-id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "previous-id",
+          "current-id"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Explicit historical source identities in this document. Resolve previous-id to current-id. No implicit aliases, counters or content hashes define a current identity."
+    }
+  },
+  "required": [
+    "schema-version",
+    "definition",
+    "kind"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "scalar"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "decoder"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "projection"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "from-fields",
+          "decoder"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "structure"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "fields"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "group"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "fields"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "binding": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/targetRef"
+              }
+            },
+            "uses": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            }
+          },
+          "required": [
+            "id",
+            "input",
+            "targets",
+            "uses"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relocation": {
+              "type": "object",
+              "properties": {
+                "group": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "transforms": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+                }
+              },
+              "required": [
+                "group",
+                "transforms"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "id",
+            "input",
+            "relocation"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "condition": {
+      "type": "object",
+      "properties": {
+        "fact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "equals",
+            "interval",
+            "present",
+            "absent"
+          ]
+        },
+        "equals": {
+          "type": [
+            "integer",
+            "string",
+            "boolean"
+          ]
+        },
+        "at-least": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "at-most": {
+          "type": "integer"
+        },
+        "below": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "fact",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "endpoint": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/range"
+        },
+        {
+          "$ref": "#/$defs/regionEndpoint"
+        }
+      ]
+    },
+    "field": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "group",
+            "structure",
+            "scalar",
+            "projection"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "at": {
+          "$ref": "#/$defs/locator"
+        },
+        "from-fields": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          ]
+        },
+        "decoder": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "bits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "bit-offset": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "bit-length": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "bit-offset",
+              "bit-length"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "asserts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "$ref": "#/$defs/range"
+              },
+              "equals": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mask": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "at",
+              "equals"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "other": {
+                "type": "string",
+                "minLength": 1
+              },
+              "relation": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "field",
+              "other",
+              "relation"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "semantics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "subject": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "space": {
+                "type": "string",
+                "minLength": 1
+              },
+              "basis": {
+                "type": "string",
+                "minLength": 1
+              },
+              "span": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "subject",
+              "role"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "spans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "at": {
+                "$ref": "#/$defs/range"
+              }
+            },
+            "required": [
+              "id",
+              "at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "index": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "index"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "cases": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "when": {
+                      "$ref": "#/$defs/when"
+                    },
+                    "indices": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "when",
+                    "indices"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "entries"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "field": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "field"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "series-ref": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "series-ref"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "members"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/binding"
+          }
+        },
+        "map-selection": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1
+              },
+              "from-fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1,
+                "uniqueItems": true,
+                "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+              }
+            },
+            "required": [
+              "id",
+              "input",
+              "from-fields"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "format-policy": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "primaries": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true
+              },
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "complement": {
+                "type": "string",
+                "minLength": 1
+              },
+              "default-format": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "label"
+                ],
+                "additionalProperties": false
+              },
+              "formats": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "bytes": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "label",
+                    "bytes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "primaries",
+              "field",
+              "complement",
+              "default-format",
+              "formats"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "required"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "scalar"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "decoder"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "projection"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "from-fields",
+              "decoder"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "structure"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "fields"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "group"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "fields"
+            ]
+          }
+        }
+      ]
+    },
+    "locator": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/endpoint"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "marker"
+            },
+            "space": {
+              "type": "string",
+              "minLength": 1
+            },
+            "search": {
+              "$ref": "#/$defs/endpoint"
+            },
+            "bytes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "offset": {
+              "type": "integer"
+            },
+            "length": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            },
+            "within": {
+              "type": "string",
+              "minLength": 1
+            },
+            "match": {
+              "enum": [
+                "unique",
+                "lowest",
+                "highest"
+              ]
+            },
+            "match-count": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "space",
+            "search",
+            "bytes",
+            "offset",
+            "length",
+            "within",
+            "match"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "selected"
+            },
+            "space": {
+              "type": "string",
+              "minLength": 1
+            },
+            "from-fields": {
+              "type": "string",
+              "minLength": 1
+            },
+            "length": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            },
+            "within": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cases": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "when": {
+                    "$ref": "#/$defs/when"
+                  },
+                  "anchor": {
+                    "$ref": "#/$defs/endpoint"
+                  },
+                  "result": {
+                    "$ref": "#/$defs/endpoint"
+                  }
+                },
+                "required": [
+                  "when",
+                  "anchor",
+                  "result"
+                ],
+                "additionalProperties": false
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "kind",
+            "space",
+            "from-fields",
+            "length",
+            "within",
+            "cases"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "group"
+            },
+            "locations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "at": {
+                    "$ref": "#/$defs/locator"
+                  }
+                },
+                "required": [
+                  "id",
+                  "at"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "kind",
+            "locations"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "range": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        }
+      },
+      "required": [
+        "space",
+        "start",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "regionEndpoint": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offset": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "length": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        }
+      },
+      "required": [
+        "space",
+        "region"
+      ],
+      "additionalProperties": false
+    },
+    "targetRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "field"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "span": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "span"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "series-ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "series-ref"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "group": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "group"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "when": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/condition"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          },
+          "minItems": 1
+        }
+      ]
+    }
+  }
+}

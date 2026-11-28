@@ -1,0 +1,104 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Plans are complete named rule declarations; IC variants return layout names only.
+schema-version: 1
+ic-refs: ["NT51919", "NT51929", "NT51932"]
+rule: "ab-merge.nt51929"
+naming:
+  -
+    template: "NT{ic}_FlashCode_A_{dp-a}{tp-a}_B_{dp-b}{tp-b}_{date}.bin"
+    locked: false
+    tokens: []
+    id: "nt51919-ab-merge-alias"
+plans:
+  -
+    id: "ab-merge-for-nt51919-ab-merge-512k-ab-merge-ic-count1"
+    kind: "ab-merge"
+    uses-inputs: ["dp-ab-input", "tp-a-input", "tp-b-input"]
+    initial:
+      kind: "blank"
+      fill: "0xFF"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings: []
+    option-defaults: []
+    pre:
+      -
+        kind: "initialize"
+        to: "tp-b-work"
+        initial:
+          kind: "clone"
+          input: "tp-b-input"
+          length:
+            extent: "tp-b-work-length"
+    steps:
+      -
+        kind: "copy"
+        id: "copy-dp-ab-image"
+        when:
+          fact: "dp-ab-input"
+          kind: "present"
+        overlap: "reject"
+        from:
+          space: "dp-ab-input"
+          region: "slice-steps-copy-dp-ab-image-from-dp-ab-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-dp-ab-image-to-output-image"
+      -
+        kind: "copy"
+        id: "copy-tpa"
+        overlap: "replace-existing"
+        from:
+          space: "tp-a-input"
+          region: "slice-steps-copy-tpa-from-tp-a-input"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-tpa-to-output-image"
+      -
+        kind: "transform"
+        id: "relocate-tpb-ilm"
+        overlap: "reject"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-ilm-from-tp-b-work"
+        to:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-ilm-to-tp-b-work"
+        addend: 262144
+        encoding: "u32le"
+      -
+        kind: "transform"
+        id: "relocate-tpb-dlm"
+        overlap: "reject"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-dlm-from-tp-b-work"
+        to:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-dlm-to-tp-b-work"
+        addend: 262144
+        encoding: "u32le"
+      -
+        kind: "transform"
+        id: "relocate-tpb-diff"
+        overlap: "reject"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-diff-from-tp-b-work"
+        to:
+          space: "tp-b-work"
+          region: "slice-steps-relocate-tpb-diff-to-tp-b-work"
+        addend: 262144
+        encoding: "u32le"
+      -
+        kind: "copy"
+        id: "copy-tpb"
+        overlap: "replace-existing"
+        from:
+          space: "tp-b-work"
+          region: "slice-steps-copy-tpb-from-tp-b-work"
+        to:
+          space: "output-image"
+          region: "slice-steps-copy-tpb-to-output-image"
+    post: []

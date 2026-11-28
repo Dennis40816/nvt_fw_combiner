@@ -1,0 +1,17 @@
+part: "common"
+fact-sets:
+  -
+    id: "facts"
+    fields:
+      -
+        id: "sample"
+        definition: "word"
+        at:
+          space: "$self"
+          start: "0x0"
+          end: "0xA"
+        required: true
+    integrity:
+      -
+        id: "stamp"
+        run: "finalize"

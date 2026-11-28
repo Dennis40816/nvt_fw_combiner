@@ -1,0 +1,646 @@
+# NFC 1.3.0 g.1 IC source. No firmware execution or byte-parity claim.
+# Plans are complete named rule declarations; IC variants return layout names only.
+schema-version: 1
+ic-refs: ["NT51919", "NT51929", "NT51932"]
+rule: "ctrlram-replace.nt51929"
+naming:
+  -
+    template: "nt51919-ctrlram-replace.bin"
+    locked: false
+    tokens: []
+    id: "nt51919-ctrlram-replace-fw1x-cascade"
+  -
+    template: "nt51929-ctrlram-replace.bin"
+    locked: false
+    tokens: []
+    id: "nt51929-ctrlram-replace-fw1x-cascade"
+  -
+    template: "nt51932-ctrlram-replace.bin"
+    locked: false
+    tokens: []
+    id: "nt51932-ctrlram-replace-fw1x-single"
+plans:
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count2"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count2"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw200-single-full-flash-ctrlram-replace-for-nt51919"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-single"
+        run: "nt51919-fw200-single-combiner-for-nt51929-ctrlram-fw200-single-full-flash-ctrlram-replace-for-nt51919"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count2"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count2"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw200-single-full-flash-ctrlram-replace-for-nt51929"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-single"
+        run: "nt51929-fw200-single-combiner-for-nt51929-ctrlram-fw200-single-full-flash-ctrlram-replace-for-nt51929"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw1x-single-full-flash-ctrlram-replace"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-single"
+        run: "nt51932-fw1x-single-combiner-for-nt51932-ctrlram-fw1x-single-full-flash-ctrlram-replace"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count2"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count2"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count3"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count3"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count4"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count4"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count5"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count5"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count6"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count6"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count7"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count7"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count8"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51919-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51919-ic-count8"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count3"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count3"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count4"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count4"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count5"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count5"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count6"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count6"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count7"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count7"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count8"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51929-fw1x-cascade-combiner-for-nt51929-ctrlram-fw1x-cascade-full-flash-ctrlram-replace-for-nt51929-ic-count8"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count3"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count3"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count4"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count4"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count5"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count5"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count6"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count6"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count7"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count7"
+    post: []
+  -
+    id: "ctrlram-replace-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count8"
+    kind: "ctrlram-replace"
+    uses-inputs: ["reference-base", "ctrlram-source", "diffdlm-input"]
+    initial:
+      kind: "clone"
+      input: "reference-base"
+      length:
+        extent: "output"
+    settings: []
+    user-mappings:
+      -
+        input: "ctrlram-source"
+        root: "flash-image"
+        allowed-regions: ["nf-ctrlram", "normal-ctrlram", "vn-ctrlram", "diff-ctrlram"]
+        overlap: "reject"
+        length-policy: "exact"
+        on-protected: "enforce"
+    option-defaults: []
+    pre: []
+    steps:
+      -
+        kind: "integrity"
+        id: "postbuild-cascade"
+        run: "nt51932-fw200-cascade-combiner-for-nt51932-ctrlram-fw200-cascade-full-flash-ctrlram-replace-ic-count8"
+    post: []

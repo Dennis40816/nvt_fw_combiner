@@ -1,0 +1,23 @@
+{
+  "type": "object",
+  "properties": {
+    "ic": {"type": "array", "items": {"type": "string"}},
+    "sizes": {"type": "array", "items": {"type": "string"}},
+    "layouts": {"type": "array", "items": {"$ref": "#/$defs/layout"}},
+    "rules": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "rule": {"type": "string"}}, "additionalProperties": false}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "layout": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "size": {"oneOf": [{"type": "string"}, {"type": "null"}]},
+        "fields": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "definition": {"type": "string"}}, "additionalProperties": false}},
+        "integrity": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "run": {"type": "string"}}, "additionalProperties": false}},
+        "include": {"type": "array", "items": {"type": "object", "properties": {"file": {"type": "string"}, "fact-set": {"type": "string"}}, "additionalProperties": false}}
+      },
+      "additionalProperties": false
+    }
+  }
+}

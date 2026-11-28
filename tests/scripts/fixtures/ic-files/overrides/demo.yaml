@@ -1,0 +1,5 @@
+# The formatter fills this value.
+base:
+  -
+    ic: "DEMO"
+    sha256: ""

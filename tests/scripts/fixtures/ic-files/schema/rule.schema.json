@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "rule": {"type": "string"},
+    "plans": {"type": "array", "items": {"type": "object", "properties": {"id": {"type": "string"}, "steps": {"type": "array", "items": {"$ref": "#/$defs/step"}}}, "additionalProperties": false}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "step": {"oneOf": [
+      {"type": "object", "properties": {"kind": {"const": "integrity"}, "run": {"type": "string"}}, "required": ["kind", "run"], "additionalProperties": false},
+      {"type": "object", "properties": {"kind": {"const": "fill"}, "fill": {"type": "string"}}, "required": ["kind", "fill"], "additionalProperties": false}
+    ]}
+  }
+}

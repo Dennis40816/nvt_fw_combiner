@@ -1,0 +1,892 @@
+{
+  "schema-version": 1,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NFC IC source rule v1",
+  "description": "Version 1 IC source. Serialized declarations only; no firmware/support/Golden promotion.",
+  "type": "object",
+  "properties": {
+    "schema-version": {
+      "const": 1,
+      "description": "IC source format version. Dispatch by version before schema validation. Future readers migrate vN to vN+1; do not guess missing versions."
+    },
+    "ic-refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+    },
+    "rule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "naming": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "type": "string",
+            "minLength": 1
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "tokens": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fact": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "from-fields": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "formatter": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "missing": {
+                  "oneOf": [
+                    {
+                      "const": "reject"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "cases": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "when": {
+                        "$ref": "#/$defs/when"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "when",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "missing"
+              ],
+              "additionalProperties": false,
+              "oneOf": [
+                {
+                  "required": [
+                    "fact"
+                  ],
+                  "not": {
+                    "required": [
+                      "from-fields"
+                    ]
+                  }
+                },
+                {
+                  "required": [
+                    "from-fields"
+                  ],
+                  "not": {
+                    "required": [
+                      "fact"
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "template",
+          "locked",
+          "tokens",
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "plans": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/plan"
+      },
+      "minItems": 1
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "previous-id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current-id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "previous-id",
+          "current-id"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Explicit historical source identities in this document. Resolve previous-id to current-id. No implicit aliases, counters or content hashes define a current identity."
+    }
+  },
+  "required": [
+    "schema-version",
+    "rule",
+    "ic-refs",
+    "naming",
+    "plans"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "condition": {
+      "type": "object",
+      "properties": {
+        "fact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "equals",
+            "interval",
+            "present",
+            "absent"
+          ]
+        },
+        "equals": {
+          "type": [
+            "integer",
+            "string",
+            "boolean"
+          ]
+        },
+        "at-least": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "at-most": {
+          "type": "integer"
+        },
+        "below": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "fact",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "extent": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "extent": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "extent"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "initial": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "blank"
+            },
+            "fill": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]{1,2}$"
+            },
+            "length": {
+              "$ref": "#/$defs/extent"
+            },
+            "input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "root": {
+              "type": "string",
+              "minLength": 1
+            },
+            "size-without-source": {
+              "$ref": "#/$defs/extent"
+            }
+          },
+          "required": [
+            "kind",
+            "fill"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "clone"
+            },
+            "input": {
+              "type": "string",
+              "minLength": 1
+            },
+            "length": {
+              "$ref": "#/$defs/extent"
+            }
+          },
+          "required": [
+            "kind",
+            "input"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "mappings": {
+      "type": "object",
+      "properties": {
+        "input": {
+          "type": "string",
+          "minLength": 1
+        },
+        "root": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed-regions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "overlap": {
+          "enum": [
+            "reject",
+            "replace-existing"
+          ]
+        },
+        "length-policy": {
+          "enum": [
+            "exact",
+            "padding-explicit"
+          ]
+        },
+        "on-protected": {
+          "enum": [
+            "warn",
+            "enforce"
+          ]
+        }
+      },
+      "required": [
+        "input",
+        "root",
+        "overlap",
+        "length-policy",
+        "on-protected"
+      ],
+      "additionalProperties": false
+    },
+    "plan": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "standard-merge",
+            "ctrlram-replace",
+            "ab-merge",
+            "general-merge",
+            "general-replace"
+          ]
+        },
+        "uses-inputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "initial": {
+          "$ref": "#/$defs/initial"
+        },
+        "settings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/setting"
+          }
+        },
+        "user-mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mappings"
+          }
+        },
+        "option-defaults": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/setting"
+          }
+        },
+        "pre": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "post": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "uses-inputs",
+        "initial",
+        "settings",
+        "user-mappings",
+        "option-defaults",
+        "pre",
+        "steps",
+        "post"
+      ],
+      "additionalProperties": false
+    },
+    "regionEndpoint": {
+      "type": "object",
+      "properties": {
+        "space": {
+          "type": "string",
+          "minLength": 1
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offset": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        },
+        "length": {
+          "type": "string",
+          "pattern": "^0x[0-9A-Fa-f]+$"
+        }
+      },
+      "required": [
+        "space",
+        "region"
+      ],
+      "additionalProperties": false
+    },
+    "setting": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "const": "boolean"
+            },
+            "default": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "default"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "const": "choice"
+            },
+            "default": {
+              "type": "string",
+              "minLength": 1
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "minItems": 1,
+              "uniqueItems": true,
+              "description": "Source ICs represented by this extracted rule. This is provenance, not a support allowlist. New IC documents reuse it through explicit bindings."
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "default",
+            "values"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "const": "requested-output-length"
+            },
+            "type": {
+              "const": "hex-length"
+            },
+            "min-length": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            },
+            "max-length": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]+$"
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "min-length",
+            "max-length"
+          ],
+          "additionalProperties": false,
+          "description": "Owner approved 2026-11-28 01:19: user-requested hexadecimal byte length, independently chosen from mapping ends. No implicit default; require min-length <= request <= max-length."
+        }
+      ]
+    },
+    "step": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "copy"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "from": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "to": {
+              "$ref": "#/$defs/regionEndpoint"
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to",
+            "overlap"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "replace"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "from": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "to": {
+              "$ref": "#/$defs/regionEndpoint"
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to",
+            "overlap"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "fill"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "to": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "fill": {
+              "type": "string",
+              "pattern": "^0x[0-9A-Fa-f]{1,2}$"
+            }
+          },
+          "required": [
+            "kind",
+            "to",
+            "fill",
+            "overlap"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "patch"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "to": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "scalar": {
+              "oneOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^0x[0-9A-Fa-f]+$"
+                }
+              ]
+            },
+            "encoding": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "to",
+            "scalar",
+            "encoding",
+            "overlap"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "transform"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "from": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "to": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "addend": {
+              "type": "integer"
+            },
+            "encoding": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to",
+            "addend",
+            "encoding",
+            "overlap"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "integrity"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "run": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "run"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "initialize"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "to": {
+              "type": "string",
+              "minLength": 1
+            },
+            "initial": {
+              "$ref": "#/$defs/initial"
+            }
+          },
+          "required": [
+            "kind",
+            "to",
+            "initial"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "overlay"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "from": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/regionEndpoint"
+              },
+              "minItems": 2
+            },
+            "to": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "from-fields": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "to",
+            "from-fields",
+            "overlap"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "check-non-uniform"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "when": {
+              "$ref": "#/$defs/when"
+            },
+            "overlap": {
+              "enum": [
+                "reject",
+                "replace-existing"
+              ]
+            },
+            "from": {
+              "$ref": "#/$defs/regionEndpoint"
+            },
+            "diagnostic": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "from",
+            "diagnostic"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "when": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/condition"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          },
+          "minItems": 1
+        }
+      ]
+    }
+  }
+}
