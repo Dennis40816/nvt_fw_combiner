@@ -5,6 +5,7 @@ using NvtFwCombiner.TestSupport;
 
 namespace NvtFwCombiner.UiSmoke.Tests;
 
+/// <summary>Exercises CtrlRAM Replace input titles, guidance and typed mapping details.</summary>
 public sealed partial class CtrlRamWorkflowTests
 {
     /// <summary>One logical CtrlRAM region is one visible item even when write and kept ranges differ.</summary>
@@ -489,10 +490,8 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal(
             "基底韌體",
             traditionalChinese.GetReplaceBaseTitle(ExperienceIds.CtrlRamReplace));
-        Assert.Contains("complete FlashCode or TP FW", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
-        Assert.Contains("short files stop at EOF", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.Ordinal);
-        Assert.Contains("完整 FlashCode 或 TP FW", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
-        Assert.Contains("短檔於 EOF 停止", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.Ordinal);
+        Assert.Equal("Use a complete base BIN; short files stop at their end and extra bytes are ignored.", viewModel.Text.CtrlRamInputFilesDetail);
+        Assert.Equal("請使用完整的基底 BIN；較短的檔案讀到結尾為止，超出的 bytes 會忽略。", traditionalChinese.CtrlRamInputFilesDetail);
         Assert.Contains("Complete FlashCode or TP FW", viewModel.Replace.ReplaceBaseSlot.Description, StringComparison.Ordinal);
         Assert.DoesNotContain("base flash", viewModel.Text.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("base flash", traditionalChinese.CtrlRamInputFilesDetail, StringComparison.OrdinalIgnoreCase);
@@ -664,7 +663,8 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("0 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.DoesNotContain(viewModel.Replace.ReplaceCoverageSegments, static segment => segment.IsChanged);
         Assert.Equal("Waiting for Base BIN", Assert.Single(viewModel.Replace.ReplaceCoverageSegments).SourceLabel);
-        Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
+        Assert.Equal("CtrlRAM Replace is not ready; check the base BIN, CtrlRAM inputs, and Build status.",
+            viewModel.Replace.ReplaceSelectionStatusLabel);
         Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "Base firmware");
         Assert.Contains(viewModel.Replace.ReplaceSelectionMissingRows, row => row.Title == "CtrlRAM replacement");
         FirmwareSlotGroupViewModel slaveLGroup = viewModel.Replace.ReplaceSlotGroups.Single(group => group.Title == "Slave L");
@@ -686,7 +686,8 @@ public sealed partial class CtrlRamWorkflowTests
         Assert.Equal("1 / 8 targets selected", viewModel.Replace.ReplaceSelectionCountLabel);
         Assert.Equal("1/2", sharedGroup.CountLabel);
         Assert.Equal("1 selected / 2 areas.", sharedGroup.SelectionSummary);
-        Assert.Contains("Build blocked", viewModel.Replace.ReplaceSelectionStatusLabel, StringComparison.Ordinal);
+        Assert.Equal("CtrlRAM Replace is not ready; check the base BIN, CtrlRAM inputs, and Build status.",
+            viewModel.Replace.ReplaceSelectionStatusLabel);
         Assert.Empty(viewModel.Replace.ReplaceSelectionMissingRows);
         ReportLineViewModel selectedRow = Assert.Single(viewModel.Replace.ReplaceSelectionRows);
         Assert.Equal("VN CtrlRAM (Shared)", selectedRow.Title);

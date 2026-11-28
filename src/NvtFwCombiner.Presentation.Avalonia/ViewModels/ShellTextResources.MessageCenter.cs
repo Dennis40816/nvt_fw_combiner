@@ -116,61 +116,55 @@ internal sealed partial class ShellTextResources
     public string GetSystemDiagnosticMessage(ActionableSystemDiagnostic diagnostic)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
-        return SelectLanguage(diagnostic.Message, diagnostic.Code switch
+        return diagnostic.Code switch
         {
-            SystemDiagnosticCodes.PrebuiltCatalogUnused => "未使用預建 Profile 目錄；目前使用 JSON admission。",
-            SystemDiagnosticCodes.CapabilityCatalogUnavailable => "Capability 目錄無法使用，因此已停用 Build。",
-            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => "Capability 目錄重新載入失敗；目前仍使用最後已知正常版本。",
-            SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable => "外部工具環境無法使用。",
-            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => "外部工具重新整理失敗；目前仍使用最後已知正常環境。",
+            SystemDiagnosticCodes.CapabilityCatalogUnavailable => SelectLanguage(
+                "The capability catalog is unavailable, blocking Build; select Refresh under System activity in Message Center.",
+                "功能目錄無法使用而阻擋 Build，請在訊息中心的「系統活動」按「重新整理」。"),
+            SystemDiagnosticCodes.PrebuiltCatalogUnused => SelectLanguage(diagnostic.Message, "未使用預建 Profile 目錄；目前使用 JSON admission。"),
+            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => SelectLanguage(diagnostic.Message, "Capability 目錄重新載入失敗；目前仍使用最後已知正常版本。"),
+            SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable => SelectLanguage(diagnostic.Message, "外部工具環境無法使用。"),
+            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => SelectLanguage(diagnostic.Message, "外部工具重新整理失敗；目前仍使用最後已知正常環境。"),
             _ => diagnostic.Message,
-        });
+        };
     }
 
     public string GetSystemDiagnosticAction(ActionableSystemDiagnostic diagnostic)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
-        return SelectLanguage(diagnostic.Action, diagnostic.Code switch
+        return diagnostic.Code switch
         {
-            SystemDiagnosticCodes.PrebuiltCatalogUnused => "請修復或重新安裝套件，然後重新啟動應用程式。",
-            SystemDiagnosticCodes.CapabilityCatalogUnavailable => "請修正目錄來源後重新載入。",
-            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => "請檢查目錄來源後重新載入。",
+            SystemDiagnosticCodes.CapabilityCatalogUnavailable => string.Empty,
+            SystemDiagnosticCodes.PrebuiltCatalogUnused => SelectLanguage(diagnostic.Action, "請修復或重新安裝套件，然後重新啟動應用程式。"),
+            SystemDiagnosticCodes.CapabilityCatalogLastKnownGood => SelectLanguage(diagnostic.Action, "請檢查目錄來源後重新載入。"),
             SystemDiagnosticCodes.ExternalProcessorEnvironmentUnavailable or
-            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => "請檢查外部工具 manifest 後重新整理。",
+            SystemDiagnosticCodes.ExternalProcessorEnvironmentLastKnownGood => SelectLanguage(diagnostic.Action, "請檢查外部工具 manifest 後重新整理。"),
             _ => diagnostic.Action,
-        });
+        };
     }
 
     public string FormatCapabilityActionBlocker(CapabilityActionBlocker blocker)
     {
         ArgumentNullException.ThrowIfNull(blocker);
-        string message = blocker.Code switch
+        string? message = blocker.Code switch
         {
-            "AB_FORMAT_CONFIGURATION_INVALID" => SelectLanguage(
-                "Event Buffer Format configuration is invalid or unreadable.",
-                "Event Buffer Format 設定無效或無法讀取。"),
-            CapabilityActionReadinessIssueCodes.AuthoringUnavailable => SelectLanguage(
-                blocker.Message,
-                $"路由 {blocker.SubjectId} 不允許 authoring。"),
-            CapabilityActionReadinessIssueCodes.ExecutionNotAdmitted => SelectLanguage(
-                blocker.Message,
-                $"編譯後的路由 {blocker.SubjectId} 尚未允許執行。"),
-            CapabilityActionReadinessIssueCodes.PostbuildStageAuthorityMissing => SelectLanguage(
-                blocker.Message,
-                $"{blocker.SubjectId} 缺少必要的 postbuild stage 權限。"),
-            CapabilityActionReadinessIssueCodes.InputPending => SelectLanguage(
-                blocker.Message,
-                $"必要輸入 {blocker.SubjectId} 尚未選擇。"),
-            CapabilityActionReadinessIssueCodes.InputBlocked => SelectLanguage(
-                blocker.Message,
-                $"輸入 {blocker.SubjectId} 未通過檢查。"),
-            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale => SelectLanguage(
-                blocker.Message,
-                "目前的 runtime dependency 狀態尚未重新整理。"),
-            CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked => SelectLanguage(
-                blocker.Message,
-                $"必要的 runtime dependency {blocker.SubjectId} 無法使用。"),
-            _ => blocker.Message,
+            "AB_FORMAT_CONFIGURATION_INVALID" =>
+                SelectLanguage("Event Buffer Format settings are invalid or unreadable; review and save them in Settings.", "Event Buffer Format 設定無效或無法讀取，請到「設定」檢查並儲存。"),
+            CapabilityActionReadinessIssueCodes.AuthoringUnavailable =>
+                SelectLanguage("The selected workflow is unavailable; choose another workflow.", "所選工作流程目前無法使用，請選擇其他工作流程。"),
+            CapabilityActionReadinessIssueCodes.ExecutionNotAdmitted =>
+                SelectLanguage("The selected workflow cannot run; review the Build status or choose another workflow.", "所選工作流程無法執行，請查看 Build 狀態或選擇其他工作流程。"),
+            CapabilityActionReadinessIssueCodes.InputBlocked =>
+                SelectLanguage("An input is blocking Build; review the input cards and their required actions.", "有輸入阻擋 Build，請查看輸入卡及其處理指示。"),
+            CapabilityActionReadinessIssueCodes.InputPending =>
+                SelectLanguage("Build prerequisites are not ready; check the workflow selection and required inputs.", "Build 所需條件尚未就緒，請確認工作流程選擇及必要輸入。"),
+            CapabilityActionReadinessIssueCodes.PostbuildStageAuthorityMissing =>
+                SelectLanguage("General Replace cannot prepare the required postbuild step; review the selected IC, base BIN, and mappings.", "General Replace 無法準備必要的後處理步驟，請檢查所選 IC、基底 BIN 及對應。"),
+            CapabilityActionReadinessIssueCodes.RuntimeDependencyBlocked =>
+                SelectLanguage("A required external tool is not ready; select Refresh under System activity in Message Center.", "必要的外部工具尚未就緒，請在訊息中心的「系統活動」按「重新整理」。"),
+            CapabilityActionReadinessIssueCodes.RuntimeSnapshotStale =>
+                SelectLanguage("External tool status is not current; select Refresh under System activity in Message Center.", "外部工具狀態尚未更新，請在訊息中心的「系統活動」按「重新整理」。"),
+            _ => null,
         };
         string action = blocker.NextAction switch
         {
@@ -197,7 +191,7 @@ internal sealed partial class ShellTextResources
                 blocker.NextAction,
                 null),
         };
-        return $"{message} {action}";
+        return message ?? $"{blocker.Message} {action}";
     }
 }
 

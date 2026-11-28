@@ -8,7 +8,7 @@ namespace NvtFwCombiner.UiSmoke.Tests;
 /// <summary>Cards and Report translate owner facts without scanning or parsing firmware diagnostics.</summary>
 public sealed class IssueCardProjectionTests
 {
-    /// <summary>Minimum size is concise, localized and only attributed to the source-coverage issue.</summary>
+    /// <summary>The approved summary keeps its typed minimum in detail and clears stale facts on file changes.</summary>
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -17,7 +17,8 @@ public sealed class IssueCardProjectionTests
         FirmwareSlotViewModel slot = StandardMergeFeedbackTests.Slot(StandardMergeFeedbackTests.Status(
             "input.source-view.incomplete", AuthoringSlotLifecycle.Error, 262143, 262144), chinese);
         IssueCardViewModel card = Assert.IsType<IssueCardViewModel>(slot.IssueCard);
-        Assert.Contains("≥ 256 KiB", card.Summary, StringComparison.Ordinal);
+        Assert.Equal(chinese ? "所選 BIN 太短，請選擇完整且相容的 BIN。" : "The selected BIN is too short; select a complete, compatible BIN.", card.Summary);
+        Assert.Contains("≥ 256 KiB", card.Action, StringComparison.Ordinal);
         Assert.DoesNotContain("262143", card.AutomationText, StringComparison.Ordinal);
         Assert.True(slot.BlocksBuild);
         Assert.DoesNotContain("Error: Error:", slot.SemanticStateAutomationText, StringComparison.Ordinal);
@@ -76,7 +77,9 @@ public sealed class IssueCardProjectionTests
         Assert.Contains("262,143", reopened.Issues[2].Detail, StringComparison.Ordinal);
         Assert.Contains("262,144", reopened.Issues[2].Detail, StringComparison.Ordinal);
         Assert.Contains(chinese ? "缺少：1 bytes" : "Missing: 1 bytes", reopened.Issues[2].Detail, StringComparison.Ordinal);
+        Assert.Contains(chinese ? "所選 BIN 太短，請選擇完整且相容的 BIN。" : "The selected BIN is too short; select a complete, compatible BIN.", reopened.SummaryIssueDescriptions, StringComparison.Ordinal);
         Assert.Contains("≥ 256 KiB", reopened.SummaryIssueDescriptions, StringComparison.Ordinal);
+        Assert.Contains("≥ 256 KiB", reopened.Issues[2].Detail, StringComparison.Ordinal);
         Assert.Equal(live.Issues.Select(static row => row.Detail), reopened.Issues.Select(static row => row.Detail));
         Assert.Equal(issues.Select(static issue => issue.Message), reopened.Issues.Select(static row => row.CodeBlock));
         Assert.Equal(1, reopened.BlockingIssueCount);

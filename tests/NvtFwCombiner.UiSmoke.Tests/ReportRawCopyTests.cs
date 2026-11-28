@@ -186,7 +186,7 @@ public sealed class ReportRawCopyTests
                 Assert.True(shell.Reports.IsReportModalOpen);
                 Assert.True(shell.Reports.HasReportToast);
                 Assert.Equal("Copy failed", shell.Reports.ShellToastTitle);
-                Assert.Equal("Clipboard unavailable. Try again or save the report.", shell.Reports.ReportToastText);
+                Assert.Equal("Copy failed; try again or use Save report.", shell.Reports.ReportToastText);
             }
             finally
             {
