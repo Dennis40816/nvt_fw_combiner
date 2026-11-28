@@ -1,0 +1,29 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views"
+             x:Class="NvtFwCombiner.Presentation.Avalonia.Views.IssueList"
+             x:DataType="views:IssueList">
+  <UserControl.Styles>
+    <StyleInclude Source="avares://NvtFwCombiner.Presentation.Avalonia/Styles/IssueListStyles.axaml" />
+  </UserControl.Styles>
+  <Border Name="IssueListCard" Classes="issueListCard" AutomationProperties.AutomationId="IssueList.Card">
+    <Grid RowDefinitions="Auto,*">
+      <Border Classes="issueListHeader">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="{DynamicResource NfcSpace8}">
+          <TextBlock Name="IssueListTitle" Classes="issueListTitle" VerticalAlignment="Center" />
+          <StackPanel Name="IssueListErrors" Grid.Column="1" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}"
+                      VerticalAlignment="Center" AutomationProperties.AutomationId="IssueList.Errors"
+                      AutomationProperties.AccessibilityView="Content" AutomationProperties.ControlTypeOverride="Group" />
+          <StackPanel Name="IssueListWarnings" Grid.Column="2" Orientation="Horizontal" Spacing="{DynamicResource NfcSpace4}"
+                      VerticalAlignment="Center" AutomationProperties.AutomationId="IssueList.Warnings"
+                      AutomationProperties.AccessibilityView="Content" AutomationProperties.ControlTypeOverride="Group" />
+        </Grid>
+      </Border>
+      <ScrollViewer Name="IssueListScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto" AllowAutoHide="False">
+        <StackPanel Name="IssueListRows" />
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</UserControl>

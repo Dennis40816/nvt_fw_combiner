@@ -1,0 +1,145 @@
+<!-- Copyright (c) 2026 Dennis Liu. All rights reserved. -->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:NvtFwCombiner.Presentation.Avalonia.Views">
+  <Style Selector="views|IssueList">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcUiFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="MaxHeight" Value="480" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Border.issueListCard">
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcSurfaceCornerRadius}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.issueListHeader">
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+  <Style Selector="TextBlock.issueListTitle">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize16}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="Button.issueListRow">
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Padding" Value="14,12" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Grid>
+          <ContentPresenter Name="IssueContentPresenter" Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+          <Border Name="ErrorBar" Width="2" HorizontalAlignment="Left" IsVisible="False"
+                  Background="{DynamicResource NfcCriticalBorderBrush}" IsHitTestVisible="False" />
+          <Border Name="RowDivider" VerticalAlignment="Bottom" Height="1" Background="{DynamicResource NfcBorderMutedBrush}"
+                  IsHitTestVisible="False" />
+          <Border Name="FocusOutline" Margin="2" BorderThickness="2" IsVisible="False"
+                  BorderBrush="{DynamicResource NfcTextStrongBrush}" IsHitTestVisible="False" />
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="Button.issueListRow.error">
+    <Setter Property="Background" Value="{DynamicResource NfcDangerSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.issueListRow.error /template/ Border#ErrorBar">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="Button.issueListRow.last /template/ Border#RowDivider">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+  <Style Selector="Button.issueListRow:pointerover, Button.issueListRow:pressed">
+    <Setter Property="Background" Value="{DynamicResource NfcSelectionSurfaceBrush}" />
+  </Style>
+  <Style Selector="Button.issueListRow.error:pointerover, Button.issueListRow.error:pressed">
+    <Setter Property="Background" Value="{DynamicResource NfcDangerSurfaceMutedBrush}" />
+  </Style>
+  <Style Selector="Button.issueListRow:focus-visible /template/ Border#FocusOutline">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+  <Style Selector="Button.issueListRow:disabled">
+    <Setter Property="Opacity" Value="0.5" />
+  </Style>
+  <Style Selector="TextBlock.issueListSentence">
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize13}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextStrongBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.issueListTechnical, TextBlock.issueListMultiplicity">
+    <Setter Property="FontFamily" Value="{DynamicResource NfcTechnicalFontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource NfcFontSize11}" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+  <Style Selector="TextBlock.issueListMultiplicity">
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Border.issueListChip, Border.issueListBadge, Border.issueListDetails">
+    <Setter Property="BorderBrush" Value="{DynamicResource NfcBorderMutedBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceSubtleBrush}" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="Border.issueListChip">
+    <Setter Property="Padding" Value="3,0" />
+    <Setter Property="Margin" Value="0,0,4,2" />
+  </Style>
+  <Style Selector="Border.issueListBadge">
+    <Setter Property="Padding" Value="4,0" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Border.issueListDetails">
+    <Setter Property="Padding" Value="8" />
+    <Setter Property="Margin" Value="0,4,0,0" />
+    <Setter Property="Background" Value="{DynamicResource NfcSurfaceBrush}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource NfcCompactCornerRadius}" />
+  </Style>
+  <Style Selector="Path.issueListSeverity">
+    <Setter Property="Width" Value="20" />
+    <Setter Property="Height" Value="20" />
+    <Setter Property="StrokeThickness" Value="2" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+  </Style>
+  <Style Selector="Path.issueListSeverity.error">
+    <Setter Property="Stroke" Value="{DynamicResource NfcCriticalBorderBrush}" />
+  </Style>
+  <Style Selector="Path.issueListSeverity.warning">
+    <Setter Property="Stroke" Value="{DynamicResource NfcWarningAccentStrongBrush}" />
+  </Style>
+  <Style Selector="TextBlock.issueListCount">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.issueListCount.error">
+    <Setter Property="Foreground" Value="{DynamicResource NfcCriticalBorderBrush}" />
+  </Style>
+  <Style Selector="TextBlock.issueListCount.warning">
+    <Setter Property="Foreground" Value="{DynamicResource NfcIssueWarningCountBrush}" />
+  </Style>
+  <Style Selector="Button.issueListRow.selected TextBlock.issueListChevron">
+    <Setter Property="RenderTransform" Value="rotate(90deg)" />
+  </Style>
+  <Style Selector="TextBlock.issueListChevron">
+    <!-- Square and top aligned, so the open-state rotation stays inside the row at any row height. -->
+    <Setter Property="Width" Value="16" />
+    <Setter Property="Height" Value="16" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+    <Setter Property="TextAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource NfcTextSecondaryBrush}" />
+  </Style>
+</Styles>

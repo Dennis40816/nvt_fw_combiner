@@ -53,6 +53,7 @@
       <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#9A3412" />
       <SolidColorBrush x:Key="NfcWarningBorderStrongBrush" Color="#FDBA74" />
       <SolidColorBrush x:Key="NfcWarningTextStrongBrush" Color="#C2410C" />
+      <SolidColorBrush x:Key="NfcIssueWarningCountBrush" Color="#C2410C" />
       <SolidColorBrush x:Key="NfcCautionSurfaceBrush" Color="#FFFBEB" />
       <SolidColorBrush x:Key="NfcCautionBorderBrush" Color="#FCD34D" />
       <SolidColorBrush x:Key="NfcCautionBorderSoftBrush" Color="#FDE68A" />
@@ -153,6 +154,7 @@
       <SolidColorBrush x:Key="NfcWarningTextBrush" Color="#FFEDD5" />
       <SolidColorBrush x:Key="NfcWarningBorderStrongBrush" Color="#C2410C" />
       <SolidColorBrush x:Key="NfcWarningTextStrongBrush" Color="#FFF7ED" />
+      <SolidColorBrush x:Key="NfcIssueWarningCountBrush" Color="#FBBF24" />
       <SolidColorBrush x:Key="NfcCautionSurfaceBrush" Color="#3A2A05" />
       <SolidColorBrush x:Key="NfcCautionBorderBrush" Color="#A16207" />
       <SolidColorBrush x:Key="NfcCautionBorderSoftBrush" Color="#713F12" />
